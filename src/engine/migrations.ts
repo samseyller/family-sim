@@ -1,0 +1,33 @@
+import { SCHEMA_VERSION } from './generate';
+import type { GameState } from './types';
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
+type Step = (s: any) => any;
+
+/** STEPS[n] upgrades a save from schemaVersion n to n + 1. */
+const STEPS: Record<number, Step> = {
+  // v1 → v2: part-time jobs; plan.jobIntent became plan.jobIntents (one per slot).
+  1: (s) => {
+    const old = s.plan?.jobIntent;
+    s.plan.jobIntents = old ? [old.kind === 'quit' ? { kind: 'quit', slot: 'full' } : old] : [];
+    delete s.plan.jobIntent;
+    for (const p of Object.values<any>(s.people)) {
+      p.partPerf ??= 50;
+      p.partYears ??= 0;
+    }
+    return s;
+  },
+};
+
+/** Upgrade a loaded save to the current schema, or return undefined if it can't be. */
+export function migrate(raw: unknown): GameState | undefined {
+  if (!raw || typeof raw !== 'object') return undefined;
+  let s: any = structuredClone(raw);
+  while (typeof s.schemaVersion === 'number' && s.schemaVersion < SCHEMA_VERSION) {
+    const step = STEPS[s.schemaVersion];
+    if (!step) return undefined;
+    s = step(s);
+    s.schemaVersion++;
+  }
+  return s.schemaVersion === SCHEMA_VERSION ? (s as GameState) : undefined;
+}

@@ -1,0 +1,86 @@
+import type { GameState, Person } from '../../engine/types';
+import { active, ageOf, alive, childrenOf, getBond, parentsOf, partnerOf } from '../../engine/util';
+import { jobTitle } from '../../content/careers';
+import { HOBBY_BY_ID } from '../../content/actions';
+import { receptiveness, receptivenessLabel } from '../../engine/family';
+import { Avatar } from '../Avatar';
+import { Section } from '../components';
+
+function role(g: GameState, me: Person, p: Person): string {
+  if (partnerOf(g, me.id)?.id === p.id) return 'Partner';
+  if (p.biologicalParents.includes(me.id)) return p.sex === 'F' ? 'Daughter' : 'Son';
+  if (me.biologicalParents.includes(p.id)) return p.sex === 'F' ? 'Mother' : 'Father';
+  if (p.biologicalParents.some((id) => me.biologicalParents.includes(id))) return p.sex === 'F' ? 'Sister' : 'Brother';
+  if (p.biologicalParents.some((id) => g.people[id]?.biologicalParents.includes(me.id))) return p.sex === 'F' ? 'Granddaughter' : 'Grandson';
+  const ex = g.partnerships.find((x) => (x.a === me.id && x.b === p.id) || (x.b === me.id && x.a === p.id));
+  if (ex) return ex.status === 'divorced' ? 'Ex-partner' : 'Late partner';
+  return 'Relative';
+}
+
+function BondMeter({ label, v }: { label: string; v: number }) {
+  const pct = (v + 100) / 2;
+  return (
+    <div className="bond">
+      <span className="hint">{label}</span>
+      <div className="bar center-bar" role="meter" aria-label={label} aria-valuemin={-100} aria-valuemax={100} aria-valuenow={v}>
+        <div className={`fill ${v >= 0 ? 'good' : 'bad'}`} style={{ left: v >= 0 ? '50%' : `${pct}%`, width: `${Math.abs(v) / 2}%` }} />
+      </div>
+      <span className="hint">{v}</span>
+    </div>
+  );
+}
+
+export function FamilyTab({ g }: { g: GameState }) {
+  const me = active(g);
+  const seen = new Set<string>([me.id]);
+  const list: Person[] = [];
+  const add = (p?: Person) => {
+    if (p && !seen.has(p.id)) {
+      seen.add(p.id);
+      list.push(p);
+    }
+  };
+  add(partnerOf(g, me.id));
+  for (const c of childrenOf(g, me.id)) add(c);
+  for (const c of childrenOf(g, me.id)) for (const gc of childrenOf(g, c.id)) add(gc);
+  for (const p of parentsOf(g, me)) add(p);
+  for (const p of g.partnerships) if (p.a === me.id || p.b === me.id) add(g.people[p.a === me.id ? p.b : p.a]);
+  const living = list.filter(alive);
+  const dead = list.filter((p) => !alive(p));
+
+  const card = (p: Person) => {
+    const b = getBond(g, me.id, p.id);
+    const isMinorChild = p.biologicalParents.includes(me.id) && ageOf(p, g.year) < 18;
+    return (
+      <article key={p.id} className="person">
+        <Avatar person={p} year={g.year} size={64} />
+        <div className="person-body">
+          <div className="row">
+            <strong>{p.firstName} {p.lastName}</strong>
+            <span className="chip">{role(g, me, p)}</span>
+          </div>
+          <div className="hint">
+            {alive(p) ? `Age ${ageOf(p, g.year)}` : `${p.birthYear}–${p.deathYear}`}
+            {ageOf(p, g.year) >= 18 ? ` · ${jobTitle(p)}` : p.hobby ? ` · ${HOBBY_BY_ID[p.hobby].icon} ${HOBBY_BY_ID[p.hobby].label}` : ''}
+            {p.householdId === me.householdId && alive(p) ? ' · lives with you' : ''}
+          </div>
+          <div className="traits">{p.traits.map((t) => <span key={t} className="chip subtle">{t}</span>)}</div>
+          {alive(p) && (
+            <>
+              <BondMeter label="Affinity" v={b.affinity} />
+              <BondMeter label="Trust" v={b.trust} />
+            </>
+          )}
+          {isMinorChild && <div className="hint">{receptivenessLabel(receptiveness(g, me, p))}</div>}
+        </div>
+      </article>
+    );
+  };
+
+  return (
+    <div className="stack">
+      <Section title="Family">{living.length ? living.map(card) : <p className="muted">No living relatives yet.</p>}</Section>
+      {dead.length > 0 && <Section title="In memory">{dead.map(card)}</Section>}
+    </div>
+  );
+}
