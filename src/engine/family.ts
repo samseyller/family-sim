@@ -1,6 +1,7 @@
 import { retirePerson } from './retirement';
 import { ESTATE_EXEMPTION, ESTATE_TAX_RATE } from '../content/economy';
 import { makeHousehold } from './generate';
+import { headOf, moverGroup, splitOff } from './household';
 import type { Rng } from './rng';
 import type { GameState, Person } from './types';
 import {
@@ -97,7 +98,10 @@ export function separate(s: GameState, a: Person, b: Person) {
   old.investments = (old.investments ?? 0) - halfInv;
   const hh = makeHousehold(s, half);
   hh.investments = halfInv;
+  hh.headId = b.id;
   b.householdId = hh.id;
+  b.stake = half + halfInv;
+  if (old.headId === b.id) old.headId = a.id;
   adjustBond(s, a.id, b.id, -20, -15);
 }
 
@@ -135,11 +139,14 @@ export function reconcile(s: GameState, a: Person, b: Person) {
   adjustBond(s, a.id, b.id, 20, 15);
 }
 
-/** Adult child leaves home with their fund plus any gift. */
-export function moveOut(s: GameState, p: Person, startingMoney: number) {
-  const hh = makeHousehold(s, startingMoney);
-  p.fund = 0;
-  p.householdId = hh.id;
+/**
+ * Someone leaves home with their own savings plus `gift` (already taken from wherever it
+ * came from). Their partner and minor children in the same home go with them.
+ */
+export function moveOut(s: GameState, p: Person, gift: number) {
+  const hh = splitOff(s, moverGroup(s, p), 0, 0);
+  hh.wallet += gift;
+  for (const m of membersOf(s, hh.id)) if (ageOf(m, s.year) >= 18) m.stake = Math.max(1, (m.stake ?? 0) + gift / Math.max(1, membersOf(s, hh.id).length));
 }
 
 /** Stop working; the employer pension is set from years of service (reduced if before 65). */
@@ -151,6 +158,13 @@ export function die(s: GameState, p: Person, cause: string) {
   if (!alive(p)) return;
   p.deathYear = s.year;
   p.deathCause = cause;
+  // Their claim on the household savings passes to whoever carries the household on.
+  if ((p.stake ?? 0) > 0) {
+    const pt = partnerOf(s, p.id);
+    const heir = pt && pt.householdId === p.householdId ? pt : headOf(s, p.householdId);
+    if (heir && heir.id !== p.id) heir.stake = (heir.stake ?? 0) + p.stake!;
+    p.stake = 0;
+  }
   // Their retirement savings pass to the household (and on through the estate).
   if ((p.retirementSavings ?? 0) > 0) {
     s.households[p.householdId].wallet += p.retirementSavings!;
@@ -220,7 +234,7 @@ export function startPath(s: GameState, p: Person, path: LifePath) {
 /** Coming of age for children nobody is actively parenting (NPC branches). */
 export function autoComeOfAge(s: GameState, rng: Rng, p: Person, leaveHome: boolean) {
   startPath(s, p, preferredPath(p));
-  if (leaveHome) moveOut(s, p, p.fund + rng.int(0, 3000));
+  if (leaveHome) moveOut(s, p, rng.int(0, 3000));
 }
 
 export function partnerInHome(s: GameState, p: Person) {

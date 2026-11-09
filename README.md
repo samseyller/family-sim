@@ -94,6 +94,18 @@ games (its own IndexedDB table, schema version, and previous-copy recovery).
 Starting a family (adult or child) opens a dialog to name your character and the family (🎲 or blank
 for random). When your baby is born, a naming event offers suggestions or lets you type your own.
 
+## Households
+
+- Everyone's pay goes into the household's shared savings (cash + investments). Each adult has a **stake** that
+  grows with what they bring in (pay, pensions, savings draw-downs); older contributions fade 10% a year, so
+  recent earners own most of today's pot. Stakes pass to a spouse (or whoever runs the home) on death.
+- **Money → Household** shows who runs the home and everyone's share. Living in your parents' home you can
+  **move out** (your partner and minor children always come; grown children optionally) with your share or
+  leaving the savings behind, or **take charge** once a parent is 70+ or you bring in most of the money.
+- Running your own home you can buy your parents a home of their own (or ask them to leave), ask grown children
+  to move out (with a gift or their share), and invite grown children or parents to live with you when you're
+  close enough. Their whole household moves in and their home is sold. Invited children don't leave on their own.
+
 ## Activities, retirement, and the guided first life
 
 - **🎯 Activities** (key 6): one-off things to do while planning, outside the 12 time blocks. Each costs

@@ -48,6 +48,9 @@ const STEPS: Record<number, Step> = {
   7: (s) => s,
   // v8 → v9: optional guided-playthrough state. Nothing to rewrite.
   8: (s) => s,
+  // v9 → v10: optional household head and per-person savings stakes. Missing stakes are
+  // seeded as equal shares the first time the economy runs, so nothing to rewrite.
+  9: (s) => s,
 };
 
 export type MigrateResult = { ok: true; state: GameState } | { ok: false; error: string };

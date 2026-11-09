@@ -66,6 +66,8 @@ export interface Person {
   pensionSalary?: number;
   /** Personal retirement savings account. */
   retirementSavings?: number;
+  /** Claim on the household's savings and investments, weighted by what this person has put in. */
+  stake?: number;
   /** Part-time adult education (night school) in progress. */
   education?: { program: Program; progress: number; required: number; startYear: number };
   householdId: string;
@@ -120,6 +122,8 @@ export interface Household {
   investments?: number;
   /** Size of the rental when the household has no home of its own. */
   rentTier?: 'small' | 'apartment' | 'house';
+  /** Who runs the household (owns the home, decides who lives here). Falls back by age when unset. */
+  headId?: string;
 }
 
 export type ChildFocus = 'free' | 'studies' | 'hobby';

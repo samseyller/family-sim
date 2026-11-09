@@ -435,7 +435,7 @@ const EVENTS: EventDef[] = [
       const gift = Number(ch);
       wallet(c).wallet -= gift;
       adjustBond(c.s, c.me.id, k!.id, gift >= 15000 ? 10 : gift > 0 ? 5 : 0, gift > 0 ? 3 : 0);
-      moveOut(c.s, k!, k!.fund + gift);
+      moveOut(c.s, k!, gift);
       return gift ? `${k!.firstName} hugged you tight at the door.` : `${k!.firstName} waved from the car. The house feels bigger now.`;
     },
   },

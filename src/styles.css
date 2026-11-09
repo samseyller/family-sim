@@ -450,3 +450,6 @@ kbd {
 }
 .save-status p { margin: 4px 0 8px; }
 .save-status .row { justify-content: flex-start; gap: 8px; }
+
+/* household move-out panel */
+.move-out { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--border); }

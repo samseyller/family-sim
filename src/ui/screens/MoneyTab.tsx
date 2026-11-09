@@ -8,6 +8,7 @@ import { useGame } from '../../store/gameStore';
 import { Section } from '../components';
 import { LifestylePicker } from './LifestylePicker';
 import { RetirementCard } from './RetirementCard';
+import { HouseholdCard } from './HouseholdCard';
 
 const signed = (n: number) => `${n >= 0 ? '+' : '−'}${money(Math.abs(n))}`;
 
@@ -85,6 +86,8 @@ export function MoneyTab({ g }: { g: GameState }) {
         </table>
         <p className="hint">Before interest, investment swings, and surprises.</p>
       </Section>
+
+      <HouseholdCard g={g} />
 
       <LifestylePicker g={g} />
 

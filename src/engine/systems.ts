@@ -9,6 +9,7 @@ import { deathGuard, financeGuard } from './tutorial';
 import { SAVINGS_RETURN, SAVINGS_VOLATILITY } from '../content/retirement';
 import { INVEST_RETURN, INVEST_VOLATILITY } from '../content/finance';
 import { autoComeOfAge, die, isCloseKin, marry, moveOut, receptiveness, retire } from './family';
+import { STAKE_KEEP, seedStakes } from './household';
 import type { Rng } from './rng';
 import type { GameState, Hobby, Person } from './types';
 import {
@@ -252,6 +253,10 @@ export function runEconomy(s: GameState, activePay: number, rng?: Rng) {
     }
     for (const p of mem) if (p.fund > 0) p.fund = Math.round(p.fund * 1.04);
     hh.wallet += budget.net;
+    // Each adult's claim on the shared savings grows with what they bring in; recent years
+    // count most (older pay was mostly spent on living, not saved).
+    seedStakes(s, hh.id);
+    for (const p of mem) if (ageOf(p, s.year) >= 18) p.stake = Math.round((p.stake ?? 0) * STAKE_KEEP + (budget.contributions[p.id] ?? 0));
     // Retirement: working years accrue; contributions (+ match) go in; retirees draw down; savings grow.
     for (const p of mem) {
       const age = ageOf(p, s.year);
@@ -374,8 +379,8 @@ function adultYear(s: GameState, rng: Rng, p: Person) {
 
   // Grown children living at home eventually leave once they're working.
   const myChild = p.biologicalParents.includes(me.id) || p.adoptiveParents.includes(me.id);
-  if (myChild && p.householdId === me.householdId && a >= 23 && p.jobId && !p.studyingUntil && rng.chance(0.2)) {
-    moveOut(s, p, Math.max(0, p.fund));
+  if (myChild && p.householdId === me.householdId && a >= 23 && p.jobId && !p.studyingUntil && !p.flags.invited_home && rng.chance(0.2)) {
+    moveOut(s, p, 0);
     journal(s, `${p.firstName} found their own place and moved out.`, 'info');
     return;
   }

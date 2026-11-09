@@ -44,6 +44,7 @@ const Person = z.object({
   pensionYears: int.optional(),
   pensionSalary: num.optional(),
   retirementSavings: num.optional(),
+  stake: num.optional(),
   householdId: id,
   biologicalParents: z.array(id),
   adoptiveParents: z.array(id),
@@ -80,6 +81,7 @@ const Household = z.object({
   settled: z.boolean(),
   investments: num.optional(),
   rentTier: z.enum(['small', 'apartment', 'house']).optional(),
+  headId: id.optional(),
 });
 
 const ChildPlan = z.object({

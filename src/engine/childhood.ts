@@ -308,7 +308,7 @@ export const CHILD_EVENTS: EventDef[] = [
       const gift = parentGift(c);
       const home = c.s.households[c.me.householdId];
       home.wallet -= gift;
-      moveOut(c.s, c.me, c.me.fund + gift);
+      moveOut(c.s, c.me, gift);
       bondParents(c, 4, 2);
       journal(c.s, 'You moved into your own place.', 'major');
       return 'A tiny apartment, a borrowed couch, and a key that is yours alone.';

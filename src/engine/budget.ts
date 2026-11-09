@@ -34,6 +34,8 @@ export interface Budget {
   totalIncome: number;
   totalExpenses: number;
   net: number;
+  /** What each adult brought in this year (pay, pensions, savings draw-downs), by person id. */
+  contributions: Record<string, number>;
 }
 
 /** Pure: this year's income and expenses for a household, before interest. */
@@ -45,6 +47,10 @@ export function householdBudget(s: GameState, householdId: string, activePay: nu
   const exp = new Map<string, number>();
   const add = (m: Map<string, number>, label: string, n: number) => n && m.set(label, (m.get(label) ?? 0) + n);
   let taxes = 0;
+  const contributions: Record<string, number> = {};
+  const credit = (id: string, n: number) => {
+    if (n > 0) contributions[id] = (contributions[id] ?? 0) + n;
+  };
 
   for (const p of mem) {
     const age = ageOf(p, s.year);
@@ -61,6 +67,7 @@ export function householdBudget(s: GameState, householdId: string, activePay: nu
       // Students without a real part-time job pick up odd jobs (untaxed).
       const pay = isMe ? activePay || (p.partJobId ? 0 : COSTS.studentWage) : npcPart || COSTS.studentWage;
       add(inc, label, pay);
+      credit(p.id, pay);
       if (isMe ? activePay : npcPart) taxes += incomeTax(pay);
       continue;
     }
@@ -72,6 +79,7 @@ export function householdBudget(s: GameState, householdId: string, activePay: nu
       earned += npcPart;
     }
     add(inc, label, earned);
+    credit(p.id, earned + statePension(p, age) + (p.retired ? p.pension + drawdown(p.retirementSavings ?? 0, age) : 0));
     if (p.retired) {
       add(inc, 'Pensions', p.pension);
       add(inc, 'State pension', statePension(p, age));
@@ -126,7 +134,7 @@ export function householdBudget(s: GameState, householdId: string, activePay: nu
   const expenses = lines(exp);
   const totalIncome = income.reduce((a, b) => a + b.amount, 0);
   const totalExpenses = expenses.reduce((a, b) => a + b.amount, 0);
-  return { income, expenses, totalIncome, totalExpenses, net: totalIncome - totalExpenses };
+  return { income, expenses, totalIncome, totalExpenses, net: totalIncome - totalExpenses, contributions };
 }
 
 export interface YearEstimate extends Budget {
