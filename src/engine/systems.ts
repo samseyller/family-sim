@@ -437,7 +437,9 @@ export function runHealth(s: GameState, rng: Rng) {
     if (a < 40) d += (80 - p.stats.health) * 0.1;
     stat(p, 'health', d);
     if (a > 35) stat(p, 'fitness', -1.5);
-    if (rng.chance(deathChance(a, p.stats.health))) {
+    // A recent doctor check-up catches problems early.
+    const checked = p.flags.checkup_year !== undefined && s.year - p.flags.checkup_year <= 1;
+    if (rng.chance(deathChance(a, p.stats.health) * (checked ? 0.75 : 1))) {
       die(s, p, a >= 75 ? 'old age' : p.stats.health < 40 ? 'illness' : 'a sudden accident');
     }
   }

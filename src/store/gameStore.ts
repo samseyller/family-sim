@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import type { GameState, Plan } from '../engine/types';
 import { newGame, type StartNames } from '../engine/generate';
 import { financeAction, type FinanceAction } from '../engine/finance';
+import { dismissActivity, performActivity } from '../engine/activities';
 import {
   choose, chooseHeir, devKill, devSkip, dismissOutcome, nextYear, resolveYear, updatePlan,
 } from '../engine/phases';
@@ -12,7 +13,7 @@ import { track, trackNewFamily } from '../profile/tracker';
 import { mergeProfiles, type MergeSummary } from '../profile/merge';
 import { EPITAPH_MAX, newProfile, type Profile, type Settings } from '../profile/types';
 
-export type Tab = 'home' | 'plan' | 'family' | 'journal' | 'money';
+export type Tab = 'home' | 'plan' | 'family' | 'journal' | 'money' | 'activities';
 export type Panel = null | 'menu' | 'saves' | 'settings' | 'achievements';
 
 export interface FullImport {
@@ -44,6 +45,8 @@ interface Store {
   setPanel(p: Panel): void;
   setPlan(p: Plan): void;
   finance(a: FinanceAction): void;
+  activity(id: string, people: string[]): void;
+  dismissActivity(): void;
   askEndYear(open: boolean): void;
   endYear(): void;
   choose(uid: string, choiceId: string, text?: string): void;
@@ -140,6 +143,8 @@ export const useGame = create<Store>((set, get) => {
     setPanel: (panel) => set({ panel }),
     setPlan: (p) => withGame((g) => updatePlan(g, p)),
     finance: (a) => withGame((g) => financeAction(g, a)),
+    activity: (id, people) => withGame((g) => performActivity(g, id, people)),
+    dismissActivity: () => withGame(dismissActivity),
     askEndYear: (open) => set({ confirmEnd: open }),
     endYear() {
       set({ confirmEnd: false });

@@ -99,7 +99,7 @@ kbd {
 .tabbar {
   position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
   width: 100%; max-width: 640px; z-index: 5;
-  display: grid; grid-template-columns: repeat(5, 1fr);
+  display: grid; grid-template-columns: repeat(6, 1fr);
   background: var(--surface); border-top: 1px solid var(--border);
   padding-bottom: env(safe-area-inset-bottom);
 }
@@ -410,3 +410,22 @@ kbd {
 .text-choice .row { justify-content: flex-start; }
 .name-field { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: end; }
 .name-field label { grid-column: 1 / -1; }
+
+/* activities */
+.energy-bar { position: relative; height: 14px; border-radius: 99px; background: var(--surface-2); overflow: hidden; margin: 6px 0; }
+.energy-fill { position: absolute; left: 0; top: 0; bottom: 0; background: linear-gradient(90deg, #e0a526, #f2c94c); border-radius: 99px; transition: width 0.3s; }
+.energy-cap { position: absolute; right: 0; top: 0; bottom: 0; background: repeating-linear-gradient(45deg, var(--border) 0 6px, transparent 6px 12px); }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.chip-btn { min-height: 36px; padding: 4px 12px; border-radius: 99px; font-size: 0.88rem; }
+.chip-btn.on { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.activity-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
+.activity { display: flex; gap: 12px; align-items: flex-start; text-align: left; padding: 12px; background: var(--surface); border-radius: var(--radius); }
+.activity-icon { font-size: 1.8rem; line-height: 1; }
+.activity-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.activity-meta { display: flex; gap: 10px; font-size: 0.8rem; color: var(--muted); margin-top: 2px; }
+.picker { display: flex; flex-direction: column; gap: 6px; max-height: 40dvh; overflow-y: auto; }
+.pick { display: flex; align-items: center; gap: 10px; padding: 6px 8px; border: 1px solid var(--border); border-radius: 12px; cursor: pointer; min-height: 52px; }
+.pick.on { border-color: var(--accent); background: var(--accent-soft); }
+.pick input { width: 20px; height: 20px; accent-color: var(--accent); }
+.sheet-cost { display: flex; gap: 16px; margin: 12px 0 4px; font-weight: 600; }
+.changes { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 4px; }

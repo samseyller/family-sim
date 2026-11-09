@@ -211,4 +211,19 @@ export interface GameState {
   lastOutcome?: { title: string; text: string };
   /** Year of the last exported backup (drives backup reminders). */
   lastBackupYear?: number;
+  /** This year's activity energy (max depends on health and stress). */
+  energy?: { year: number; max: number; used: number };
+  /** Activities done, for per-year limits and achievements (most recent ~300). */
+  activityLog?: { year: number; id: string }[];
+  /** Result of the most recent activity, shown on its outcome card. */
+  lastActivity?: ActivityResult;
+}
+
+export interface ActivityResult {
+  id: string;
+  title: string;
+  text: string;
+  tone: 'good' | 'bad' | 'neutral';
+  /** Changes to show: e.g. "Happiness +6", "Bond with Maya +8", "-$800". */
+  changes: string[];
 }

@@ -152,6 +152,9 @@ export const GameStateSchema = z.object({
     .optional(),
   lastOutcome: z.object({ title: z.string(), text: z.string() }).optional(),
   lastBackupYear: int.optional(),
+  energy: z.object({ year: int, max: num, used: num }).optional(),
+  activityLog: z.array(z.object({ year: int, id: z.string() })).optional(),
+  lastActivity: z.object({ id: z.string(), title: z.string(), text: z.string(), tone: z.enum(['good', 'bad', 'neutral']), changes: z.array(z.string()) }).optional(),
 });
 
 // Compile-time guard: the schema's output must stay assignable to GameState.

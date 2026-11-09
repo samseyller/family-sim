@@ -31,6 +31,8 @@ const STEPS: Record<number, Step> = {
   // v5 → v6: Money tab — optional investments/rentTier on households and payment/rate/
   // capacity on assets. Older homes keep the legacy flat payment; nothing to rewrite.
   5: (s) => s,
+  // v6 → v7: Activities — optional energy, activityLog, lastActivity. Nothing to rewrite.
+  6: (s) => s,
 };
 
 /** Upgrade a loaded save to the current schema, or return undefined if it can't be. */
