@@ -54,7 +54,7 @@ function ActivitySheet({ g, def, onClose }: { g: GameState; def: ActivityDef; on
       {def.who !== 'solo' && (
         <>
           <div className="label">
-            {def.who === 'partner' ? 'With' : def.who === 'relative' ? 'Who will you visit?' : def.who === 'guests' ? 'Invite' : 'Who comes along?'}
+            {def.who === 'partner' ? 'With' : def.who === 'ex' ? 'Which ex?' : def.who === 'relative' ? 'Who will you visit?' : def.who === 'guests' ? 'Invite' : 'Who comes along?'}
             {def.min === 0 ? ' (optional)' : ''}
           </div>
           <div className="picker">

@@ -702,12 +702,65 @@ const EVENTS: EventDef[] = [
     },
   },
   {
+    // Scheduled by a romantic night (see romance.ts). The subject is the partner.
+    id: 'unplanned_pregnancy',
+    major: true,
+    cooldown: 0,
+    build: (c, p) => {
+      const carrierIsMe = c.me.sex === 'F';
+      const wants = !!p!.flags.wants_baby;
+      const together = p!.householdId === c.me.householdId;
+      return {
+        title: 'A surprise',
+        text: `${carrierIsMe ? "You're" : `${p!.firstName} is`} pregnant. It wasn't planned. ${p!.firstName} ${wants ? 'would love to have the baby' : "isn't sure they're ready"}. What do you two decide?`,
+        choices: [
+          { id: 'keep', label: 'Have the baby', hint: 'Due next year; the baby lives with you' },
+          { id: 'keep_together', label: 'Have the baby and move in together', hint: together ? 'You already live together' : `${p!.firstName}'s household joins yours`, disabled: together },
+          { id: 'adoption', label: 'Place the baby for adoption', hint: 'With a family who has been hoping for a child' },
+          { id: 'not_continue', label: 'Decide not to continue the pregnancy', hint: 'A private decision' },
+        ],
+      };
+    },
+    resolve: (c, ch, p) => {
+      const wants = !!p!.flags.wants_baby;
+      delete p!.flags.wants_baby;
+      const carrier = c.me.sex === 'F' ? c.me : p!;
+      const other = carrier === c.me ? p! : c.me;
+      if (ch === 'keep' || ch === 'keep_together') {
+        if (ch === 'keep_together' && p!.householdId !== c.me.householdId) {
+          mergeHouseholds(c.s, p!.householdId, c.me.householdId);
+          journal(c.s, `${p!.firstName} moved in with you.`, 'major');
+        }
+        wallet(c).pendingBirth = { year: c.s.year + 1, parents: [carrier.id, other.id] };
+        flag(c.me, 'surprise_baby');
+        adjustBond(c.s, c.me.id, p!.id, wants ? 8 : -2, wants ? 5 : 0);
+        stat(c.me, 'stress', 4);
+        return ch === 'keep_together'
+          ? `Nervous, excited, and suddenly sharing a closet. The baby is due next year.`
+          : `Ready or not, a baby is on the way, due next year.`;
+      }
+      if (ch === 'adoption') {
+        adjustBond(c.s, c.me.id, p!.id, wants ? -8 : 3, wants ? -6 : 2);
+        stat(c.me, 'happiness', -3);
+        stat(c.me, 'stress', 3);
+        flag(c.me, 'placed_for_adoption');
+        journal(c.s, 'A baby was born and placed with an adoptive family.', 'info');
+        return 'Next year the baby goes home with a family who had waited a long time. You hope they have a wonderful life.';
+      }
+      adjustBond(c.s, c.me.id, p!.id, wants ? -10 : 3, wants ? -8 : 2);
+      stat(c.me, 'stress', 4);
+      journal(c.s, `You and ${p!.firstName} decided not to continue the pregnancy.`, 'info');
+      return `It was a hard conversation, and a private one. You and ${p!.firstName} made the choice that felt right for you.`;
+    },
+  },
+  {
     id: 'baby',
     major: true,
     cooldown: 2,
     candidates: (c) => {
       const p = partnerInHome(c.s, c.me);
       if (!p || age(c, c.me) > 55 || wallet(c).pendingBirth || activePartnership(c.s, c.me.id)?.status !== 'married') return [];
+      if (c.s.pending.some((x) => x.eventId === 'unplanned_pregnancy')) return [];
       const kids = childrenOf(c.s, c.me.id).length;
       if (kids >= 4) return [];
       return [{ subject: p, weight: kids === 0 ? 5 : 2, urgent: kids === 0 && age(c, c.me) <= 40 }];

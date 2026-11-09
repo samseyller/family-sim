@@ -2,6 +2,8 @@ import type { GameState } from '../engine/types';
 import { active, ageOf, alive, childrenOf, getBond, kidsAtHome, membersOf, money } from '../engine/util';
 import { BASE_PARKING, HOMES } from './finance';
 
+const DATE_IDS = new Set(['date_night', 'picnic', 'concert_date', 'weekend_getaway']);
+
 export interface AchievementDef {
   id: string;
   title: string;
@@ -32,6 +34,42 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     desc: 'Buy a family home.',
     icon: '🏡',
     test: (s) => household(s).assets.some((a) => a.kind === 'house'),
+  },
+  {
+    id: 'butterflies',
+    title: 'Butterflies',
+    desc: 'Start dating someone.',
+    icon: '💘',
+    test: (s) => (active(s).flags.dated ?? 0) >= 1,
+  },
+  {
+    id: 'playing_the_field',
+    title: 'Playing the Field',
+    desc: 'Date five different people in one life.',
+    icon: '🃏',
+    test: (s) => (active(s).flags.dated ?? 0) >= 5,
+  },
+  {
+    id: 'second_spark',
+    title: 'Second Spark',
+    desc: 'Get back together with an ex.',
+    icon: '🔥',
+    test: (s) => !!active(s).flags.rekindled,
+  },
+  {
+    id: 'hopeless_romantic',
+    title: 'Hopeless Romantic',
+    desc: 'Go on 10 dates with a partner (date nights, picnics, concerts, getaways).',
+    icon: '🌹',
+    test: (s) => (s.activityLog ?? []).filter((x) => DATE_IDS.has(x.id)).length >= 10,
+  },
+  {
+    id: 'surprise_baby',
+    title: 'Surprise!',
+    desc: 'Welcome a baby you didn’t plan for.',
+    icon: '🍼',
+    hidden: true,
+    test: (s) => !!active(s).flags.surprise_baby,
   },
   {
     id: 'mansion',

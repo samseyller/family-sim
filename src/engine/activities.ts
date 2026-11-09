@@ -6,10 +6,13 @@
 import { makeRng, type Rng } from './rng';
 import type { ActivityResult, GameState, Person, StatKey } from './types';
 import {
-  active, adjustBond, ageOf, alive, childrenOf, clamp, flag, getBond, journal, kidsAtHome, membersOf, money,
+  active, activePartnership, adjustBond, ageOf, alive, childrenOf, clamp, flag, getBond, journal, kidsAtHome, membersOf, money,
   parentsOf, partnerOf, stat,
 } from './util';
 import { homeParents } from './generate';
+import { breakUp, mergeHouseholds, startDating } from './family';
+import { shareAmounts, splitOff } from './household';
+import { canConceive, conceive, exesOf, isSingle, jobBlurb, meetSomeone, pregnancyChance } from './romance';
 import { unlockedTabs } from './tutorial';
 
 // ── Energy ───────────────────────────────────────────────────────────
@@ -59,20 +62,21 @@ export function distanceOf(householdId: string): 'near' | 'far' {
 
 // ── Catalog ──────────────────────────────────────────────────────────
 
-export type Category = 'home' | 'health' | 'learning' | 'leisure' | 'visits' | 'social' | 'risk' | 'vices' | 'kid';
+export type Category = 'home' | 'health' | 'learning' | 'leisure' | 'visits' | 'romance' | 'social' | 'risk' | 'vices' | 'kid';
 export const CATEGORIES: Record<Category, { label: string; icon: string }> = {
   home: { label: 'At home', icon: '🏡' },
   health: { label: 'Health', icon: '🩺' },
   learning: { label: 'Learning', icon: '📚' },
   leisure: { label: 'Fun & travel', icon: '🌴' },
   visits: { label: 'Family visits', icon: '🚗' },
-  social: { label: 'Social', icon: '💞' },
+  romance: { label: 'Love & dating', icon: '💘' },
+  social: { label: 'Social', icon: '🎉' },
   risk: { label: 'Money & luck', icon: '🎲' },
   vices: { label: 'Vices', icon: '⚠️' },
   kid: { label: 'Kid stuff', icon: '🧸' },
 };
 
-export type Who = 'solo' | 'household' | 'partner' | 'kids' | 'relative' | 'guests';
+export type Who = 'solo' | 'household' | 'partner' | 'kids' | 'relative' | 'guests' | 'ex';
 
 export interface ActivityCtx {
   s: GameState;
@@ -112,7 +116,19 @@ const bondAll = (c: ActivityCtx, a: number, t: number) => c.people.forEach((p) =
 const moodAll = (c: ActivityCtx, k: StatKey, d: number) => [c.me, ...c.people].forEach((p) => stat(p, k, d));
 const hasHobby = (_s: GameState, me: Person) => (me.hobby ? null : 'Pick up a hobby first.');
 const working = (_s: GameState, me: Person) => (me.jobId ? null : 'You need a job for this.');
-const kidAges = (p: Person, s: GameState, lo: number, hi: number) => ageOf(p, s.year) >= lo && ageOf(p, s.year) <= hi;
+const single = (s: GameState, me: Person) => (isSingle(s, me) ? null : 'You are already seeing someone.');
+/** Try to meet someone; on success you start dating them. */
+function tryToMeet(c: ActivityCtx, chance: number, how: string, misses: string[]): { text: string; tone: ActivityResult['tone'] } {
+  flag(c.me, 'met_people');
+  const odds = chance + (c.me.stats.happiness - 50) / 400;
+  if (c.rng.chance(odds)) {
+    const sp = meetSomeone(c.s, c.rng, c.me, how);
+    return { text: `You hit it off with ${sp.firstName}${jobBlurb(sp)}. You're dating now.`, tone: 'good' };
+  }
+  stat(c.me, 'happiness', -1);
+  return { text: c.rng.pick(misses), tone: 'neutral' };
+}
+const kidAges =(p: Person, s: GameState, lo: number, hi: number) => ageOf(p, s.year) >= lo && ageOf(p, s.year) <= hi;
 
 export const ACTIVITIES: ActivityDef[] = [
   // 🏡 At home — cheap, repeatable, great for bonds with anyone in the household (any age)
@@ -300,12 +316,167 @@ export const ACTIVITIES: ActivityDef[] = [
     },
   },
 
-  // 💞 Social
+  // 💘 Love & dating — meeting someone (single)
   {
-    id: 'date_night', category: 'social', icon: '🌹', label: 'Date night', who: 'partner', max: 1, desc: 'Dinner for two.',
+    id: 'dating_app', category: 'romance', icon: '📱', label: 'Try a dating app', who: 'solo', requires: single, desc: 'Swipe, chat, maybe meet up.',
+    energy: flat(6), cost: flat(30),
+    run: (c) => tryToMeet(c, 0.35, 'through a dating app', [
+      'Three matches, two ghosted you, one only talked about crypto.',
+      'You matched with your cousin’s ex. You deleted the app for a week.',
+    ]),
+  },
+  {
+    id: 'speed_dating', category: 'romance', icon: '⏱️', label: 'Speed dating', who: 'solo', requires: single, desc: 'Twelve five-minute conversations.',
+    energy: flat(10), cost: flat(45),
+    run: (c) => tryToMeet(c, 0.45, 'at a speed-dating night', [
+      'The bell kept ringing right when things got interesting.',
+      'You learned a lot about other people’s pets. No sparks tonight.',
+    ]),
+  },
+  {
+    id: 'blind_date', category: 'romance', icon: '🙈', label: 'Blind date', who: 'solo', requires: single, desc: 'A friend swears you two are perfect for each other.',
+    energy: flat(8), cost: flat(80),
+    run: (c) => tryToMeet(c, 0.4, 'on a blind date', [
+      'Your friend has a very different idea of "perfect for you."',
+      'Nice dinner, polite handshake, no second date.',
+    ]),
+  },
+  {
+    id: 'dance_class', category: 'romance', icon: '💃', label: 'Take a dance class', who: 'solo', requires: single, desc: 'Learn to salsa, and maybe meet someone.',
+    energy: flat(12), cost: flat(200),
+    run: (c) => {
+      stat(c.me, 'fitness', 2);
+      stat(c.me, 'happiness', 3);
+      return tryToMeet(c, 0.3, 'in a dance class', ['You stepped on a lot of toes, but you can almost salsa now.']);
+    },
+  },
+
+  // 💘 Love & dating — with your partner
+  {
+    id: 'date_night', category: 'romance', icon: '🌹', label: 'Date night', who: 'partner', max: 1, desc: 'Dinner for two.',
     energy: flat(10), cost: flat(120),
     run: (c) => { bondAll(c, 7, 4); moodAll(c, 'happiness', 3); return { text: `You and ${c.people[0].firstName} closed down the restaurant.`, tone: 'good' }; },
   },
+  {
+    id: 'picnic', category: 'romance', icon: '🧺', label: 'Picnic in the park', who: 'partner', max: 1, desc: 'Sandwiches, sunshine, no phones.',
+    energy: flat(6), cost: flat(25),
+    run: (c) => {
+      bondAll(c, 5, 3);
+      if (c.rng.chance(0.2)) return { text: 'It poured. You ate under a tree, soaked and laughing.', tone: 'good' };
+      moodAll(c, 'stress', -3);
+      return { text: `You and ${c.people[0].firstName} watched the clouds until sunset.`, tone: 'good' };
+    },
+  },
+  {
+    id: 'concert_date', category: 'romance', icon: '🎸', label: 'Concert date', who: 'partner', max: 1, desc: 'Loud music, sticky floors, one great night.',
+    energy: flat(12), cost: flat(250),
+    run: (c) => { bondAll(c, 6, 3); moodAll(c, 'happiness', 5); return { text: `You and ${c.people[0].firstName} sang every word. Your ears are still ringing.`, tone: 'good' }; },
+  },
+  {
+    id: 'weekend_getaway', category: 'romance', icon: '🏖️', label: 'Weekend getaway', who: 'partner', max: 1, perYear: 2, desc: 'Two nights somewhere new, just the two of you.',
+    energy: flat(18), cost: flat(1500),
+    run: (c) => {
+      bondAll(c, 10, 6);
+      moodAll(c, 'stress', -8);
+      moodAll(c, 'happiness', 5);
+      return { text: `A cabin, a lake, and ${c.people[0].firstName}. You came back a little more in love.`, tone: 'good' };
+    },
+  },
+  {
+    id: 'spend_the_night', category: 'romance', icon: '🌙', label: 'Spend the night together', who: 'partner', max: 1, perYear: 4,
+    desc: 'Things get romantic. There’s always some chance of a pregnancy.',
+    energy: flat(8), cost: flat(0),
+    eligible: (s, p) => getBond(s, active(s).id, p.id).affinity >= 20,
+    run: (c) => {
+      const p = c.people[0];
+      bondAll(c, 6, 4);
+      moodAll(c, 'happiness', 4);
+      moodAll(c, 'stress', -3);
+      flag(c.me, 'romantic_nights');
+      if (canConceive(c.s, c.me, p) && c.rng.chance(pregnancyChance(c.s, c.me))) {
+        conceive(c.s, c.rng, c.me, p);
+        return { text: `A wonderful night with ${p.firstName}. A few weeks later, a surprise: a positive pregnancy test.`, tone: 'neutral' };
+      }
+      return { text: `A wonderful night with ${p.firstName}. Breakfast in bed the next morning.`, tone: 'good' };
+    },
+  },
+  {
+    id: 'move_in_together', category: 'romance', icon: '🔑', label: 'Move in together', who: 'partner', max: 1,
+    desc: 'Share a home (and the bills). Their household joins yours.',
+    energy: flat(10), cost: flat(2000),
+    eligible: (s, p) => {
+      const me = active(s);
+      return activePartnership(s, me.id)?.status === 'dating' && p.householdId !== me.householdId && getBond(s, me.id, p.id).affinity >= 40;
+    },
+    run: (c) => {
+      const p = c.people[0];
+      mergeHouseholds(c.s, p.householdId, c.me.householdId);
+      bondAll(c, 6, 5);
+      moodAll(c, 'happiness', 5);
+      journal(c.s, `${p.firstName} moved in with you.`, 'major');
+      return { text: `Boxes everywhere, and ${p.firstName}'s mug next to yours.`, tone: 'good' };
+    },
+  },
+  {
+    id: 'break_up', category: 'romance', icon: '💔', label: 'Break up', who: 'partner', max: 1, desc: 'End a dating relationship. (Married couples separate through life events.)',
+    energy: flat(4), cost: flat(0),
+    eligible: (s) => activePartnership(s, active(s).id)?.status === 'dating',
+    run: (c) => {
+      const p = c.people[0];
+      breakUp(c.s, c.me, p);
+      // If they lived with you, they move back out.
+      if (p.householdId === c.me.householdId) {
+        // They leave with their own young kids (not yours) and their share of the savings.
+        const mine = (k: Person) => k.biologicalParents.includes(c.me.id) || k.adoptiveParents.includes(c.me.id);
+        const group = [p, ...membersOf(c.s, p.householdId).filter((k) => ageOf(k, c.s.year) < 18 && !mine(k) && (k.biologicalParents.includes(p.id) || k.adoptiveParents.includes(p.id)))];
+        const share = shareAmounts(c.s, p.householdId, group);
+        splitOff(c.s, group, share.cash, share.invest);
+      }
+      stat(c.me, 'happiness', -4);
+      journal(c.s, `You and ${p.firstName} broke up.`, 'info');
+      return { text: `A hard conversation with ${p.firstName}. It was the right call, but it still hurts.`, tone: 'neutral' };
+    },
+  },
+
+  // 💘 Love & dating — exes
+  {
+    id: 'coffee_ex', category: 'romance', icon: '☕', label: 'Coffee with an ex', who: 'ex', max: 1, desc: 'Catch up with someone you used to date.',
+    energy: flat(6), cost: flat(15),
+    run: (c) => {
+      const ex = c.people[0];
+      bondAll(c, 5, 3);
+      const spark = isSingle(c.s, c.me) && isSingle(c.s, ex) && getBond(c.s, c.me.id, ex.id).affinity >= 25;
+      if (spark && c.rng.chance(0.35)) {
+        startDating(c.s, c.me, ex);
+        flag(c.me, 'rekindled');
+        stat(c.me, 'happiness', 8);
+        journal(c.s, `You and ${ex.firstName} are back together.`, 'major');
+        return { text: `One coffee turned into dinner. You and ${ex.firstName} are giving it another try.`, tone: 'good' };
+      }
+      return { text: `You and ${ex.firstName} laughed about old times. It felt good to be friends.`, tone: 'good' };
+    },
+  },
+  {
+    id: 'text_ex', category: 'romance', icon: '💬', label: 'Late-night text to an ex', who: 'ex', max: 1, desc: '"u up?" What could go wrong?',
+    energy: flat(2), cost: flat(0),
+    run: (c) => {
+      const ex = c.people[0];
+      const partner = partnerOf(c.s, c.me.id);
+      if (partner && c.rng.chance(0.35)) {
+        adjustBond(c.s, c.me.id, partner.id, -12, -12);
+        stat(c.me, 'stress', 6);
+        return { text: `${partner.firstName} saw the message. That was a long, awkward week.`, tone: 'bad' };
+      }
+      if (c.rng.chance(0.5)) {
+        adjustBond(c.s, c.me.id, ex.id, 4, 1);
+        return { text: `${ex.firstName} replied with a laughing emoji and a memory you'd forgotten.`, tone: 'good' };
+      }
+      adjustBond(c.s, c.me.id, ex.id, -3, -2);
+      return { text: `Left on read. You put the phone face-down and stared at the ceiling.`, tone: 'neutral' };
+    },
+  },
+
+  // 🎉 Social
   {
     id: 'night_out', category: 'social', icon: '🍻', label: 'Night out with friends', who: 'solo', desc: 'Catch up, laugh, stay out late.',
     energy: flat(12), cost: flat(100),
@@ -418,6 +589,7 @@ export function candidatesFor(s: GameState, def: ActivityDef): Person[] {
   else if (def.who === 'partner') list = partnerOf(s, me.id) ? [partnerOf(s, me.id)!] : [];
   else if (def.who === 'kids') list = kidsAtHome(s, me);
   else if (def.who === 'relative' || def.who === 'guests') list = relativesOutside(s, me);
+  else if (def.who === 'ex') list = exesOf(s, me);
   return def.eligible ? list.filter((p) => def.eligible!(s, p)) : list;
 }
 
@@ -440,7 +612,7 @@ export function activityBlocker(s: GameState, id: string, ids: string[] = []): s
   const people = ids.map((x) => s.people[x]).filter(Boolean);
   if (def.who !== 'solo') {
     const min = def.min ?? 1;
-    if (pool.length === 0 && min > 0) return def.who === 'partner' ? 'You need a partner.' : def.who === 'relative' || def.who === 'guests' ? 'No relatives live elsewhere.' : 'Nobody here can join.';
+    if (pool.length === 0 && min > 0) return def.who === 'partner' ? 'You need a partner.' : def.who === 'ex' ? 'No exes to call.' : def.who === 'relative' || def.who === 'guests' ? 'No relatives live elsewhere.' : 'Nobody here can join.';
     if (people.length < min) return min === 1 ? 'Choose who comes.' : `Choose at least ${min}.`;
     if (def.max !== undefined && people.length > def.max) return `At most ${def.max}.`;
     if (people.some((p) => !pool.includes(p))) return 'Someone chosen cannot come.';

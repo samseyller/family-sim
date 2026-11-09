@@ -106,6 +106,18 @@ for random). When your baby is born, a naming event offers suggestions or lets y
   to move out (with a gift or their share), and invite grown children or parents to live with you when you're
   close enough. Their whole household moves in and their home is sold. Invited children don't leave on their own.
 
+## Dating
+
+- **Activities → Love & dating.** Singles can try a dating app, speed dating, a blind date or a dance class;
+  each has a chance to start a relationship (better when you're happy). With a partner: date night, picnic,
+  concert, weekend getaway, spending the night together (needs a close relationship), moving in together
+  (dating couples) and breaking up. A live-in ex leaves with their share of the savings, and your kids stay with you.
+  With exes: coffee (can rekindle things if you're both single) or a risky late-night text.
+- Spending the night carries a chance of pregnancy (opposite-sex couples, up to 44). An "A surprise" decision
+  follows: have the baby, have it and move in together, place the baby for adoption, or not continue the
+  pregnancy. The partner's wishes are shown, and going against them strains the relationship.
+- Achievements: Butterflies, Playing the Field (5 people), Second Spark, Hopeless Romantic (10 dates), Surprise!
+
 ## Homes and cars
 
 - Seven home types (condo → $15M mansion for 18 people and 24 cars, with achievements for buying and filling it) with different prices, sizes and garages. Every home has 2 parking

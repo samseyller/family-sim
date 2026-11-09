@@ -52,6 +52,8 @@ const between = (s: GameState, a: string, b: string) =>
 
 /** Start dating. Each keeps their own household and money until marriage. */
 export function startDating(s: GameState, a: Person, b: Person) {
+  // Count each new person someone dates (getting back together doesn't count twice).
+  if (!between(s, a.id, b.id)) for (const p of [a, b]) p.flags.dated = (p.flags.dated ?? 0) + 1;
   s.partnerships.push({ id: newId(s, 'r'), a: a.id, b: b.id, status: 'dating', startYear: s.year, merged: false });
   adjustBond(s, a.id, b.id, 35, 20);
 }
