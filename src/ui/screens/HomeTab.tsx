@@ -15,7 +15,7 @@ export function HomeTab({ g }: { g: GameState }) {
   const lastYear = g.journal.filter((j) => j.year === g.year - 1 && j.kind !== 'info').slice(-3);
 
   return (
-    <div className="stack">
+    <div className="stack two-col">
       <section className="card hero">
         <Avatar person={me} year={g.year} size={96} />
         <div>

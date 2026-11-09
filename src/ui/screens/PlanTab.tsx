@@ -63,7 +63,7 @@ export function PlanTab({ g }: { g: GameState }) {
   }, 0);
 
   return (
-    <div className="stack">
+    <div className="stack two-col">
       <div className="budget card" aria-live="polite">
         <div className="row">
           <strong>Time this year</strong>
@@ -249,7 +249,7 @@ export function PlanTab({ g }: { g: GameState }) {
       <button className="primary big end-year" onClick={() => askEndYear(true)}>
         ⏭️ End {g.year} <kbd>E</kbd>
       </button>
-      {left > 0 && <p className="hint center">You have {left} unused block{left > 1 ? 's' : ''}.</p>}
+      {left > 0 && <p className="hint center span-all">You have {left} unused block{left > 1 ? 's' : ''}.</p>}
     </div>
   );
 }

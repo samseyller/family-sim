@@ -347,3 +347,36 @@ kbd {
   box-shadow: 0 6px 24px rgba(0, 0, 0, 0.18);
 }
 .update-actions { display: flex; gap: 8px; }
+
+/* ── Desktop layout (≥ 960px): side rail + two-column content ─────────── */
+@media (min-width: 960px) {
+  .app {
+    max-width: 1180px;
+    display: grid;
+    grid-template-columns: 200px minmax(0, 1fr);
+    grid-template-rows: auto 1fr;
+    grid-template-areas: 'nav top' 'nav main';
+    column-gap: 8px;
+  }
+  .topbar { grid-area: top; border-bottom: none; padding: 14px 16px 6px; }
+  .content { grid-area: main; padding: 8px 16px 40px; }
+  .tabbar {
+    grid-area: nav; position: sticky; top: 0; left: auto; transform: none; align-self: start;
+    width: auto; max-width: none; height: 100dvh; display: flex; flex-direction: column; gap: 4px;
+    padding: 72px 10px 16px; border-top: none; border-right: 1px solid var(--border); background: transparent;
+  }
+  .tabbar button {
+    flex-direction: row; justify-content: flex-start; gap: 12px; min-height: 48px; padding: 8px 14px;
+    border-radius: 12px; font-size: 1rem;
+  }
+  .tabbar button.on { background: var(--accent-soft); }
+  .tabbar button.on::before { display: none; }
+  .kbd-hint { position: static; margin-left: auto; }
+
+  .two-col { display: block; columns: 2; column-gap: 16px; }
+  .two-col > * { break-inside: avoid; margin-bottom: 14px; }
+  .two-col > .hero, .two-col > .budget, .two-col > .end-year, .two-col > .span-all, .two-col > .primary.big { column-span: all; }
+  .budget { position: static; }
+  .tree-scroll { max-height: 72dvh; }
+  .update-banner { bottom: 20px; }
+}

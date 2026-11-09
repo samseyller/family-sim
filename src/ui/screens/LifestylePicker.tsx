@@ -21,7 +21,7 @@ export function LifestylePicker({ g }: { g: GameState }) {
         options={(Object.keys(LIFESTYLES) as Lifestyle[]).map((k) => ({ value: k, label: `${LIFESTYLES[k].icon} ${LIFESTYLES[k].label}` }))}
       />
       <p className="hint">
-        {ls.desc}. About {money(spend)} this year
+        {ls.desc}. {spend > 0 ? `About ${money(spend)} this year` : 'Nothing is left over for extras this year'}
         {ls.happiness ? ` · everyone at home ${ls.happiness > 0 ? '+' : ''}${ls.happiness} happiness` : ''}.
       </p>
     </Section>
