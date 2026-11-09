@@ -7,6 +7,7 @@ import { FamilyTab } from './FamilyTab';
 import { JournalTab } from './JournalTab';
 import { ConfirmEndYear, DevPanel, EventModal, MemorialScreen, RecapModal, SuccessionScreen } from './Overlays';
 import { GameMenu, SavesPanel } from './SavesPanel';
+import { AchievementsPanel, SettingsPanel } from './ProfilePanels';
 
 const TABS: { id: Tab; label: string; icon: string }[] = [
   { id: 'home', label: 'Home', icon: '🏠' },
@@ -73,6 +74,8 @@ export function Game() {
         : confirmEnd ? <ConfirmEndYear g={g} /> : null}
       {panel === 'menu' && <GameMenu />}
       {panel === 'saves' && <SavesPanel />}
+      {panel === 'settings' && <SettingsPanel />}
+      {panel === 'achievements' && <AchievementsPanel />}
       {showDev && <DevPanel />}
     </div>
   );

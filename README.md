@@ -4,15 +4,15 @@ A turn-based family life simulator. Each turn is one year: split your limited ti
 between work, yourself, and your family, guide your children, face life events, and
 when your character dies, continue as your spouse, child, or grandchild.
 
-See [PLAN.md](PLAN.md) for the full design and roadmap. Done so far: **Stage 1** (family loop prototype) and **Stage 2** (reliable saves).
+See [PLAN.md](PLAN.md) for the full design and roadmap. Done so far: **Stage 1** (family loop), **Stage 2** (reliable saves), **Stage 3** (profile & data format).
 
 ## Commands
 
 | Command | What it does |
 |---|---|
 | `npm run dev` | Start the game at http://localhost:5173 |
-| `npm test` | Engine unit tests (determinism, exactly-once saves, succession money rules, long-run invariants) |
-| `npm run sim [runs]` | Headless balance sim comparing career / family / balanced play styles |
+| `npm test` | Unit tests: engine (determinism, exactly-once saves, succession money), saves (schema, round-trips), profile (tracking, merge rules, backup format) |
+| `npm run sim [runs]` | Headless balance sim comparing career / family / balanced play styles, incl. achievement unlock rates |
 | `npm run e2e` | Playwright smoke test (keyboard on desktop, touch on mobile, reload mid-event) |
 | `npm run build` | Typecheck and build for production |
 
@@ -43,3 +43,15 @@ e2e/             Playwright tests
   (format upgrade, schema, cross-references) before anything is replaced, and warns if it was made with
   different game rules.
 - Browsers can clear site data, so the year recap reminds you to export a backup every 10 years.
+
+## Profile
+
+Settings, achievements, lifetime stats, and the Family Archive live in a **profile** stored separately from
+games (its own IndexedDB table, schema version, and previous-copy recovery).
+
+- **Full backup** (Saves & backups → Export full backup) contains the profile plus your current and previous
+  games. Importing one **merges**: achievements are combined (earliest unlock kept), each stat keeps the
+  higher value, archived families are combined, and settings stay as they are unless you tick
+  "Use the settings from this backup". Loading the backup's game is optional.
+- Achievements are pure checks on the game state (`src/content/achievements.ts`), evaluated after every
+  transition by `src/profile/tracker.ts`, so `npm run sim` can report how often each one unlocks.

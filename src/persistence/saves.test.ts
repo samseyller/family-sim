@@ -31,7 +31,7 @@ describe('export / import', () => {
     const s = played(9, 20);
     const res = parseSaveFile(serializeSave(s));
     expect(res.ok).toBe(true);
-    if (res.ok) {
+    if (res.ok && res.kind === 'game') {
       expect(res.state).toEqual(s);
       expect(res.warnings).toEqual([]);
     }
@@ -50,7 +50,7 @@ describe('export / import', () => {
       s = autoplayYear(s, firstChoice);
     }
     const res = parseSaveFile(serializeSave(s));
-    if (!res.ok) throw new Error(res.error);
+    if (!res.ok || res.kind !== 'game') throw new Error('expected a game import');
     expect(autoplayYear(res.state, firstChoice)).toEqual(autoplayYear(s, firstChoice));
   });
 

@@ -4,6 +4,7 @@ import { focusFirst } from '../input';
 import { active, ageOf, fullName } from '../../engine/util';
 import { Avatar } from '../Avatar';
 import { SavesPanel } from './SavesPanel';
+import { AchievementsPanel, SettingsPanel } from './ProfilePanels';
 
 export function Title() {
   const { saved, startNew, continueGame, ready, panel, setPanel, recovered } = useGame();
@@ -33,9 +34,15 @@ export function Title() {
         <button className="big" onClick={() => setPanel('saves')} disabled={!ready}>
           💾 Saves & backups
         </button>
+        <div className="title-row">
+          <button className="big" onClick={() => setPanel('achievements')} disabled={!ready}>🏅 Achievements</button>
+          <button className="big" onClick={() => setPanel('settings')} disabled={!ready}>⚙️ Settings</button>
+        </div>
       </div>
       {me && <p className="hint">Starting a new family replaces your current game. It stays recoverable as the previous autosave.</p>}
       {panel === 'saves' && <SavesPanel />}
+      {panel === 'settings' && <SettingsPanel />}
+      {panel === 'achievements' && <AchievementsPanel />}
     </main>
   );
 }

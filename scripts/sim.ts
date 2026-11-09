@@ -8,6 +8,11 @@ import { autoplayYear, chooseHeir, eligibleHeirs, updatePlan } from '../src/engi
 import { makeRng } from '../src/engine/rng';
 import { strategyPlan, type Strategy } from '../src/engine/strategies';
 import { ageOf } from '../src/engine/util';
+import { track } from '../src/profile/tracker';
+import { newProfile } from '../src/profile/types';
+import { ACHIEVEMENTS } from '../src/content/achievements';
+
+const unlockedRuns: Record<string, Record<string, number>> = {};
 
 const RUNS = Number(process.argv[2] ?? 60);
 const MAX_YEARS = 200;
@@ -18,6 +23,8 @@ for (const strat of strategies) {
   for (let i = 0; i < RUNS; i++) {
     const r = makeRng(i * 31 + 7);
     let s = newGame(1000 + i);
+    let profile = track(newProfile(), null, s).profile;
+    const step = (next: typeof s) => { profile = track(profile, s, next).profile; s = next; };
     let y = 0;
     for (; y < MAX_YEARS; y++) {
       if (s.phase === 'SUCCESSION') {
@@ -27,15 +34,17 @@ for (const strat of strategies) {
         const heirs = eligibleHeirs(s).sort((a, b) => a.birthYear - b.birthYear);
         // Prefer an adult child, to continue the bloodline.
         const child = heirs.find((h) => h.generation > dead.generation);
-        s = chooseHeir(s, (child ?? heirs[0])?.id ?? null);
+        step(chooseHeir(s, (child ?? heirs[0])?.id ?? null));
       }
       if (s.phase === 'GAME_OVER') break;
       s = updatePlan(s, strategyPlan(s, strat));
-      s = autoplayYear(s, (pe) => {
+      step(autoplayYear(s, (pe) => {
         stats.events[pe.eventId] = (stats.events[pe.eventId] ?? 0) + 1;
         return r.pick(pe.choices.filter((c) => !c.disabled)).id;
-      });
+      }));
     }
+    const runs = (unlockedRuns[strat] ??= {});
+    for (const id of Object.keys(profile.achievements)) runs[id] = (runs[id] ?? 0) + 1;
     const m = buildMemorial(s);
     stats.years += y;
     stats.gens += m.generations;
@@ -49,4 +58,6 @@ for (const strat of strategies) {
   console.log(`family wealth $${avg(stats.wealth).toLocaleString()} | parent-child affinity ${avg(stats.bonds)} | legacy score ${avg(stats.legacy)}`);
   const ev = Object.entries(stats.events).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k} ${(v / stats.years).toFixed(2)}`);
   console.log(`events per year: ${ev.join(', ')}`);
+  const pct = (id: string) => `${Math.round(((unlockedRuns[strat]?.[id] ?? 0) / RUNS) * 100)}%`;
+  console.log(`achievements (share of runs): ${ACHIEVEMENTS.map((a) => `${a.id} ${pct(a.id)}`).join(', ')}`);
 }

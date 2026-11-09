@@ -20,7 +20,7 @@ function visible(el: HTMLElement) {
 
 export function focusFirst() {
   const el = scope().querySelector<HTMLElement>(FOCUSABLE);
-  el?.focus();
+  el?.focus({ preventScroll: true });
 }
 
 function move(dir: 'up' | 'down' | 'left' | 'right') {

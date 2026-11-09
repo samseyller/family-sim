@@ -2,6 +2,8 @@ import Dexie, { type Table } from 'dexie';
 import type { GameState } from '../engine/types';
 import { migrate } from '../engine/migrations';
 import { GameStateSchema, integrityProblems } from './schema';
+import { newProfile, type Profile } from '../profile/types';
+import { parseProfile } from '../profile/schema';
 
 export interface SaveRow {
   slot: string;
@@ -11,12 +13,48 @@ export interface SaveRow {
   updatedAt: number;
 }
 
+export interface ProfileRow {
+  key: string;
+  current: Profile;
+  previous?: Profile;
+  updatedAt: number;
+}
+
 class SaveDb extends Dexie {
   saves!: Table<SaveRow, string>;
+  profile!: Table<ProfileRow, string>;
   constructor() {
     super('family-sim');
     this.version(1).stores({ saves: 'slot' });
+    // v2: the player profile (settings, achievements, stats, archive), separate from games.
+    this.version(2).stores({ saves: 'slot', profile: 'key' });
   }
+}
+
+const PROFILE_KEY = 'main';
+
+/** Persist the profile, keeping the prior version for recovery. */
+export function saveProfile(profile: Profile) {
+  queue = queue
+    .then(async () => {
+      const row = await db.profile.get(PROFILE_KEY);
+      await db.profile.put({ key: PROFILE_KEY, current: profile, previous: row?.current, updatedAt: Date.now() });
+    })
+    .catch((e) => console.error('Profile save failed', e));
+  return queue;
+}
+
+/** Load the profile; falls back to the previous copy, then to a fresh profile. */
+export async function loadProfile(): Promise<Profile> {
+  await queue;
+  const row = await db.profile.get(PROFILE_KEY);
+  for (const candidate of [row?.current, row?.previous]) {
+    if (!candidate) continue;
+    const res = parseProfile(candidate);
+    if (res.ok) return res.profile;
+    console.warn('Stored profile failed validation', res.error);
+  }
+  return newProfile();
 }
 
 export const db = new SaveDb();
