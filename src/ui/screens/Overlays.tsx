@@ -6,6 +6,7 @@ import { jobTitle } from '../../content/careers';
 import { useGame } from '../../store/gameStore';
 import { Avatar } from '../Avatar';
 import { Delta, Modal } from '../components';
+import { BackupReminder } from './SavesPanel';
 
 export function EventModal({ g }: { g: GameState }) {
   const choose = useGame((s) => s.choose);
@@ -75,6 +76,7 @@ export function RecapModal({ g }: { g: GameState }) {
       <button className="primary big" onClick={nextYear}>
         {r.activeDied ? 'Continue…' : `On to ${r.year + 1}`}
       </button>
+      <BackupReminder g={g} />
     </Modal>
   );
 }

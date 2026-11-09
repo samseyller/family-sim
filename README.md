@@ -2,9 +2,9 @@
 
 A turn-based family life simulator. Each turn is one year: split your limited time
 between work, yourself, and your family, guide your children, face life events, and
-when your character dies, continue as your spouse or child.
+when your character dies, continue as your spouse, child, or grandchild.
 
-See [PLAN.md](PLAN.md) for the full design and roadmap. This is **Stage 1: the family loop prototype**.
+See [PLAN.md](PLAN.md) for the full design and roadmap. Done so far: **Stage 1** (family loop prototype) and **Stage 2** (reliable saves).
 
 ## Commands
 
@@ -34,3 +34,12 @@ src/ui/          React screens, SVG avatars, keyboard/gamepad navigation
 scripts/sim.ts   headless balance simulation
 e2e/             Playwright tests
 ```
+
+## Saves
+
+- The game autosaves to the browser (IndexedDB) after every plan change, decision, and year. The previous
+  autosave is kept, so starting a new family, importing, or a damaged save can always be undone.
+- **Menu (🌳) → Export backup file** downloads a `.json` save. **Saves & backups → Import** checks the file
+  (format upgrade, schema, cross-references) before anything is replaced, and warns if it was made with
+  different game rules.
+- Browsers can clear site data, so the year recap reminds you to export a backup every 10 years.

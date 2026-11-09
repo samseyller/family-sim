@@ -3,18 +3,20 @@ import { useGame } from '../../store/gameStore';
 import { focusFirst } from '../input';
 import { active, ageOf, fullName } from '../../engine/util';
 import { Avatar } from '../Avatar';
+import { SavesPanel } from './SavesPanel';
 
 export function Title() {
-  const { saved, startNew, continueGame, ready } = useGame();
+  const { saved, startNew, continueGame, ready, panel, setPanel, recovered } = useGame();
   useEffect(() => {
-    if (ready) focusFirst();
-  }, [ready]);
+    if (ready && !panel) focusFirst();
+  }, [ready, panel]);
   const me = saved && saved.phase !== 'GAME_OVER' ? active(saved) : null;
   return (
     <main className="title-screen" data-focus-scope>
       <div className="logo" aria-hidden>🌳</div>
       <h1>Family Tree</h1>
       <p className="muted">A life, a family, and the generations that follow.</p>
+      {recovered && <p className="notice">⚠️ Your latest autosave was damaged; the previous one was loaded.</p>}
       <div className="title-actions">
         {me && saved && (
           <button className="primary big" onClick={continueGame}>
@@ -28,8 +30,12 @@ export function Title() {
         <button className={me ? 'big' : 'primary big'} onClick={startNew} disabled={!ready}>
           🎲 Start a new family
         </button>
+        <button className="big" onClick={() => setPanel('saves')} disabled={!ready}>
+          💾 Saves & backups
+        </button>
       </div>
-      {me && <p className="hint">Starting a new family replaces your current save.</p>}
+      {me && <p className="hint">Starting a new family replaces your current game. It stays recoverable as the previous autosave.</p>}
+      {panel === 'saves' && <SavesPanel />}
     </main>
   );
 }

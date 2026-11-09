@@ -182,4 +182,6 @@ export interface GameState {
   snapshot?: { stats: Stats; wallet: number; householdId: string };
   recap?: Recap;
   lastOutcome?: { title: string; text: string };
+  /** Year of the last exported backup (drives backup reminders). */
+  lastBackupYear?: number;
 }

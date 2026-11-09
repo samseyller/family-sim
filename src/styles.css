@@ -256,3 +256,8 @@ kbd {
 .sub-group:last-of-type { border-bottom: none; }
 .sub-head { font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); margin-top: 6px; }
 .sub-group .stepper { border-bottom: none; }
+.notice { background: color-mix(in srgb, var(--mid) 18%, var(--surface)); border: 1px solid color-mix(in srgb, var(--mid) 45%, transparent); border-radius: 10px; padding: 8px 12px; font-size: 0.9rem; text-align: left; }
+.backup-reminder { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 10px; }
+.save-card { display: flex; gap: 12px; align-items: center; background: var(--surface-2); border-radius: 12px; padding: 10px 12px; margin: 10px 0; text-align: left; }
+.close-btn { margin-top: 12px; }
+.error-detail.bad { background: color-mix(in srgb, var(--bad) 14%, var(--surface)); color: var(--text); border: 1px solid color-mix(in srgb, var(--bad) 40%, transparent); }

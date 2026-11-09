@@ -6,6 +6,7 @@ import { PlanTab } from './PlanTab';
 import { FamilyTab } from './FamilyTab';
 import { JournalTab } from './JournalTab';
 import { ConfirmEndYear, DevPanel, EventModal, MemorialScreen, RecapModal, SuccessionScreen } from './Overlays';
+import { GameMenu, SavesPanel } from './SavesPanel';
 
 const TABS: { id: Tab; label: string; icon: string }[] = [
   { id: 'home', label: 'Home', icon: '🏠' },
@@ -15,7 +16,7 @@ const TABS: { id: Tab; label: string; icon: string }[] = [
 ];
 
 export function Game() {
-  const { game: g, tab, setTab, confirmEnd, askEndYear, showDev, toggleDev, toTitle } = useGame();
+  const { game: g, tab, setTab, confirmEnd, askEndYear, showDev, toggleDev, panel, setPanel } = useGame();
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -41,7 +42,7 @@ export function Game() {
   return (
     <div className="app">
       <header className="topbar">
-        <button className="ghost" onClick={toTitle} aria-label="Back to title screen">🌳</button>
+        <button className="ghost" onClick={() => setPanel('menu')} aria-label="Menu">🌳</button>
         <div className="topbar-mid">
           <strong>{g.year}</strong>
           <span className="muted"> · {me.firstName}, {ageOf(me, g.year)}</span>
@@ -70,6 +71,8 @@ export function Game() {
         : g.phase === 'RECAP' ? <RecapModal g={g} />
         : g.phase === 'SUCCESSION' ? <SuccessionScreen g={g} />
         : confirmEnd ? <ConfirmEndYear g={g} /> : null}
+      {panel === 'menu' && <GameMenu />}
+      {panel === 'saves' && <SavesPanel />}
       {showDev && <DevPanel />}
     </div>
   );
