@@ -69,6 +69,23 @@ export const AvatarFace = memo(function AvatarFace({ spec, size = 56 }: { spec: 
   if (style === 3 && !(sex === 'M' && age > 40)) style = sex === 'F' ? 4 : 0; // 4 = bun
   const top = cy - ry;
 
+  /**
+   * Hair cap over the crown, `pad` px outside the head, ending at `baseY` on both sides,
+   * with a curved hairline through (innerX, innerY). It follows the head's outline:
+   * square faces are rounded rectangles, so the cap traces their corners; round and oval
+   * heads use a quadratic whose peak (halfway to the control point) clears the crown.
+   */
+  const capPath = (pad: number, baseY: number, innerX: number, innerY: number) => {
+    const hairline = `Q${innerX} ${innerY} ${cx - rx - pad} ${baseY} Z`;
+    if (L.face === 2) {
+      const k = r * 0.55; // matches the head rect's corner radius
+      const t = cy - r - pad;
+      return `M${cx - r - pad} ${baseY} L${cx - r - pad} ${cy - r + k} Q${cx - r - pad} ${t} ${cx - r + k} ${t} `
+        + `L${cx + r - k} ${t} Q${cx + r + pad} ${t} ${cx + r + pad} ${cy - r + k} L${cx + r + pad} ${baseY} ${hairline}`;
+    }
+    return `M${cx - rx - pad} ${baseY} Q${cx} ${cy - 2 * ry - 4 - pad} ${cx + rx + pad} ${baseY} ${hairline}`;
+  };
+
   const happy = spec.dead ? 50 : spec.happiness;
   const smile = (happy - 50) / 6;
   const worried = !spec.dead && spec.stress > 70;
@@ -107,14 +124,8 @@ export const AvatarFace = memo(function AvatarFace({ spec, size = 56 }: { spec: 
       {head}
 
       {/* hair on top */}
-      {/* Quadratic peaks sit halfway between the endpoints and the control point, so the
-          outer control is placed high enough for the hair to cover the crown. */}
-      {(style === 0 || style === 4) && !receding && (
-        <path d={`M${cx - rx - 0.5} ${cy - 1} Q${cx} ${cy - 2 * ry - 4} ${cx + rx + 0.5} ${cy - 1} Q${cx} ${cy - ry * 0.95} ${cx - rx - 0.5} ${cy - 1} Z`} fill={hair} />
-      )}
-      {style === 1 && (
-        <path d={`M${cx - rx - 1} ${cy + 1} Q${cx} ${cy - 2 * ry - 5} ${cx + rx + 1} ${cy + 1} Q${cx + 5} ${cy - ry * 0.85} ${cx - rx - 1} ${cy + 1} Z`} fill={hair} />
-      )}
+      {(style === 0 || style === 4) && !receding && <path d={capPath(0.5, cy - 1, cx, cy - ry * 0.95)} fill={hair} />}
+      {style === 1 && <path d={capPath(1, cy + 1, cx + 5, cy - ry * 0.85)} fill={hair} />}
       {style === 2 && (
         <g fill={hair}>
           {[-14, -7, 0, 7, 14].map((dx) => <circle key={dx} cx={cx + dx} cy={top + 4 + Math.abs(dx) / 3} r={age > 60 ? 6 : 7} />)}
