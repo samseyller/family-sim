@@ -106,7 +106,10 @@ const PendingEvent = z.object({
   major: z.boolean(),
   title: z.string(),
   text: z.string(),
-  choices: z.array(z.object({ id, label: z.string(), hint: z.string().optional(), disabled: z.boolean().optional() })).min(1),
+  choices: z.array(z.object({
+    id, label: z.string(), hint: z.string().optional(), disabled: z.boolean().optional(),
+    input: z.object({ label: z.string(), maxLength: int, placeholder: z.string().optional() }).optional(),
+  })).min(1),
 });
 
 const JournalEntry = z.object({

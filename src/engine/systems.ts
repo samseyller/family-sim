@@ -387,6 +387,8 @@ export function runPeople(s: GameState, rng: Rng) {
     if (!a || !alive(a)) continue;
     const baby = makeBaby(s, rng, a, b, hh.id);
     if (isCloseKin(s, baby)) journal(s, `${baby.firstName} ${baby.lastName} was born!`, 'birth');
+    // The player names their own babies (a naming event this same year).
+    if (baby.biologicalParents.includes(me.id)) s.scheduled.push({ dueYear: s.year, eventId: 'name_baby', subjectId: baby.id });
   }
   for (const p of livingPeople(s)) {
     const a = ageOf(p, s.year);

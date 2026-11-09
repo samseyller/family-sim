@@ -7,6 +7,7 @@ test('start as a child: kid plan, parents, and a year of childhood', async ({ pa
   await page.evaluate(() => indexedDB.deleteDatabase('family-sim'));
   await page.reload();
   await page.getByRole('button', { name: /start as a child/i }).click();
+  await page.getByRole('button', { name: 'Begin' }).click();
   await expect(page.locator('.hero')).toContainText('Age 6');
   await expect(page.locator('.hero')).toContainText('In school');
 

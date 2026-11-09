@@ -7,6 +7,7 @@ test('export, import into a new game, and restore the previous autosave', async 
 
   await page.goto('/');
   await page.getByRole('button', { name: /start a new family/i }).click();
+  await page.getByRole('button', { name: 'Begin' }).click();
   const firstName = (await page.locator('.hero h2').innerText()).trim();
 
   // Export from Menu → Saves & backups.
@@ -25,6 +26,7 @@ test('export, import into a new game, and restore the previous autosave', async 
   // Start a different family, then import the backup over it.
   await page.getByRole('button', { name: /title screen/i }).click();
   await page.getByRole('button', { name: /start a new family/i }).click();
+  await page.getByRole('button', { name: 'Begin' }).click();
   const secondName = (await page.locator('.hero h2').innerText()).trim();
   await page.getByRole('button', { name: 'Menu' }).click();
   await page.getByRole('button', { name: /saves & backups/i }).click();

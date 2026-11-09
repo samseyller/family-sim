@@ -7,6 +7,7 @@ test('tree view, memorial with editable epitaph, download, and archive', async (
   await page.evaluate(() => indexedDB.deleteDatabase('family-sim'));
   await page.reload();
   await page.getByRole('button', { name: /start a new family/i }).click();
+  await page.getByRole('button', { name: 'Begin' }).click();
 
   // Family tree renders with the player ringed.
   await page.keyboard.press('3');

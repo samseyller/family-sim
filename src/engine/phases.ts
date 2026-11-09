@@ -71,7 +71,7 @@ export function resolveYear(state: GameState): GameState {
   return end(s, rng);
 }
 
-export function choose(state: GameState, uid: string, choiceId: string): GameState {
+export function choose(state: GameState, uid: string, choiceId: string, text?: string): GameState {
   if (state.phase !== 'DECISIONS' || state.resolvedEventUids.includes(uid)) return state;
   const pe = state.pending.find((p) => p.uid === uid);
   const choice = pe?.choices.find((c) => c.id === choiceId);
@@ -79,7 +79,7 @@ export function choose(state: GameState, uid: string, choiceId: string): GameSta
 
   const { s, rng } = begin(state);
   s.pending = s.pending.filter((p) => p.uid !== uid);
-  const outcome = resolveEvent(s, rng, pe, choiceId);
+  const outcome = resolveEvent(s, rng, pe, choiceId, text);
   s.resolvedEventUids = [...s.resolvedEventUids, uid].slice(-200);
   s.lastOutcome = { title: pe.title, text: outcome };
   settleEstates(s);

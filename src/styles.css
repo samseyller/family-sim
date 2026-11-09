@@ -400,3 +400,13 @@ kbd {
 @media (max-width: 420px) { .buy-options { grid-template-columns: 1fr; } }
 .car-row { padding: 6px 0 10px; border-bottom: 1px dashed var(--border); }
 .car-row:last-of-type { border-bottom: none; }
+
+/* text input choices (naming) and new-family dialog */
+.text-choice, .name-fields { display: flex; flex-direction: column; gap: 6px; }
+.text-choice input, .name-field input {
+  font: inherit; color: inherit; background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: 10px; padding: 10px 12px; min-height: 44px; width: 100%;
+}
+.text-choice .row { justify-content: flex-start; }
+.name-field { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: end; }
+.name-field label { grid-column: 1 / -1; }

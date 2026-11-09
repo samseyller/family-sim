@@ -6,6 +6,7 @@ import { useGame } from '../../store/gameStore';
 import { Avatar } from '../Avatar';
 import { Delta, Modal } from '../components';
 import { BackupReminder } from './SavesPanel';
+import { TextChoice } from '../TextChoice';
 
 export function EventModal({ g }: { g: GameState }) {
   const choose = useGame((s) => s.choose);
@@ -32,7 +33,9 @@ export function EventModal({ g }: { g: GameState }) {
       </div>
       <p>{pe.text}</p>
       <div className="choices">
-        {pe.choices.map((c) => (
+        {pe.choices.map((c) => c.input ? (
+          <TextChoice key={c.id} choice={c} onSubmit={(text) => choose(pe.uid, c.id, text)} />
+        ) : (
           <button key={c.id} className="choice" disabled={c.disabled} onClick={() => choose(pe.uid, c.id)}>
             <span>{c.label}</span>
             {c.hint && <span className="hint">{c.hint}</span>}

@@ -144,6 +144,8 @@ export interface PendingChoice {
   label: string;
   hint?: string;
   disabled?: boolean;
+  /** Ask the player to type something (e.g. a name); the text is passed to resolve. */
+  input?: { label: string; maxLength: number; placeholder?: string };
 }
 
 export interface PendingEvent {

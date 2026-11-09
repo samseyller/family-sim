@@ -9,6 +9,7 @@ await page.goto('http://localhost:5173');
 await page.evaluate(() => indexedDB.deleteDatabase('family-sim'));
 await page.reload();
 await page.getByRole('button', { name: /start a new family/i }).click();
+await page.getByRole('button', { name: 'Begin' }).click();
 await page.waitForTimeout(4500); // let the first toast clear
 for (const [key, name] of [['1', 'home'], ['2', 'plan'], ['3', 'family']] as const) {
   await page.keyboard.press(key);

@@ -77,3 +77,15 @@ export function kidsAtHome(s: GameState, parent: Person) {
 }
 
 export const isAdult = (p: Person, year: number) => ageOf(p, year) >= 18;
+
+export const NAME_MAX = 20;
+
+/**
+ * Tidy a player-typed name: letters (any language), spaces, hyphens and apostrophes only,
+ * collapsed whitespace, first letter capitalized, at most NAME_MAX characters.
+ * Returns '' when nothing usable is left.
+ */
+export function cleanName(raw: string | undefined): string {
+  const s = (raw ?? '').normalize('NFC').replace(/[^\p{L}\p{M}' -]/gu, '').replace(/\s+/g, ' ').trim().slice(0, NAME_MAX).trim();
+  return s ? s[0].toLocaleUpperCase() + s.slice(1) : '';
+}

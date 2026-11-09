@@ -7,6 +7,7 @@ test('money tab: overview, invest, buy a home with confirmation', async ({ page 
   await page.evaluate(() => indexedDB.deleteDatabase('family-sim'));
   await page.reload();
   await page.getByRole('button', { name: /start a new family/i }).click();
+  await page.getByRole('button', { name: 'Begin' }).click();
   await page.keyboard.press('5');
   await expect(page.getByRole('heading', { name: /net worth/i })).toBeVisible();
   await expect(page.getByRole('heading', { name: /lifestyle/i })).toBeVisible();

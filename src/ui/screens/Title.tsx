@@ -1,13 +1,15 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useGame } from '../../store/gameStore';
 import { focusFirst } from '../input';
 import { active, ageOf, fullName } from '../../engine/util';
 import { Avatar } from '../Avatar';
 import { SavesPanel } from './SavesPanel';
+import { NewFamilyDialog } from './NewFamilyDialog';
 import { AchievementsPanel, SettingsPanel } from './ProfilePanels';
 
 export function Title() {
-  const { saved, startNew, continueGame, ready, panel, setPanel, recovered } = useGame();
+  const { saved, continueGame, ready, panel, setPanel, recovered } = useGame();
+  const [starting, setStarting] = useState<null | 'adult' | 'child'>(null);
   useEffect(() => {
     if (ready && !panel) focusFirst();
   }, [ready, panel]);
@@ -28,10 +30,10 @@ export function Title() {
             </span>
           </button>
         )}
-        <button className={me ? "big" : "primary big"} onClick={() => startNew()} disabled={!ready}>
+        <button className={me ? "big" : "primary big"} onClick={() => setStarting("adult")} disabled={!ready}>
           🎲 Start a new family
         </button>
-        <button className="big" onClick={() => startNew("child")} disabled={!ready}>
+        <button className="big" onClick={() => setStarting("child")} disabled={!ready}>
           🧒 Start as a child
         </button>
         <button className="big" onClick={() => setPanel('saves')} disabled={!ready}>
@@ -44,6 +46,7 @@ export function Title() {
       </div>
       {me && <p className="hint">Starting a new family replaces your current game. It stays recoverable as the previous autosave.</p>}
       {panel === 'saves' && <SavesPanel />}
+      {starting && <NewFamilyDialog start={starting} onClose={() => setStarting(null)} />}
       {panel === 'settings' && <SettingsPanel />}
       {panel === 'achievements' && <AchievementsPanel />}
     </main>

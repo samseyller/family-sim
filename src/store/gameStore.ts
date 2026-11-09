@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import type { GameState, Plan } from '../engine/types';
-import { newGame } from '../engine/generate';
+import { newGame, type StartNames } from '../engine/generate';
 import { financeAction, type FinanceAction } from '../engine/finance';
 import {
   choose, chooseHeir, devKill, devSkip, dismissOutcome, nextYear, resolveYear, updatePlan,
@@ -37,7 +37,7 @@ interface Store {
   confirmEnd: boolean;
   showDev: boolean;
   init(): Promise<void>;
-  startNew(start?: "adult" | "child"): void;
+  startNew(start?: "adult" | "child", names?: StartNames): void;
   continueGame(): void;
   toTitle(): void;
   setTab(t: Tab): void;
@@ -46,7 +46,7 @@ interface Store {
   finance(a: FinanceAction): void;
   askEndYear(open: boolean): void;
   endYear(): void;
-  choose(uid: string, choiceId: string): void;
+  choose(uid: string, choiceId: string, text?: string): void;
   dismissOutcome(): void;
   nextYear(): void;
   chooseHeir(id: string | null): void;
@@ -121,8 +121,8 @@ export const useGame = create<Store>((set, get) => {
       // Never leave the title screen stuck: a failed load just means no "Continue".
       await refresh();
     },
-    startNew(start = "adult") {
-      const g = newGame((Date.now() ^ Math.floor(Math.random() * 1e9)) >>> 0, start);
+    startNew(start = "adult", names) {
+      const g = newGame((Date.now() ^ Math.floor(Math.random() * 1e9)) >>> 0, start, names);
       set({ tab: 'home', panel: null, game: null });
       setProfile(trackNewFamily(get().profile));
       // Rotate so the game being replaced stays recoverable as "previous".
@@ -145,7 +145,7 @@ export const useGame = create<Store>((set, get) => {
       set({ confirmEnd: false });
       withGame(resolveYear);
     },
-    choose: (uid, choiceId) => withGame((g) => choose(g, uid, choiceId)),
+    choose: (uid, choiceId, text) => withGame((g) => choose(g, uid, choiceId, text)),
     dismissOutcome: () => withGame(dismissOutcome),
     nextYear() {
       withGame(nextYear);

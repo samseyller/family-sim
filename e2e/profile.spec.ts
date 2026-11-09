@@ -32,6 +32,7 @@ test('settings persist, achievements unlock, full backup round-trips', async ({ 
 
   // Play a year: "First Steps" unlocks with a toast.
   await page.getByRole('button', { name: /start a new family/i }).click();
+  await page.getByRole('button', { name: 'Begin' }).click();
   await page.keyboard.press('e');
   await page.getByRole('button', { name: 'Live the year' }).click();
   for (let i = 0; i < 12 && (await page.locator('.modal').count()); i++) {

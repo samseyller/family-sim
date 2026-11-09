@@ -70,3 +70,8 @@ games (its own IndexedDB table, schema version, and previous-copy recovery).
 - **Memorials**: ending a story builds a memorial with a generated epitaph per generation. Epitaphs can be
   rewritten and are saved in the Family Archive (🏅 Achievements & stats), where past families can be
   reopened. **Download memorial** saves a standalone web page (inline portraits, no scripts).
+
+## Names
+
+Starting a family (adult or child) opens a dialog to name your character and the family (🎲 or blank
+for random). When your baby is born, a naming event offers suggestions or lets you type your own.

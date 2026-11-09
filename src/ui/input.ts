@@ -19,7 +19,8 @@ function visible(el: HTMLElement) {
 }
 
 export function focusFirst() {
-  const el = scope().querySelector<HTMLElement>(FOCUSABLE);
+  const root = scope();
+  const el = root.querySelector<HTMLElement>("[data-autofocus]") ?? root.querySelector<HTMLElement>(FOCUSABLE);
   el?.focus({ preventScroll: true });
 }
 

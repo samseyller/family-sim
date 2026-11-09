@@ -8,6 +8,7 @@ await page.goto('http://localhost:5173');
 await page.evaluate(() => indexedDB.deleteDatabase('family-sim'));
 await page.reload();
 await page.getByRole('button', { name: /start a new family/i }).click();
+await page.getByRole('button', { name: 'Begin' }).click();
 for (let i = 0; i < Number(process.argv[3] ?? 6); i++) {
   await page.keyboard.press('`');
   await page.getByRole('button', { name: /skip 10 years/i }).click();

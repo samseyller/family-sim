@@ -31,7 +31,8 @@ test('a full year with only a controller', async ({ page }, info) => {
   await page.reload();
   await expect(page.getByRole('button', { name: /start a new family/i })).toBeFocused();
 
-  await tap(page, A); // start a new family
+  await tap(page, A); // start a new family → naming dialog
+  await tap(page, A); // Begin (focused)
   await expect(page.locator('.hero h2')).toBeVisible();
   const year = Number(await page.locator('.topbar-mid strong').innerText());
 
@@ -63,6 +64,7 @@ test('typing an epitaph does not trigger shortcuts', async ({ page }, info) => {
   await page.evaluate(() => indexedDB.deleteDatabase('family-sim'));
   await page.reload();
   await page.getByRole('button', { name: /start a new family/i }).click();
+  await page.getByRole('button', { name: 'Begin' }).click();
   await page.keyboard.press('`');
   await page.getByRole('button', { name: /kill main character/i }).click();
   await page.getByRole('button', { name: /end the family's story/i }).click();

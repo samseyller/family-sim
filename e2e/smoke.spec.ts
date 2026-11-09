@@ -18,6 +18,7 @@ test('new game, play 5 years by keyboard, reload resumes', async ({ page }, info
   page.on('pageerror', (e) => errors.push(e.message));
   await page.goto('/');
   await page.getByRole('button', { name: /start a new family/i }).click();
+  await page.getByRole('button', { name: 'Begin' }).click();
   await expect(page.locator('.hero h2')).toBeVisible();
   const start = await yearText(page);
 

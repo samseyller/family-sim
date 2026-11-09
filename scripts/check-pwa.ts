@@ -29,6 +29,7 @@ const offlineOk = await page.getByRole('button', { name: /start a new family/i }
 console.log('works offline:', offlineOk);
 if (offlineOk) {
   await page.getByRole('button', { name: /start a new family/i }).click();
+  await page.getByRole('button', { name: 'Begin' }).click();
   console.log('can start a game offline:', await page.locator('.hero h2').isVisible());
 }
 await browser.close();

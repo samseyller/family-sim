@@ -1,5 +1,6 @@
 import { HOBBY_BY_ID, TIME_BUDGET } from '../content/actions';
 import { CHILD_EVENTS } from './childhood';
+import { FEMALE_NAMES, MALE_NAMES } from '../content/names';
 import { annuityPayment, HOMES, MORTGAGE_RATE, MORTGAGE_YEARS } from '../content/finance';
 import { carsOf, homeUpfront } from './finance';
 import { CAREERS, CAREER_BY_ID, LEVEL_TITLES, PROGRAMS, qualifies, requiredBlocks, salaryOf } from '../content/careers';
@@ -11,7 +12,7 @@ import {
 import type { Rng } from './rng';
 import type { GameState, PendingChoice, PendingEvent, Person } from './types';
 import {
-  active, activePartnership, adjustBond, ageOf, alive, childrenOf, flag, fullName, getBond, journal, kidsAtHome,
+  active, activePartnership, adjustBond, ageOf, alive, childrenOf, cleanName, flag, fullName, getBond, journal, kidsAtHome, NAME_MAX,
   membersOf, money, newId, parentsOf, partnerOf, stat,
 } from './util';
 
@@ -40,7 +41,7 @@ export interface EventDef {
   cooldown: number;
   candidates?: (c: Ctx) => Candidate[];
   build: (c: Ctx, sub?: Person) => Built;
-  resolve: (c: Ctx, choice: string, sub?: Person) => string;
+  resolve: (c: Ctx, choice: string, sub?: Person, text?: string) => string;
   /** Who can get this event: adults (default), children (under 18), or anyone. */
   stage?: 'adult' | 'child' | 'any';
 }
@@ -1010,7 +1011,39 @@ function bestNewJob(c: Ctx) {
     .sort((a, b) => b.salary - a.salary)[0];
 }
 
-const ALL_EVENTS: EventDef[] = [...EVENTS, ...CHILD_EVENTS];
+/** Queued (via `scheduled`) when the player's baby is born: pick a suggested name or type one. */
+const NAME_BABY: EventDef = {
+  id: 'name_baby',
+  stage: 'any',
+  major: false,
+  cooldown: 0,
+  build: (c, baby) => {
+    const pool = (baby!.sex === 'F' ? FEMALE_NAMES : MALE_NAMES).filter((n) => n !== baby!.firstName);
+    const alt1 = pool[c.rng.int(0, pool.length - 1)];
+    const alt2 = pool.filter((n) => n !== alt1)[c.rng.int(0, pool.length - 2)];
+    return {
+      title: `Welcome, little ${baby!.sex === 'F' ? 'girl' : 'boy'}!`,
+      text: `The newest ${baby!.lastName} has arrived. What will you call ${baby!.sex === 'F' ? 'her' : 'him'}?`,
+      choices: [
+        { id: `n:${baby!.firstName}`, label: baby!.firstName },
+        { id: `n:${alt1}`, label: alt1 },
+        { id: `n:${alt2}`, label: alt2 },
+        { id: 'custom', label: 'Choose my own name', input: { label: 'Baby\'s first name', maxLength: NAME_MAX, placeholder: 'Type a name' } },
+      ],
+    };
+  },
+  resolve: (c, ch, baby, text) => {
+    const old = baby!.firstName;
+    const name = ch === 'custom' ? cleanName(text) || old : ch.slice(2);
+    baby!.firstName = name;
+    // Keep the birth announcement in the journal consistent with the chosen name.
+    const entry = [...c.s.journal].reverse().find((j) => j.kind === 'birth' && j.text.startsWith(`${old} ${baby!.lastName}`));
+    if (entry) entry.text = entry.text.replace(`${old} ${baby!.lastName}`, `${name} ${baby!.lastName}`);
+    return `${name} ${baby!.lastName}. It suits ${baby!.sex === 'F' ? 'her' : 'him'} perfectly.`;
+  },
+};
+
+const ALL_EVENTS: EventDef[] = [...EVENTS, ...CHILD_EVENTS, NAME_BABY];
 
 export const EVENT_BY_ID: Record<string, EventDef> = Object.fromEntries(ALL_EVENTS.map((e) => [e.id, e]));
 
@@ -1085,13 +1118,13 @@ export function generateEvents(s: GameState, rng: Rng) {
   }
 }
 
-export function resolveEvent(s: GameState, rng: Rng, pe: PendingEvent, choiceId: string): string {
+export function resolveEvent(s: GameState, rng: Rng, pe: PendingEvent, choiceId: string, text?: string): string {
   const def = EVENT_BY_ID[pe.eventId];
   const c: Ctx = { s, rng, me: active(s) };
   const sub = pe.subjectId ? s.people[pe.subjectId] : undefined;
   if (pe.subjectId && (!sub || !alive(sub))) return 'Circumstances changed before you could act.';
   const before = s.journal.length;
-  const outcome = def.resolve(c, choiceId, sub);
+  const outcome = def.resolve(c, choiceId, sub, text);
   // If the event already wrote its own headline, log the outcome as a normal entry so highlights don't repeat.
   const headlined = s.journal.slice(before).some((j) => j.kind === 'major' || j.kind === 'birth');
   journal(s, `${pe.title}: ${outcome}`, pe.major && !headlined ? 'major' : 'info');

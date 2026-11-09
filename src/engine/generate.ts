@@ -5,7 +5,7 @@ import { makeRng, type Rng } from './rng';
 import { inheritLooks, randomLooks } from './genome';
 import { CARS } from '../content/finance';
 import type { GameState, Household, Looks, Person, Plan, Trait } from './types';
-import { adjustBond, ageOf, alive, kidsAtHome, newId, parentsOf, partnerOf, active } from './util';
+import { adjustBond, ageOf, alive, cleanName, kidsAtHome, newId, parentsOf, partnerOf, active } from './util';
 
 export const SCHEMA_VERSION = 6;
 export const RULES_VERSION = '0.5.0';
@@ -239,7 +239,17 @@ function sanitizeEduIntent(me: Person, it: Plan['eduIntent']): Plan['eduIntent']
   return me.stats.smarts >= PROGRAMS[it.program].minSmarts ? it : undefined;
 }
 
-export function newGame(seed: number, start: "adult" | "child" = "adult"): GameState {
+export interface StartNames {
+  first?: string;
+  last?: string;
+}
+
+/** Start a new family, optionally with a player-chosen first name and family name. */
+export function newGame(seed: number, start: "adult" | "child" = "adult", names?: StartNames): GameState {
+  return applyNames(generateGame(seed, start), names);
+}
+
+function generateGame(seed: number, start: "adult" | "child"): GameState {
   if (start === "child") return newChildGame(seed);
   const s: GameState = {
     schemaVersion: SCHEMA_VERSION,
@@ -417,4 +427,19 @@ export function newChildGame(seed: number): GameState {
 /** New families start with an older used car (no loan). */
 export function giveStarterCar(s: GameState, hh: Household) {
   hh.assets.push({ id: newId(s, 'a'), kind: 'car', name: 'Used car', value: 7000, upkeep: CARS.used.upkeep, mortgage: 0 });
+}
+
+/** Apply custom names: the player's first name, and a family name shared by everyone who carried the old one. */
+function applyNames(s: GameState, names?: StartNames): GameState {
+  const first = cleanName(names?.first);
+  const last = cleanName(names?.last);
+  if (!first && !last) return s;
+  const me = active(s);
+  if (last) {
+    const old = me.lastName;
+    for (const p of Object.values(s.people)) if (p.lastName === old) p.lastName = last;
+  }
+  if (first) me.firstName = first;
+  if (s.journal[0]) s.journal[0].text = `Your story begins as ${me.firstName} ${me.lastName}, age ${ageOf(me, s.year)}.`;
+  return s;
 }
