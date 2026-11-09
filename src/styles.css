@@ -338,3 +338,12 @@ kbd {
 .memorial-highlights { font-size: 0.88rem; color: var(--muted); }
 .archive-item { gap: 4px; }
 .archive-faces { display: flex; gap: 2px; }
+
+/* update prompt */
+.update-banner {
+  position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(68px + env(safe-area-inset-bottom)); z-index: 30;
+  width: min(560px, calc(100% - 32px)); display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;
+  background: var(--surface); border: 1px solid var(--accent); border-radius: 14px; padding: 10px 14px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.18);
+}
+.update-actions { display: flex; gap: 8px; }

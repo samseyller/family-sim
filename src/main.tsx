@@ -6,6 +6,7 @@ import { Game } from './ui/screens/Game';
 import { Toasts, useApplySettings } from './ui/screens/ProfilePanels';
 import { installInput } from './ui/input';
 import { ErrorBoundary } from './ui/ErrorBoundary';
+import { UpdatePrompt } from './ui/UpdatePrompt';
 import './styles.css';
 
 function App() {
@@ -21,6 +22,7 @@ function App() {
     <ErrorBoundary onReset={() => { toTitle(); void init(); }}>
       {game ? <Game /> : <Title />}
       <Toasts />
+      <UpdatePrompt />
     </ErrorBoundary>
   );
 }

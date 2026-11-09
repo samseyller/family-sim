@@ -132,3 +132,8 @@ export async function isPersisted() {
     return false;
   }
 }
+
+/** Resolves once every queued save has been written (used before reloading for an update). */
+export function flushSaves() {
+  return queue.then(() => undefined);
+}

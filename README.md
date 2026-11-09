@@ -14,7 +14,8 @@ See [PLAN.md](PLAN.md) for the full design and roadmap. Done so far: **Stage 1**
 | `npm test` | Unit tests: engine (determinism, exactly-once saves, succession money), saves (schema, round-trips), profile (tracking, merge rules, backup format) |
 | `npm run sim [runs]` | Headless balance sim comparing career / family / balanced play styles, incl. achievement unlock rates |
 | `npm run e2e` | Playwright smoke test (keyboard on desktop, touch on mobile, reload mid-event) |
-| `npm run build` | Typecheck and build for production |
+| `npm run build` | Typecheck and build for production (installable PWA, works offline) |
+| `npx vite preview --port 4173` + `npx tsx scripts/check-pwa.ts` | Verify the build installs and plays offline |
 
 ## Controls
 
