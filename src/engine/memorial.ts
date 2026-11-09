@@ -76,7 +76,7 @@ export function buildMemorial(s: GameState): Memorial {
   }
   const wealth = [...households].reduce((sum, h) => {
     const hh = s.households[h];
-    return membersOf(s, h).length ? sum + hh.wallet + hh.assets.reduce((a, x) => a + x.value - x.mortgage, 0) : sum;
+    return membersOf(s, h).length ? sum + hh.wallet + (hh.investments ?? 0) + hh.assets.reduce((a, x) => a + x.value - x.mortgage, 0) : sum;
   }, 0);
   const bondsList = s.lineage.flatMap((id) => childrenOf(s, id).map((k) => getBond(s, id, k.id).affinity));
   const bonds = bondsList.length ? Math.round(bondsList.reduce((a, b) => a + b, 0) / bondsList.length) : 0;

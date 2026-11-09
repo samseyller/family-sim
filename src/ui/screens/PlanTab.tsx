@@ -1,7 +1,6 @@
 import type { ChildFocus, GameState, Hobby, JobIntent, Plan } from '../../engine/types';
 import { canWorkFullTime, homeParents } from '../../engine/generate';
 import { NightSchool } from './NightSchool';
-import { LifestylePicker } from './LifestylePicker';
 import { active, activePartnership, ageOf, kidsAtHome, membersOf, money, partnerOf } from '../../engine/util';
 import { ACTION_BY_ID, COSTS, FUND_OPTIONS, HOBBIES, HOBBY_BY_ID, TIME_BUDGET, defaultChildPlan } from '../../content/actions';
 import { CAREERS, CAREER_BY_ID, PART_TIME_MAX, qualifies, requiredBlocks, salaryOf, type JobSlot } from '../../content/careers';
@@ -150,7 +149,6 @@ export function PlanTab({ g }: { g: GameState }) {
       </Section>
       )}
 
-      {!isMinor && <LifestylePicker g={g} />}
 
       <Section title="🧘 Yourself">
         {step('exercise', ACTION_BY_ID.exercise.label, ACTION_BY_ID.exercise.icon, me.flags.health_vow ? 'Extra effective since your health scare' : 'Fitness, health; less stress')}

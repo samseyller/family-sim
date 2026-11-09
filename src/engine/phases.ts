@@ -59,7 +59,7 @@ export function resolveYear(state: GameState): GameState {
   s.lastOutcome = undefined;
 
   const pay = applyPlan(s, rng); // 1. planned actions + job intents
-  runEconomy(s, pay); //            2. income, expenses, wallets
+  runEconomy(s, pay, rng); //       2. income, expenses, wallets, investments
   runPeople(s, rng); //             3. births, kids, NPC decisions
   driftBonds(s); //                 4. relationship drift
   runHealth(s, rng); //             6. aging effects, deaths at year end

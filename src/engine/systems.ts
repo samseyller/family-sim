@@ -2,7 +2,9 @@ import { HOBBY_BY_ID } from '../content/actions';
 import { DEBT_RATE, LIFESTYLES, SAVINGS_RATE } from '../content/economy';
 import { CAREER_BY_ID, PART_TIME_MAX, PROGRAMS, TWO_JOB_STRESS, qualifies, requiredBlocks } from '../content/careers';
 import { assignJob, canWorkFullTime, homeParents, makeAdultStranger, makeBaby, pickCareer } from './generate';
-import { fullTimePay, householdBudget, mortgagePayment, partTimePay } from './budget';
+import { fullTimePay, householdBudget, partTimePay } from './budget';
+import { capacityOf, loanPayment } from './finance';
+import { INVEST_RETURN, INVEST_VOLATILITY } from '../content/finance';
 import { autoComeOfAge, die, isCloseKin, marry, moveOut, receptiveness, retire } from './family';
 import type { Rng } from './rng';
 import type { GameState, Hobby, Person } from './types';
@@ -198,6 +200,17 @@ export function applyPlan(s: GameState, rng: Rng): number {
     }
   }
 
+  // Crowding: more people than the home fits wears on everyone.
+  const home = s.households[me.householdId];
+  const crowd = membersOf(s, me.householdId).length - capacityOf(home);
+  if (crowd > 0) {
+    for (const m of membersOf(s, me.householdId)) {
+      stat(m, 'happiness', -Math.min(6, 3 * crowd));
+      stat(m, 'stress', 2);
+    }
+    journal(s, 'The home feels cramped. A bigger place would help.', 'bad');
+  }
+
   // Lifestyle: how the household lives this year shows in everyone's mood.
   const ls = LIFESTYLES[plan.lifestyle ?? 'comfortable'];
   if (ls.happiness || ls.stress) {
@@ -217,7 +230,7 @@ export function applyPlan(s: GameState, rng: Rng): number {
 }
 
 /** Step 2: income, expenses, and the household wallet for every household. */
-export function runEconomy(s: GameState, activePay: number) {
+export function runEconomy(s: GameState, activePay: number, rng?: Rng) {
   const me = active(s);
   for (const hh of Object.values(s.households)) {
     const mem = membersOf(s, hh.id);
@@ -225,7 +238,10 @@ export function runEconomy(s: GameState, activePay: number) {
     // Totals come from the same pure function the End Year preview uses.
     const budget = householdBudget(s, hh.id, activePay);
     for (const a of hh.assets) {
-      if (a.mortgage > 0) a.mortgage = Math.max(0, Math.round(a.mortgage * 1.04 - mortgagePayment(a.mortgage)));
+      if (a.mortgage > 0) {
+        const pay = loanPayment(a);
+        a.mortgage = Math.max(0, Math.round(a.mortgage * (1 + (a.rate ?? 0.04)) - pay));
+      }
       a.value = Math.round(a.value * (a.kind === 'house' ? 1.03 : 0.85));
     }
     if (hh.id === me.householdId) {
@@ -234,6 +250,13 @@ export function runEconomy(s: GameState, activePay: number) {
     for (const p of mem) if (p.fund > 0) p.fund = Math.round(p.fund * 1.04);
     hh.wallet += budget.net;
     hh.wallet = Math.round(hh.wallet * (hh.wallet > 0 ? 1 + SAVINGS_RATE : 1 + DEBT_RATE));
+    // Investments swing year to year around their average return.
+    if (rng && (hh.investments ?? 0) > 0) {
+      const r = INVEST_RETURN + (rng.next() * 2 - 1) * INVEST_VOLATILITY * 1.7;
+      const before = hh.investments!;
+      hh.investments = Math.max(0, Math.round(before * (1 + r)));
+      if (hh.id === me.householdId && Math.abs(r) > 0.12) journal(s, `Your investments ${r > 0 ? 'jumped' : 'fell'} ${Math.round(Math.abs(r) * 100)}% this year.`, r > 0 ? 'good' : 'bad');
+    }
     if (hh.wallet < 0) {
       for (const p of mem) {
         if (ageOf(p, s.year) < 18) continue;

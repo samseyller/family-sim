@@ -39,7 +39,7 @@ export function SettingsPanel() {
           <li><kbd>↑ ↓ ← →</kbd></li><li>Move between controls (D-pad or left stick)</li>
           <li><kbd>Enter</kbd> / <kbd>Space</kbd></li><li>Activate (controller A)</li>
           <li><kbd>Esc</kbd></li><li>Back / close (controller B)</li>
-          <li><kbd>1</kbd>–<kbd>4</kbd></li><li>Jump to a tab</li>
+          <li><kbd>1</kbd>–<kbd>5</kbd></li><li>Jump to a tab</li>
           <li><kbd>[</kbd> <kbd>]</kbd></li><li>Previous / next tab (controller LB / RB)</li>
           <li><kbd>E</kbd></li><li>End the year (controller Start)</li>
           <li><kbd>M</kbd></li><li>Menu (controller Select / View)</li>

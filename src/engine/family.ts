@@ -39,6 +39,8 @@ export function mergeHouseholds(s: GameState, fromId: string, intoId: string) {
   into.wallet += from.wallet;
   into.assets.push(...from.assets);
   from.wallet = 0;
+  into.investments = (into.investments ?? 0) + (from.investments ?? 0);
+  from.investments = 0;
   from.assets = [];
   from.settled = true;
   for (const p of Object.values(s.people)) if (p.householdId === fromId) p.householdId = intoId;
@@ -91,7 +93,10 @@ export function separate(s: GameState, a: Person, b: Person) {
   const old = s.households[a.householdId];
   const half = Math.max(0, Math.round(old.wallet / 2));
   old.wallet -= half;
+  const halfInv = Math.round((old.investments ?? 0) / 2);
+  old.investments = (old.investments ?? 0) - halfInv;
   const hh = makeHousehold(s, half);
+  hh.investments = halfInv;
   b.householdId = hh.id;
   adjustBond(s, a.id, b.id, -20, -15);
 }
@@ -168,11 +173,12 @@ export function settleEstates(s: GameState) {
     if (hh.settled) continue;
     const everyone = Object.values(s.people).filter((p) => p.householdId === hh.id);
     if (!everyone.length || everyone.some(alive)) continue;
-    const estate = hh.wallet + hh.assets.reduce((sum, a) => sum + a.value - a.mortgage, 0);
+    const estate = hh.wallet + (hh.investments ?? 0) + hh.assets.reduce((sum, a) => sum + a.value - a.mortgage, 0);
     const heirs = new Map<string, Person>();
     for (const d of everyone) for (const c of childrenOf(s, d.id)) if (alive(c) && c.householdId !== hh.id) heirs.set(c.id, c);
     hh.settled = true;
     hh.wallet = 0;
+    hh.investments = 0;
     hh.assets = [];
     if (!heirs.size || estate <= 0) continue;
     const tax = estateTax(estate);

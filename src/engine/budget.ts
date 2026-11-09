@@ -4,6 +4,8 @@
  */
 import { COSTS } from '../content/actions';
 import { LIFESTYLES, incomeTax, medicalCost } from '../content/economy';
+import { RENTALS, TRANSIT_COST } from '../content/finance';
+import { carsOf, commuters, homeOf, loanPayment, rentTierOf } from './finance';
 import { CAREER_BY_ID, PART_TIME_MAX, PROGRAMS, requiredBlocks, salaryOf, type Career } from '../content/careers';
 import { canWorkFullTime } from './generate';
 import type { GameState, Program } from './types';
@@ -17,6 +19,7 @@ export const fullTimePay = (c: Career, level: number, work: number) => {
 
 export const partTimePay = (c: Career, work: number) => (Math.min(work, PART_TIME_MAX) / c.blocks) * c.salary;
 
+/** @deprecated legacy flat mortgage (kept for older callers); assets now carry their own payment. */
 export const mortgagePayment = (mortgage: number) => Math.min(18000, mortgage * 1.04);
 
 export interface BudgetLine {
@@ -81,10 +84,11 @@ export function householdBudget(s: GameState, householdId: string, activePay: nu
   // Children with no adult at home (orphaned) receive survivor benefits.
   if (mem.length && mem.every((p) => ageOf(p, s.year) < 18)) add(inc, 'Survivor benefits', 24000);
 
-  if (!hh.assets.some((a) => a.kind === 'house')) add(exp, 'Rent', COSTS.rentBase + COSTS.rentPerExtra * Math.max(0, mem.length - 2));
+  if (!homeOf(hh)) add(exp, 'Rent', RENTALS[rentTierOf(hh)].rent);
+  if (!carsOf(hh).length && commuters(s, householdId)) add(exp, 'Transit', TRANSIT_COST);
   for (const a of hh.assets) {
-    add(exp, 'Home upkeep', a.upkeep);
-    if (a.mortgage > 0) add(exp, 'Mortgage', mortgagePayment(a.mortgage));
+    add(exp, a.kind === 'house' ? 'Home upkeep' : 'Car upkeep', a.upkeep);
+    if (a.mortgage > 0) add(exp, a.kind === 'house' ? 'Mortgage' : 'Car loan', loanPayment(a));
   }
 
   const isActiveHome = householdId === me.householdId;

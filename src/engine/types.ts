@@ -91,7 +91,14 @@ export interface Asset {
   name: string;
   value: number;
   upkeep: number;
+  /** Remaining loan balance (mortgage or car loan). */
   mortgage: number;
+  /** Fixed yearly loan payment; older saves fall back to the legacy $18k cap. */
+  payment?: number;
+  /** Loan interest rate. */
+  rate?: number;
+  /** Homes: how many people fit comfortably. */
+  capacity?: number;
 }
 
 /** Money and assets belong to the household. Members are derived from Person.householdId. */
@@ -102,6 +109,10 @@ export interface Household {
   pendingBirth?: { year: number; parents: [string, string] };
   /** Set when an emptied household's estate has been distributed (never twice). */
   settled: boolean;
+  /** Investment account balance. */
+  investments?: number;
+  /** Size of the rental when the household has no home of its own. */
+  rentTier?: 'small' | 'apartment' | 'house';
 }
 
 export type ChildFocus = 'free' | 'studies' | 'hobby';

@@ -5,6 +5,7 @@ import { HomeTab } from './HomeTab';
 import { PlanTab } from './PlanTab';
 import { FamilyTab } from './FamilyTab';
 import { JournalTab } from './JournalTab';
+import { MoneyTab } from './MoneyTab';
 import { ConfirmEndYear, DevPanel, EventModal, MemorialScreen, RecapModal, SuccessionScreen } from './Overlays';
 import { GameMenu, SavesPanel } from './SavesPanel';
 import { isTyping } from '../input';
@@ -15,6 +16,7 @@ const TABS: { id: Tab; label: string; icon: string }[] = [
   { id: 'plan', label: 'Plan', icon: '🗓️' },
   { id: 'family', label: 'Family', icon: '👪' },
   { id: 'journal', label: 'Journal', icon: '📖' },
+  { id: 'money', label: 'Money', icon: '💰' },
 ];
 
 export function Game() {
@@ -62,6 +64,7 @@ export function Game() {
         {tab === 'plan' && (g.phase === 'PLANNING' ? <PlanTab g={g} /> : <p className="muted center">The year is resolving…</p>)}
         {tab === 'family' && <FamilyTab g={g} />}
         {tab === 'journal' && <JournalTab g={g} />}
+        {tab === 'money' && <MoneyTab g={g} />}
       </main>
 
       <nav className="tabbar" aria-label="Sections">

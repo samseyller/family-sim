@@ -63,6 +63,9 @@ const Asset = z.object({
   value: num,
   upkeep: num,
   mortgage: num,
+  payment: num.optional(),
+  rate: num.optional(),
+  capacity: int.optional(),
 });
 
 const Household = z.object({
@@ -71,6 +74,8 @@ const Household = z.object({
   assets: z.array(Asset),
   pendingBirth: z.object({ year: int, parents: z.tuple([id, id]) }).optional(),
   settled: z.boolean(),
+  investments: num.optional(),
+  rentTier: z.enum(['small', 'apartment', 'house']).optional(),
 });
 
 const ChildPlan = z.object({

@@ -1,5 +1,7 @@
 import { HOBBY_BY_ID, TIME_BUDGET } from '../content/actions';
 import { CHILD_EVENTS } from './childhood';
+import { annuityPayment, HOMES, MORTGAGE_RATE, MORTGAGE_YEARS } from '../content/finance';
+import { carsOf, homeUpfront } from './finance';
 import { CAREERS, CAREER_BY_ID, LEVEL_TITLES, PROGRAMS, qualifies, requiredBlocks, salaryOf } from '../content/careers';
 import { assignJob, makeAdultStranger, makePerson, pickCareer } from './generate';
 import {
@@ -730,20 +732,28 @@ const EVENTS: EventDef[] = [
     id: 'house_for_sale',
     major: true,
     cooldown: 4,
-    candidates: (c) => one(!wallet(c).assets.some((a) => a.kind === 'house') && wallet(c).wallet >= 30000, 3),
-    build: () => ({
-      title: 'A house for sale',
-      text: 'A three-bedroom house in a good school district is for sale: $300,000 with $30,000 down. No more rent, but a mortgage of $18,000 a year.',
-      choices: [
-        { id: 'buy', label: 'Buy it', hint: 'Builds wealth over time' },
-        { id: 'rent', label: 'Keep renting', hint: 'Keep your savings liquid' },
-      ],
-    }),
+    candidates: (c) => one(!wallet(c).assets.some((a) => a.kind === 'house') && wallet(c).wallet >= homeUpfront('family', 0.1), 3),
+    build: () => {
+      const h = HOMES.family;
+      const loan = h.price * 0.9;
+      return {
+        title: 'A house for sale',
+        text: `A ${h.label.toLowerCase()} in a good school district is for sale: ${money(h.price)}, with ${money(homeUpfront('family', 0.1))} up front. No more rent, but a mortgage of ${money(annuityPayment(loan, MORTGAGE_RATE, MORTGAGE_YEARS))} a year. (You can also shop for homes any time in the Money tab.)`,
+        choices: [
+          { id: 'buy', label: 'Buy it', hint: 'Builds wealth over time' },
+          { id: 'rent', label: 'Keep renting', hint: 'Keep your savings liquid' },
+        ],
+      };
+    },
     resolve: (c, ch) => {
       if (ch !== 'buy') return 'You kept renting. The savings stay in the bank.';
-      const h = wallet(c);
-      h.wallet -= 30000;
-      h.assets.push({ id: newId(c.s, 'a'), kind: 'house', name: 'Family home', value: 300000, upkeep: 4000, mortgage: 270000 });
+      const h = HOMES.family;
+      const loan = Math.round(h.price * 0.9);
+      wallet(c).wallet -= homeUpfront('family', 0.1);
+      wallet(c).assets.push({
+        id: newId(c.s, 'a'), kind: 'house', name: h.label, value: h.price, upkeep: h.upkeep, capacity: h.capacity,
+        mortgage: loan, rate: MORTGAGE_RATE, payment: annuityPayment(loan, MORTGAGE_RATE, MORTGAGE_YEARS),
+      });
       for (const m of [c.me, ...kidsAtHome(c.s, c.me)]) stat(m, 'happiness', 6);
       journal(c.s, 'You bought a family home.', 'major');
       return 'You got the keys. The kids raced to claim bedrooms.';
@@ -753,7 +763,7 @@ const EVENTS: EventDef[] = [
     id: 'car_trouble',
     major: false,
     cooldown: 3,
-    candidates: () => [{ weight: 1 }],
+    candidates: (c) => one(carsOf(wallet(c)).length > 0, 1),
     build: (c) => ({
       title: 'Car trouble',
       text: 'The car makes a horrible noise and dies on the highway. The repair will cost $3,000.',
