@@ -1,8 +1,13 @@
 import { HOBBY_BY_ID, TIME_BUDGET } from '../content/actions';
 import { CHILD_EVENTS } from './childhood';
 import { FEMALE_NAMES, MALE_NAMES } from '../content/names';
-import { annuityPayment, HOMES, MORTGAGE_RATE, MORTGAGE_YEARS } from '../content/finance';
-import { carsOf, homeUpfront } from './finance';
+import { annuityPayment, HOMES, MORTGAGE_RATE, MORTGAGE_YEARS, SCRAP_VALUE } from '../content/finance';
+import { breakdownChance, carAge, conditionOf, garagedIds, repairCost, shakiestCar } from './cars';
+import type { Asset } from './types';
+import { homeUpfront } from './finance';
+
+/** A highway breakdown costs several times a routine repair. */
+const bigRepair = (car: Asset) => repairCost(car) * 3;
 import { readiness } from './retirement';
 import { guidedPerson, scriptedPhase, severeGuard } from './tutorial';
 import { FULL_RETIREMENT_AGE } from '../content/retirement';
@@ -770,7 +775,7 @@ const EVENTS: EventDef[] = [
       const loan = Math.round(h.price * 0.9);
       wallet(c).wallet -= homeUpfront('family', 0.1);
       wallet(c).assets.push({
-        id: newId(c.s, 'a'), kind: 'house', name: h.label, value: h.price, upkeep: h.upkeep, capacity: h.capacity,
+        id: newId(c.s, 'a'), kind: 'house', name: h.label, value: h.price, upkeep: h.upkeep, capacity: h.capacity, garage: h.garage,
         mortgage: loan, rate: MORTGAGE_RATE, payment: annuityPayment(loan, MORTGAGE_RATE, MORTGAGE_YEARS),
       });
       for (const m of [c.me, ...kidsAtHome(c.s, c.me)]) stat(m, 'happiness', 6);
@@ -782,19 +787,39 @@ const EVENTS: EventDef[] = [
     id: 'car_trouble',
     major: false,
     cooldown: 3,
-    candidates: (c) => one(carsOf(wallet(c)).length > 0, 1),
-    build: (c) => ({
-      title: 'Car trouble',
-      text: 'The car makes a horrible noise and dies on the highway. The repair will cost $3,000.',
-      choices: [
-        { id: 'fix', label: 'Pay for the repair', disabled: wallet(c).wallet < 3000 },
-        { id: 'bus', label: 'Take the bus for a while', hint: 'Stress up, late to work' },
-      ],
-    }),
+    // Older and less reliable cars break down far more often.
+    candidates: (c) => {
+      const car = shakiestCar(wallet(c));
+      return one(!!car, car ? 0.5 + 8 * breakdownChance(car, garagedIds(wallet(c)).has(car.id)) : 0);
+    },
+    build: (c) => {
+      const car = shakiestCar(wallet(c));
+      const cost = car ? bigRepair(car) : 0;
+      const old = car ? conditionOf(car).tone === 'bad' : false;
+      return {
+        title: 'Car trouble',
+        text: car
+          ? `The ${car.name} (${carAge(car)} years old) makes a horrible noise and dies on the highway. The repair will cost ${money(cost)}.${old ? ' The mechanic says it may not be worth it.' : ''}`
+          : 'The car makes a horrible noise and dies on the highway.',
+        choices: [
+          { id: 'fix', label: `Pay for the repair (${money(cost)})`, disabled: !car || wallet(c).wallet < cost, hint: old ? 'It may not last much longer' : undefined },
+          { id: 'scrap', label: 'Scrap it', hint: car ? `Get ${money(SCRAP_VALUE)}; buy another in the Money tab` : undefined, disabled: !car },
+          { id: 'bus', label: 'Take the bus for a while', hint: 'Stress up, late to work' },
+        ],
+      };
+    },
     resolve: (c, ch) => {
-      if (ch === 'fix') {
-        wallet(c).wallet -= 3000;
+      const hh = wallet(c);
+      const car = shakiestCar(hh);
+      if (ch === 'fix' && car) {
+        hh.wallet -= bigRepair(car);
         return 'Fixed. Your wallet is lighter.';
+      }
+      if (ch === 'scrap' && car) {
+        hh.assets = hh.assets.filter((a) => a !== car);
+        hh.wallet += SCRAP_VALUE;
+        journal(c.s, `You scrapped the ${car.name}.`, 'info');
+        return 'The tow truck hauled it away. Time to go car shopping.';
       }
       stat(c.me, 'stress', 6);
       c.me.workPerf = Math.max(0, c.me.workPerf - 5);

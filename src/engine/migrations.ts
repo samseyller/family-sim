@@ -51,6 +51,22 @@ const STEPS: Record<number, Step> = {
   // v9 → v10: optional household head and per-person savings stakes. Missing stakes are
   // seeded as equal shares the first time the economy runs, so nothing to rewrite.
   9: (s) => s,
+  // v10 → v11: car models that age, and garages. Older cars get a model and a plausible age
+  // ("New car" ≈ 3 years, "Used car" ≈ 8); homes get the garage of the matching home type.
+  10: (s) => {
+    const garages: Record<string, number> = { 'Starter home': 0, 'Family home': 2, 'Large home': 2 };
+    for (const hh of isObj(s.households) ? Object.values(s.households).filter(isObj) : []) {
+      for (const a of Array.isArray(hh.assets) ? hh.assets.filter(isObj) : []) {
+        if (a.kind === 'car' && a.age === undefined) {
+          const isNew = a.name === 'New car';
+          a.model ??= isNew ? 'new' : 'used';
+          a.age = isNew ? 3 : 8;
+        }
+        if (a.kind === 'house' && a.garage === undefined) a.garage = garages[String(a.name)] ?? 0;
+      }
+    }
+    return s;
+  },
 };
 
 export type MigrateResult = { ok: true; state: GameState } | { ok: false; error: string };

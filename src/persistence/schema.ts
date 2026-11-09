@@ -3,6 +3,7 @@
  * here (shape + referential integrity) before they can replace anything.
  */
 import { z } from 'zod';
+import { CARS, type CarKind } from '../content/finance';
 import type { GameState } from '../engine/types';
 
 const num = z.number().finite();
@@ -71,6 +72,10 @@ const Asset = z.object({
   payment: num.optional(),
   rate: num.optional(),
   capacity: int.optional(),
+  garage: int.optional(),
+  model: z.enum(Object.keys(CARS) as [CarKind, ...CarKind[]]).optional(),
+  age: int.optional(),
+  broken: z.boolean().optional(),
 });
 
 const Household = z.object({

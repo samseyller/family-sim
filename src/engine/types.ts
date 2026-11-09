@@ -106,6 +106,12 @@ export interface Asset {
   payment?: number;
   /** Loan interest rate. */
   rate?: number;
+  /** Homes: garage spaces (adds to the 2 parking spots every home has). */
+  garage?: number;
+  /** Cars: model id, years on the road, and whether it has died for good. */
+  model?: import('../content/finance').CarKind;
+  age?: number;
+  broken?: boolean;
   /** Homes: how many people fit comfortably. */
   capacity?: number;
 }

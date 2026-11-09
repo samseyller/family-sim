@@ -257,7 +257,8 @@ export const CHILD_EVENTS: EventDef[] = [
     stage: 'any',
     major: true,
     cooldown: 0,
-    candidates: (c) => one(age(c) >= 18 && !c.me.flags.came_of_age, 10, true),
+    // A life-stage beat: at 18 this always comes before chance encounters.
+    candidates: (c) => one(age(c) >= 18 && !c.me.flags.came_of_age, 1000, true),
     build: (c) => {
       const skill = c.me.hobby ? c.me.skills[c.me.hobby] ?? 0 : 0;
       return {

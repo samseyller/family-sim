@@ -106,6 +106,16 @@ for random). When your baby is born, a naming event offers suggestions or lets y
   to move out (with a gift or their share), and invite grown children or parents to live with you when you're
   close enough. Their whole household moves in and their home is sold. Invited children don't leave on their own.
 
+## Homes and cars
+
+- Six home types (condo → country estate) with different prices, sizes and garages. Every home has 2 parking
+  spots plus its garage spaces; owners can add garage spaces (up to 4). Cars beyond your spots pay for street parking.
+- Ten car models, new and used, with different prices, upkeep, reliability, seats and lifespans. Only new cars can
+  be bought on a loan. A car is named by its model year ("2031 Sedan") and ages every year: it loses value,
+  upkeep rises 10% a year, and breakdowns (small repairs, or the "Car trouble" event) get likelier. Garaged cars
+  break down less. Near the end of its lifespan a car dies for good. It's then worth scrap, no longer gets anyone
+  to work, and keeps its parking spot until you scrap it.
+
 ## Activities, retirement, and the guided first life
 
 - **🎯 Activities** (key 6): one-off things to do while planning, outside the 12 time blocks. Each costs

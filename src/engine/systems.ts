@@ -10,6 +10,7 @@ import { SAVINGS_RETURN, SAVINGS_VOLATILITY } from '../content/retirement';
 import { INVEST_RETURN, INVEST_VOLATILITY } from '../content/finance';
 import { autoComeOfAge, die, isCloseKin, marry, moveOut, receptiveness, retire } from './family';
 import { STAKE_KEEP, seedStakes } from './household';
+import { ageCars } from './cars';
 import type { Rng } from './rng';
 import type { GameState, Hobby, Person } from './types';
 import {
@@ -246,13 +247,15 @@ export function runEconomy(s: GameState, activePay: number, rng?: Rng) {
         const pay = loanPayment(a);
         a.mortgage = Math.max(0, Math.round(a.mortgage * (1 + (a.rate ?? 0.04)) - pay));
       }
-      a.value = Math.round(a.value * (a.kind === 'house' ? 1.03 : 0.85));
+      if (a.kind === 'house') a.value = Math.round(a.value * 1.03);
     }
     if (hh.id === me.householdId) {
       for (const kid of kidsAtHome(s, me)) kid.fund += s.plan.children[kid.id]?.fundContribution ?? 0;
     }
     for (const p of mem) if (p.fund > 0) p.fund = Math.round(p.fund * 1.04);
     hh.wallet += budget.net;
+    // Cars age (value, upkeep, repairs, and eventually dying for good).
+    ageCars(s, hh, rng, hh.id === me.householdId);
     // Each adult's claim on the shared savings grows with what they bring in; recent years
     // count most (older pay was mostly spent on living, not saved).
     seedStakes(s, hh.id);

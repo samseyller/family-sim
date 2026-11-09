@@ -4,10 +4,11 @@
  * pure (state, …) → state transition, validated here so the UI can't cheat.
  */
 import {
-  annuityPayment, BUY_COSTS, CAR_LOAN_RATE, CAR_LOAN_YEARS, CARS, HOMES, MORTGAGE_RATE, MORTGAGE_YEARS, MOVING_COST,
+  annuityPayment, BUY_COSTS, CARS, GARAGE_BUILD, HOMES, MORTGAGE_RATE, MORTGAGE_YEARS, MOVING_COST,
   RENOVATION, RENTALS, SELL_COSTS, type CarKind, type HomeTier, type RentTier,
 } from '../content/finance';
 import type { Asset, GameState, Household } from './types';
+import { financeable, garageOf, makeCar, parkingSpots } from './cars';
 import { retirePerson } from './retirement';
 import { unlockedTabs } from './tutorial';
 import { sanitizePlan } from './generate';
@@ -19,6 +20,7 @@ export type FinanceAction =
   | { kind: 'buyHome'; tier: HomeTier; downPct: number }
   | { kind: 'sellHome' }
   | { kind: 'renovate' }
+  | { kind: 'buildGarage' }
   | { kind: 'payLoan'; assetId: string; amount: number }
   | { kind: 'buyCar'; car: CarKind; financed: boolean }
   | { kind: 'sellCar'; assetId: string }
@@ -61,6 +63,10 @@ export function financeBlocker(s: GameState, a: FinanceAction): string | null {
       return hh.wallet < homeUpfront(a.tier, a.downPct) ? `You need ${money(homeUpfront(a.tier, a.downPct))} up front.` : null;
     case 'sellHome':
       return home ? null : 'You do not own a home.';
+    case 'buildGarage':
+      if (!home) return 'You do not own a home.';
+      if (garageOf(home) >= GARAGE_BUILD.max) return 'There is no room on the lot for more garage.';
+      return hh.wallet < GARAGE_BUILD.cost ? `A garage space costs ${money(GARAGE_BUILD.cost)}.` : null;
     case 'renovate':
       if (!home) return 'You do not own a home.';
       return hh.wallet < RENOVATION.cost ? `Renovating costs ${money(RENOVATION.cost)}.` : null;
@@ -70,7 +76,9 @@ export function financeBlocker(s: GameState, a: FinanceAction): string | null {
       return a.amount <= 0 || hh.wallet < Math.min(a.amount, asset.mortgage) ? 'Not enough cash.' : null;
     }
     case 'buyCar':
-      if (carsOf(hh).length >= 2) return 'Two cars is plenty.';
+      if (!CARS[a.car]) return 'No such car.';
+      if (carsOf(hh).length >= parkingSpots(hh)) return `No parking left (${parkingSpots(hh)} spots). Sell a car or add a garage.`;
+      if (a.financed && !financeable(a.car)) return 'Loans are only for new cars.';
       return !a.financed && hh.wallet < CARS[a.car].price ? `You need ${money(CARS[a.car].price)}.`
         : a.financed && hh.wallet < CARS[a.car].price * 0.1 ? `A loan needs ${money(CARS[a.car].price * 0.1)} down.` : null;
     case 'sellCar':
@@ -109,7 +117,7 @@ export function financeAction(state: GameState, a: FinanceAction): GameState {
       const loan = Math.round(h.price * (1 - a.downPct));
       hh.wallet -= homeUpfront(a.tier, a.downPct);
       hh.assets.push({
-        id: newId(s, 'a'), kind: 'house', name: h.label, value: h.price, upkeep: h.upkeep, capacity: h.capacity,
+        id: newId(s, 'a'), kind: 'house', name: h.label, value: h.price, upkeep: h.upkeep, capacity: h.capacity, garage: h.garage,
         mortgage: loan, rate: MORTGAGE_RATE, payment: annuityPayment(loan, MORTGAGE_RATE, MORTGAGE_YEARS),
       });
       for (const m of membersOf(s, hh.id)) stat(m, 'happiness', 6);
@@ -122,6 +130,13 @@ export function financeAction(state: GameState, a: FinanceAction): GameState {
       hh.assets = hh.assets.filter((x) => x !== home);
       hh.rentTier = membersOf(s, hh.id).length > 4 ? 'house' : 'apartment';
       journal(s, `You sold the house${proceeds >= 0 ? ` and cleared ${money(proceeds)}` : `, still owing ${money(-proceeds)}`}. Back to renting.`, 'major');
+      break;
+    }
+    case 'buildGarage': {
+      hh.wallet -= GARAGE_BUILD.cost;
+      home!.garage = garageOf(home) + 1;
+      home!.value += GARAGE_BUILD.valueGain;
+      journal(s, `You added a garage space (${home!.garage} now).`, 'info');
       break;
     }
     case 'renovate': {
@@ -144,21 +159,18 @@ export function financeAction(state: GameState, a: FinanceAction): GameState {
     }
     case 'buyCar': {
       const c = CARS[a.car];
-      const loan = a.financed ? Math.round(c.price * 0.9) : 0;
-      hh.wallet -= c.price - loan;
-      hh.assets.push({
-        id: newId(s, 'a'), kind: 'car', name: c.label, value: c.price, upkeep: c.upkeep, mortgage: loan,
-        rate: loan ? CAR_LOAN_RATE : undefined, payment: loan ? annuityPayment(loan, CAR_LOAN_RATE, CAR_LOAN_YEARS) : undefined,
-      });
-      stat(me, 'happiness', a.car === 'new' ? 5 : 2);
-      journal(s, `You bought a ${c.label.toLowerCase()}${loan ? ' on a loan' : ''}.`, 'info');
+      const car = makeCar(s, a.car, { financed: a.financed });
+      hh.wallet -= c.price - car.mortgage;
+      hh.assets.push(car);
+      stat(me, 'happiness', c.joy);
+      journal(s, `You bought ${c.age ? 'a used' : 'a new'} ${c.label.toLowerCase()}${car.mortgage ? ' on a loan' : ''}.`, 'info');
       break;
     }
     case 'sellCar': {
       const car = hh.assets.find((x) => x.id === a.assetId)!;
       hh.wallet += Math.round(car.value - car.mortgage);
       hh.assets = hh.assets.filter((x) => x !== car);
-      journal(s, `You sold the ${car.name.toLowerCase()}.`, 'info');
+      journal(s, car.broken ? `You scrapped the ${car.name}.` : `You sold the ${car.name}.`, 'info');
       break;
     }
     case 'invest':

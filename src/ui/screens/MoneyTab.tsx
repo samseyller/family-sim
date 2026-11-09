@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { CARS, HOMES, INVEST_RETURN, MORTGAGE_RATE, MORTGAGE_YEARS, RENOVATION, RENTALS, SELL_COSTS, annuityPayment, type HomeTier, type RentTier } from '../../content/finance';
+import { GARAGE_BUILD, HOMES, INVEST_RETURN, MORTGAGE_RATE, MORTGAGE_YEARS, RENOVATION, RENTALS, SELL_COSTS, annuityPayment, type HomeTier, type RentTier } from '../../content/finance';
 import { estimateYear } from '../../engine/budget';
 import { capacityOf, carsOf, financeBlocker, homeOf, homeUpfront, netWorth, rentTierOf, type FinanceAction } from '../../engine/finance';
 import type { GameState } from '../../engine/types';
@@ -8,6 +8,8 @@ import { useGame } from '../../store/gameStore';
 import { Section } from '../components';
 import { LifestylePicker } from './LifestylePicker';
 import { RetirementCard } from './RetirementCard';
+import { CarsSection } from './CarsSection';
+import { garageOf, parkingSpots } from '../../engine/cars';
 import { HouseholdCard } from './HouseholdCard';
 
 const signed = (n: number) => `${n >= 0 ? '+' : '−'}${money(Math.abs(n))}`;
@@ -95,12 +97,14 @@ export function MoneyTab({ g }: { g: GameState }) {
         {home ? (
           <>
             <div className="row"><span>{home.name}</span><strong>{money(home.value)}</strong></div>
+            <div className="row hint"><span>{garageOf(home) ? `${garageOf(home)}-car garage` : 'No garage'} · {parkingSpots(hh)} parking spots</span></div>
             <div className="row hint"><span>Mortgage {money(home.mortgage)}{home.payment ? ` · ${money(home.payment)}/yr` : ''}</span><span>Equity {money(home.value - home.mortgage)}</span></div>
             {people > cap && <p className="notice">⚠️ Too many people for this home: everyone's happiness suffers. Sell and buy bigger, or rent more space.</p>}
             <div className="choices">
               {home.mortgage > 0 && <Act g={g} action={{ kind: 'payLoan', assetId: home.id, amount: 10000 }} label="Pay $10,000 extra on the mortgage" hint="Less interest, smaller balance" />}
               {home.mortgage > 0 && <Act g={g} action={{ kind: 'payLoan', assetId: home.id, amount: home.mortgage }} label={`Pay off the mortgage (${money(home.mortgage)})`} hint="Own it outright" confirm={`Confirm payoff: ${money(home.mortgage)}`} />}
               <Act g={g} action={{ kind: 'renovate' }} label={`Renovate (${money(RENOVATION.cost)})`} hint={`Adds ~${money(RENOVATION.valueGain)} of value; everyone +${RENOVATION.happiness} happiness`} />
+              <Act g={g} action={{ kind: 'buildGarage' }} label={`Add a garage space (${money(GARAGE_BUILD.cost)})`} hint={`Room for one more car, and garaged cars break down less. Adds ~${money(GARAGE_BUILD.valueGain)} of value`} />
               <Act g={g} action={{ kind: 'sellHome' }} label={`Sell (about ${money(home.value * (1 - SELL_COSTS) - home.mortgage)} after fees and mortgage)`} hint="You go back to renting" confirm="Confirm: sell the home" />
             </div>
           </>
@@ -120,7 +124,7 @@ export function MoneyTab({ g }: { g: GameState }) {
                 <div key={t} className="buy-home">
                   <div className="row">
                     <strong>{HOMES[t].icon} {HOMES[t].label}</strong>
-                    <span className="hint">{money(HOMES[t].price)} · fits {HOMES[t].capacity}</span>
+                    <span className="hint">{money(HOMES[t].price)} · fits {HOMES[t].capacity} · {HOMES[t].garage ? `${HOMES[t].garage}-car garage` : 'no garage'}</span>
                   </div>
                   <div className="buy-options">
                     {[0.1, 0.2].map((d) => (
@@ -137,26 +141,7 @@ export function MoneyTab({ g }: { g: GameState }) {
         )}
       </Section>
 
-      <Section title="🚗 Cars">
-        {cars.length === 0 && <p className="muted">No car. Getting to work costs $1,500 a year in transit.</p>}
-        {cars.map((c) => (
-          <div key={c.id} className="car-row">
-            <div className="row"><span>{c.name}</span><strong>{money(c.value)}</strong></div>
-            <div className="row hint"><span>Upkeep {money(c.upkeep)}/yr{c.mortgage ? ` · loan ${money(c.mortgage)} (${money(c.payment ?? 0)}/yr)` : ''}</span></div>
-            <div className="choices">
-              {c.mortgage > 0 && <Act g={g} action={{ kind: 'payLoan', assetId: c.id, amount: c.mortgage }} label={`Pay off the loan (${money(c.mortgage)})`} />}
-              <Act g={g} action={{ kind: 'sellCar', assetId: c.id }} label={`Sell for ${money(c.value - c.mortgage)}`} confirm="Confirm: sell the car" />
-            </div>
-          </div>
-        ))}
-        {cars.length < 2 && (
-          <div className="choices">
-            <Act g={g} action={{ kind: 'buyCar', car: 'used', financed: false }} label={`${CARS.used.icon} Buy a used car: ${money(CARS.used.price)}`} hint={`Upkeep ${money(CARS.used.upkeep)}/yr; breaks down more`} />
-            <Act g={g} action={{ kind: 'buyCar', car: 'new', financed: false }} label={`${CARS.new.icon} Buy a new car: ${money(CARS.new.price)}`} hint={`Upkeep ${money(CARS.new.upkeep)}/yr`} />
-            <Act g={g} action={{ kind: 'buyCar', car: 'new', financed: true }} label={`${CARS.new.icon} New car on a loan: ${money(CARS.new.price * 0.1)} down`} hint={`${money(annuityPayment(CARS.new.price * 0.9, 0.07, 5))}/yr for 5 years`} />
-          </div>
-        )}
-      </Section>
+      <CarsSection g={g} Act={Act} />
 
       <RetirementCard g={g} Act={Act} />
 

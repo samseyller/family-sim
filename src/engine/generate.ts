@@ -3,14 +3,14 @@ import { FEMALE_NAMES, LAST_NAMES, MALE_NAMES } from '../content/names';
 import { TIME_BUDGET, defaultChildPlan } from '../content/actions';
 import { makeRng, type Rng } from './rng';
 import { inheritLooks, randomLooks } from './genome';
-import { CARS } from '../content/finance';
+import { makeCar } from './cars';
 import { CONTRIBUTION_OPTIONS } from '../content/retirement';
 import { TUTORIAL_SEED, TUTORIAL_START_AGE, scheduleScript } from './tutorial';
 import type { GameState, Household, Looks, Person, Plan, Trait } from './types';
 import { adjustBond, ageOf, alive, cleanName, kidsAtHome, newId, parentsOf, partnerOf, active } from './util';
 
-export const SCHEMA_VERSION = 10;
-export const RULES_VERSION = '0.9.0';
+export const SCHEMA_VERSION = 11;
+export const RULES_VERSION = '0.10.0';
 export const START_YEAR = 2026;
 
 const TRAITS: Trait[] = ['ambitious', 'kind', 'stubborn', 'curious', 'anxious', 'easygoing', 'creative', 'athletic'];
@@ -436,7 +436,7 @@ export function newChildGame(seed: number): GameState {
 
 /** New families start with an older used car (no loan). */
 export function giveStarterCar(s: GameState, hh: Household) {
-  hh.assets.push({ id: newId(s, 'a'), kind: 'car', name: 'Used car', value: 7000, upkeep: CARS.used.upkeep, mortgage: 0 });
+  hh.assets.push(makeCar(s, 'used', { age: 8, value: 6000 }));
 }
 
 /** Apply custom names: the player's first name, and a family name shared by everyone who carried the old one. */
