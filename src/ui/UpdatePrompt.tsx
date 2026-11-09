@@ -1,10 +1,11 @@
+import { useState } from 'react';
 import { useRegisterSW } from 'virtual:pwa-register/react';
 import { useGame } from '../store/gameStore';
-import { flushSaves } from '../persistence/db';
 
 /**
  * Offers a new version only at safe points: the title screen, planning, or a
- * year recap — never mid-decision. The latest autosave is flushed before reloading.
+ * year recap — never mid-decision. It saves first and refuses to reload if the
+ * save fails, so an update can never throw away progress.
  */
 export function UpdatePrompt() {
   const {
@@ -12,16 +13,26 @@ export function UpdatePrompt() {
     updateServiceWorker,
   } = useRegisterSW();
   const phase = useGame((s) => s.game?.phase);
+  const retrySave = useGame((s) => s.retrySave);
+  const [blocked, setBlocked] = useState(false);
   const safe = !phase || phase === 'PLANNING' || phase === 'RECAP' || phase === 'GAME_OVER';
   if (!needRefresh || !safe) return null;
   return (
     <div className="update-banner" role="status">
-      <span>✨ A new version of Family Tree is ready.</span>
+      <span>
+        {blocked
+          ? "⚠️ Can't update yet: your progress isn't saved. Fix saving first (see the warning at the top)."
+          : '✨ A new version of Family Tree is ready.'}
+      </span>
       <span className="update-actions">
         <button
           className="small primary"
           onClick={async () => {
-            await flushSaves();
+            if (!(await retrySave())) {
+              setBlocked(true);
+              return;
+            }
+            setBlocked(false);
             await updateServiceWorker(true);
           }}
         >

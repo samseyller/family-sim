@@ -7,6 +7,7 @@ import { Toasts, useApplySettings } from './ui/screens/ProfilePanels';
 import { installInput } from './ui/input';
 import { ErrorBoundary } from './ui/ErrorBoundary';
 import { UpdatePrompt } from './ui/UpdatePrompt';
+import { SaveStatus } from './ui/SaveStatus';
 import './styles.css';
 
 function App() {
@@ -20,6 +21,7 @@ function App() {
   }, [init]);
   return (
     <ErrorBoundary onReset={() => { toTitle(); void init(); }}>
+      <SaveStatus />
       {game ? <Game /> : <Title />}
       <Toasts />
       <UpdatePrompt />

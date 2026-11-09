@@ -1,4 +1,4 @@
-/** Fast-forward a family with dev tools and screenshot the tree (dev server must be running). */
+/** Fast-forward a family with dev tools and screenshot the tree (needs a dev server started with VITE_ENABLE_DEV_TOOLS=true). */
 import { chromium } from '@playwright/test';
 
 const browser = await chromium.launch({ channel: 'msedge' });

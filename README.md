@@ -13,7 +13,8 @@ See [PLAN.md](PLAN.md) for the full design and roadmap. Done so far: **Stage 1**
 | `npm run dev` | Start the game at http://localhost:5173 |
 | `npm test` | Unit tests: engine (determinism, exactly-once saves, succession money), saves (schema, round-trips), profile (tracking, merge rules, backup format) |
 | `npm run sim [runs]` | Headless balance sim comparing career / family / balanced play styles, incl. achievement unlock rates |
-| `npm run e2e` | Playwright smoke test (keyboard on desktop, touch on mobile, reload mid-event) |
+| `npm run e2e` | Playwright tests (keyboard on desktop, touch on mobile, reload mid-event, failing storage). Starts its own dev server on port 5174 with dev tools enabled |
+| `npm run check:devtools` | Builds with and without the dev-tools flag and checks the controls are only in the flagged build |
 | `npm run build` | Typecheck and build for production (installable PWA, works offline) |
 | `npx vite preview --port 4173` + `npx tsx scripts/check-pwa.ts` | Verify the build installs and plays offline |
 
@@ -23,7 +24,18 @@ See [PLAN.md](PLAN.md) for the full design and roadmap. Done so far: **Stage 1**
 - Keyboard: arrow keys move focus, Enter/Space activate, Esc closes, `1`–`5` switch tabs, `E` ends the year (with confirmation).
 - Controller: D-pad or left stick moves, A activates, B backs out, LB/RB switch tabs, Start ends the year, Select opens the menu.
 - Keyboard extras: `[` `]` switch tabs, `M` opens the menu. Shortcuts pause while you type in a text field.
-- `` ` `` (backtick) opens dev tools: skip 10 years, kill the main character.
+- `` ` `` (backtick) opens dev tools (skip 10 years, kill the main character), **only** in builds made with the flag below.
+
+## Developer tools
+
+Dev tools are off by default everywhere, including `npm run dev`. They are compiled in only when the build
+is made with `VITE_ENABLE_DEV_TOOLS=true`. Nothing at runtime (URL, storage, console) can turn them on.
+
+```sh
+VITE_ENABLE_DEV_TOOLS=true npm run dev     # PowerShell: $env:VITE_ENABLE_DEV_TOOLS="true"; npm run dev
+```
+
+Never set the flag for a release build. `npm run check:devtools` verifies that a default build has no skip/kill controls.
 
 ## Layout
 
@@ -43,7 +55,13 @@ e2e/             Playwright tests
   autosave is kept, so starting a new family, importing, or a damaged save can always be undone.
 - **Menu (🌳) → Saves & backups** exports a `.json` save (this game or a full backup). **Import** checks the file
   (format upgrade, schema, cross-references) before anything is replaced, and warns if it was made with
-  different game rules.
+  different game rules. A save made with the current rules is rejected if it refers to events, jobs or people
+  this version doesn't know. A save from older rules is repaired instead: unknown events are skipped and
+  unknown jobs are cleared, with a notice.
+- If the browser refuses to save (out of space, blocked storage), a warning stays at the top of the screen
+  with **Try saving again** and **Download a backup** until a save succeeds. App updates wait until saving works.
+- Restoring a full backup on an empty browser restores its game and its previous autosave. Loading it over an
+  existing game keeps that game as the previous autosave instead; the backup's older copy is not kept.
 - Browsers can clear site data, so the year recap reminds you to export a backup every 10 years.
 
 ## Profile

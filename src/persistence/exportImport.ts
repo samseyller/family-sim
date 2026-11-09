@@ -9,7 +9,8 @@
  */
 import { z } from 'zod';
 import { RULES_VERSION, SCHEMA_VERSION } from '../engine/generate';
-import { migrate } from '../engine/migrations';
+import { migrateChecked } from '../engine/migrations';
+import { referenceProblems, repairOlderRules } from './references';
 import type { GameState } from '../engine/types';
 import type { Profile } from '../profile/types';
 import { parseProfile } from '../profile/schema';
@@ -97,13 +98,13 @@ export function checkGame(candidate: unknown, label = 'The save'): GameCheck {
   if (typeof version === 'number' && version > SCHEMA_VERSION) {
     return { ok: false, error: `${label} is from a newer version of the game (format ${version}). Update the game to load it.` };
   }
-  const migrated = migrate(candidate);
-  if (!migrated) return { ok: false, error: `${label}'s format isn't recognized.` };
-  const parsed = GameStateSchema.safeParse(migrated);
+  const migrated = migrateChecked(candidate);
+  if (!migrated.ok) return { ok: false, error: `${label} can't be loaded: ${migrated.error}.` };
+  const parsed = GameStateSchema.safeParse(migrated.state);
   if (!parsed.success) {
     return { ok: false, error: `${label} is damaged:\n${z.prettifyError(parsed.error).split('\n').slice(0, 6).join('\n')}` };
   }
-  const state = parsed.data as GameState;
+  let state = parsed.data as GameState;
   const problems = integrityProblems(state);
   if (problems.length) return { ok: false, error: `${label} is inconsistent:\n${problems.slice(0, 5).join('\n')}` };
   const warnings: string[] = [];
@@ -111,10 +112,33 @@ export function checkGame(candidate: unknown, label = 'The save'): GameCheck {
   if (state.rulesVersion !== RULES_VERSION) {
     warnings.push(`Made with game rules ${state.rulesVersion}; this version uses ${RULES_VERSION}. Some events may play out differently.`);
   }
+  // References to events, careers and people must exist in this version of the game.
+  const refs = referenceProblems(state);
+  if (refs.length) {
+    if (state.rulesVersion === RULES_VERSION) {
+      return { ok: false, error: `${label} refers to things this game doesn't have:\n${refs.slice(0, 5).join('\n')}` };
+    }
+    // Older rules: drop content that no longer exists, then re-check everything.
+    const repaired = repairOlderRules(state);
+    state = repaired.state;
+    const still = [...integrityProblems(state), ...referenceProblems(state)];
+    if (still.length) return { ok: false, error: `${label} could not be repaired:\n${still.slice(0, 5).join('\n')}` };
+    warnings.push(...repaired.notes);
+  }
   return { ok: true, state, warnings };
 }
 
+/** Parse an imported file. Never throws: anything unexpected becomes an error result. */
 export function parseSaveFile(text: string): ImportResult {
+  try {
+    return parseSaveFileUnsafe(text);
+  } catch (e) {
+    console.error("Import failed", e);
+    return { ok: false, error: "This file could not be read as a Family Tree save." };
+  }
+}
+
+function parseSaveFileUnsafe(text: string): ImportResult {
   let raw: unknown;
   try {
     raw = JSON.parse(text);

@@ -10,6 +10,7 @@ import { ActivitiesTab } from './ActivitiesTab';
 import { ConfirmEndYear, DevPanel, EventModal, MemorialScreen, RecapModal, SuccessionScreen } from './Overlays';
 import { GameMenu, SavesPanel } from './SavesPanel';
 import { isTyping } from '../input';
+import { DEV_TOOLS } from '../../devtools';
 import { unlockedTabs } from '../../engine/tutorial';
 import { CoachMark, tabsWithNews } from '../CoachMark';
 import type React from 'react';
@@ -31,7 +32,7 @@ export function Game() {
     const onKey = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement;
       if (isTyping(t)) return;
-      if (e.key === '`') toggleDev();
+      if (DEV_TOOLS && e.key === '`') toggleDev();
       const st = useGame.getState();
       const modalOpen = !!document.querySelector('.backdrop');
       if (modalOpen) return;
@@ -98,7 +99,7 @@ export function Game() {
       {panel === 'saves' && <SavesPanel />}
       {panel === 'settings' && <SettingsPanel />}
       {panel === 'achievements' && <AchievementsPanel />}
-      {showDev && <DevPanel />}
+      {DEV_TOOLS && showDev && <DevPanel />}
     </div>
   );
 }

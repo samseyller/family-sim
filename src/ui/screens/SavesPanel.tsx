@@ -1,9 +1,9 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { GameState } from '../../engine/types';
 import { ageOf, fullName } from '../../engine/util';
 import { parseSaveFile, yearsSinceBackup, type ImportResult } from '../../persistence/exportImport';
-import type { MergeSummary } from '../../profile/merge';
-import { useGame } from '../../store/gameStore';
+
+import { useGame, type FullImportResult } from '../../store/gameStore';
 import { Avatar } from '../Avatar';
 import { Modal } from '../components';
 
@@ -31,7 +31,9 @@ function FullBackupConfirm({ res, onCancel }: { res: Extract<Ok, { kind: 'full' 
   const { saved, importFullBackup, setPanel } = useGame();
   const [useSettings, setUseSettings] = useState(false);
   const [loadGame, setLoadGame] = useState(!saved && !!res.current);
-  const [done, setDone] = useState<MergeSummary | null>(null);
+  const [done, setDone] = useState<FullImportResult | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
   const p = res.profile;
 
   if (done) {
@@ -43,6 +45,8 @@ function FullBackupConfirm({ res, onCancel }: { res: Extract<Ok, { kind: 'full' 
           <li>{done.newArchived} family memorial{done.newArchived === 1 ? '' : 's'} added to the archive</li>
           <li>{done.statsRaised} lifetime stat{done.statsRaised === 1 ? '' : 's'} raised</li>
           {loadGame && res.current && <li>Game loaded: {fullName(res.current.people[res.current.activeId])}</li>}
+          {done.previousFrom === 'your-game' && <li>Your earlier game is kept as the previous autosave.</li>}
+          {done.previousFrom === 'backup' && <li>The backup's previous autosave was restored too.</li>}
         </ul>
         <button className="primary big close-btn" onClick={() => setPanel(null)}>Done</button>
       </Modal>
@@ -74,12 +78,34 @@ function FullBackupConfirm({ res, onCancel }: { res: Extract<Ok, { kind: 'full' 
         {res.current && (
           <label className="toggle">
             <input type="checkbox" checked={loadGame} onChange={(e) => setLoadGame(e.target.checked)} />
-            Load the game from this backup{saved ? ' (your current game is kept as the previous autosave)' : ''}
+            Load the game from this backup
           </label>
         )}
       </div>
+      {res.current && loadGame && (
+        <p className="hint">
+          {saved
+            ? "Your current game becomes the previous autosave, so you can switch back. The backup's own older autosave is not restored."
+            : res.previous ? "The backup's previous autosave is restored too." : ''}
+        </p>
+      )}
+      {error && <pre className="error-detail bad" role="alert">{error}</pre>}
       <div className="choices">
-        <button className="primary big" onClick={async () => setDone(await importFullBackup({ profile: p, current: res.current, previous: res.previous, useIncomingSettings: useSettings, loadGame }))}>
+        <button
+          className="primary big"
+          disabled={busy}
+          onClick={async () => {
+            setBusy(true);
+            setError(null);
+            try {
+              setDone(await importFullBackup({ profile: p, current: res.current, previous: res.previous, useIncomingSettings: useSettings, loadGame }));
+            } catch (e) {
+              setError((e as Error).message);
+            } finally {
+              setBusy(false);
+            }
+          }}
+        >
           Restore
         </button>
         <button className="big" onClick={onCancel}>Cancel</button>
@@ -90,20 +116,46 @@ function FullBackupConfirm({ res, onCancel }: { res: Extract<Ok, { kind: 'full' 
 
 /** Export, import, and recovery. Used from the title screen and the in-game menu. */
 export function SavesPanel() {
-  const { saved, previous, recovered, persisted, setPanel, exportSave, exportFullBackup, importSave, restorePrevious } = useGame();
+  const { saved, previous, recovered, persisted, setPanel, exportSave, exportFullBackup, importSave, restorePrevious, refreshSaves } = useGame();
   const fileRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
+  const [confirmError, setConfirmError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
   const [pending, setPending] = useState<Pending>(null);
   const [exported, setExported] = useState<null | 'game' | 'full'>(null);
   const close = () => setPanel(null);
 
+  // Show what is actually stored right now (the previous autosave changes as you play).
+  useEffect(() => {
+    void refreshSaves();
+  }, [refreshSaves]);
+
   const onFile = async (file: File | undefined) => {
     setError(null);
     if (!file) return;
-    const res = parseSaveFile(await file.text());
-    if (res.ok) setPending({ kind: 'import', res });
-    else setError(res.error);
-    if (fileRef.current) fileRef.current.value = '';
+    try {
+      const res = parseSaveFile(await file.text());
+      if (res.ok) setPending({ kind: 'import', res });
+      else setError(res.error);
+    } catch {
+      setError("That file couldn't be read. Your current game is unchanged.");
+    } finally {
+      if (fileRef.current) fileRef.current.value = '';
+    }
+  };
+
+  /** Run a load/restore; keep the confirm screen open with the reason if saving fails. */
+  const confirm = async (run: () => Promise<void>) => {
+    setBusy(true);
+    setConfirmError(null);
+    try {
+      await run();
+      setPending(null);
+    } catch (e) {
+      setConfirmError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
   };
 
   if (pending?.kind === 'import' && pending.res.kind === 'full') {
@@ -124,11 +176,12 @@ export function SavesPanel() {
             previous autosave, so you can switch back.
           </p>
         )}
+        {confirmError && <pre className="error-detail bad" role="alert">{confirmError}</pre>}
         <div className="choices">
-          <button className="primary big" onClick={() => (pending.kind === 'import' ? importSave(incoming) : restorePrevious())}>
+          <button className="primary big" disabled={busy} onClick={() => confirm(() => (pending.kind === 'import' ? importSave(incoming) : restorePrevious()))}>
             {pending.kind === 'import' ? 'Load save' : 'Restore'}
           </button>
-          <button className="big" onClick={() => setPending(null)}>Cancel</button>
+          <button className="big" onClick={() => { setPending(null); setConfirmError(null); }}>Cancel</button>
         </div>
       </Modal>
     );

@@ -5,14 +5,24 @@ import type { GameState } from './types';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Step = (s: any) => any;
 
-/** STEPS[n] upgrades a save from schemaVersion n to n + 1. */
+const isObj = (x: unknown): x is Record<string, any> => !!x && typeof x === 'object' && !Array.isArray(x);
+/** People as an iterable list, tolerating malformed input (validation reports it afterwards). */
+const peopleOf = (s: any): any[] => (isObj(s.people) ? Object.values(s.people).filter(isObj) : []);
+
+/**
+ * STEPS[n] upgrades a save from schemaVersion n to n + 1. Steps run on untrusted JSON:
+ * they must tolerate missing or malformed fields (leaving them for schema validation
+ * to report) and never throw on purpose.
+ */
 const STEPS: Record<number, Step> = {
   // v1 → v2: part-time jobs; plan.jobIntent became plan.jobIntents (one per slot).
   1: (s) => {
-    const old = s.plan?.jobIntent;
-    s.plan.jobIntents = old ? [old.kind === 'quit' ? { kind: 'quit', slot: 'full' } : old] : [];
-    delete s.plan.jobIntent;
-    for (const p of Object.values<any>(s.people)) {
+    if (isObj(s.plan)) {
+      const old = s.plan.jobIntent;
+      s.plan.jobIntents = isObj(old) ? [old.kind === 'quit' ? { kind: 'quit', slot: 'full' } : old] : [];
+      delete s.plan.jobIntent;
+    }
+    for (const p of peopleOf(s)) {
       p.partPerf ??= 50;
       p.partYears ??= 0;
     }
@@ -23,7 +33,7 @@ const STEPS: Record<number, Step> = {
   2: (s) => s,
   // v3 → v4: richer appearance genome. Missing genes are filled deterministically per person.
   3: (s) => {
-    for (const p of Object.values<any>(s.people)) p.looks = fillLooks(p.looks, p.id);
+    for (const p of peopleOf(s)) p.looks = fillLooks(isObj(p.looks) ? p.looks : undefined, String(p.id ?? ''));
     return s;
   },
   // v4 → v5: optional Plan.lifestyle (defaults to comfortable); nothing to rewrite.
@@ -40,15 +50,35 @@ const STEPS: Record<number, Step> = {
   8: (s) => s,
 };
 
-/** Upgrade a loaded save to the current schema, or return undefined if it can't be. */
-export function migrate(raw: unknown): GameState | undefined {
-  if (!raw || typeof raw !== 'object') return undefined;
-  let s: any = structuredClone(raw);
-  while (typeof s.schemaVersion === 'number' && s.schemaVersion < SCHEMA_VERSION) {
+export type MigrateResult = { ok: true; state: GameState } | { ok: false; error: string };
+
+/** Upgrade a loaded save to the current schema, with a readable reason when it can't be. */
+export function migrateChecked(raw: unknown): MigrateResult {
+  if (!isObj(raw)) return { ok: false, error: "it isn't a saved game" };
+  let s: any;
+  try {
+    s = structuredClone(raw);
+  } catch {
+    return { ok: false, error: 'it contains data that cannot be copied' };
+  }
+  if (typeof s.schemaVersion !== 'number') return { ok: false, error: 'it has no format version' };
+  const from = s.schemaVersion;
+  while (s.schemaVersion < SCHEMA_VERSION) {
     const step = STEPS[s.schemaVersion];
-    if (!step) return undefined;
-    s = step(s);
+    if (!step) return { ok: false, error: `format ${from} is too old to upgrade` };
+    try {
+      s = step(s);
+    } catch (e) {
+      return { ok: false, error: `it could not be upgraded from format ${from} (${(e as Error)?.message ?? 'unknown error'})` };
+    }
+    if (!isObj(s)) return { ok: false, error: `it could not be upgraded from format ${from}` };
     s.schemaVersion++;
   }
-  return s.schemaVersion === SCHEMA_VERSION ? (s as GameState) : undefined;
+  return s.schemaVersion === SCHEMA_VERSION ? { ok: true, state: s as GameState } : { ok: false, error: `format ${from} isn't recognized` };
+}
+
+/** Upgrade a loaded save to the current schema, or return undefined if it can't be. */
+export function migrate(raw: unknown): GameState | undefined {
+  const res = migrateChecked(raw);
+  return res.ok ? res.state : undefined;
 }

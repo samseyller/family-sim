@@ -1143,6 +1143,7 @@ export function generateEvents(s: GameState, rng: Rng) {
   s.scheduled = s.scheduled.filter((x) => x.dueYear > s.year);
   for (const sch of due) {
     const def = EVENT_BY_ID[sch.eventId];
+    if (!def) continue; // unknown (older-rules) event: never crash, just skip it
     let sub = sch.subjectId ? s.people[sch.subjectId] : undefined;
     if (sub && (!alive(sub) || (sch.eventId === 'health_scare' && sub.id !== s.activeId))) continue;
     if (def.severe && severeGuard(s)) continue; // held back early in the guided playthrough
@@ -1195,6 +1196,7 @@ export function generateEvents(s: GameState, rng: Rng) {
 
 export function resolveEvent(s: GameState, rng: Rng, pe: PendingEvent, choiceId: string, text?: string): string {
   const def = EVENT_BY_ID[pe.eventId];
+  if (!def) return "This moment has passed.";
   const c: Ctx = { s, rng, me: active(s) };
   const sub = pe.subjectId ? s.people[pe.subjectId] : undefined;
   if (pe.subjectId && (!sub || !alive(sub))) return 'Circumstances changed before you could act.';

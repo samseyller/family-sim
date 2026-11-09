@@ -71,9 +71,11 @@ void assertAssignable;
 const PROFILE_STEPS: Record<number, (p: any) => any> = {
   // v1 → v2: archive members became full records (portrait genome, years, epitaph).
   1: (p) => {
-    for (const fam of p.archive ?? []) {
+    for (const fam of Array.isArray(p.archive) ? p.archive : []) {
+      if (!fam || typeof fam !== 'object') continue; // malformed entries are left for validation to reject
       fam.breakdown ??= { wealth: 0, bonds: 0, achievement: 0, wellbeing: 0 };
-      fam.members = (fam.members ?? []).map((m: { name?: string; lifespan?: string; knownFor?: string }, i: number) => {
+      fam.members = (Array.isArray(fam.members) ? fam.members : []).map((raw: unknown, i: number) => {
+        const m = (raw && typeof raw === 'object' ? raw : {}) as { name?: string; lifespan?: string; knownFor?: string };
         const years = /(\d{4})\s*[–-]\s*(\d{4})?/.exec(m.lifespan ?? '');
         const id = `${fam.id}-m${i}`;
         return {
@@ -111,7 +113,13 @@ export function parseProfile(raw: unknown): { ok: true; profile: Profile } | { o
   if (typeof version === 'number' && version > PROFILE_SCHEMA_VERSION) {
     return { ok: false, error: `This profile is from a newer version of the game (format ${version}).` };
   }
-  const res = ProfileSchema.safeParse(migrateProfile(raw));
+  let migrated: unknown;
+  try {
+    migrated = migrateProfile(raw);
+  } catch (e) {
+    return { ok: false, error: `The profile could not be upgraded (${(e as Error)?.message ?? 'unknown error'}).` };
+  }
+  const res = ProfileSchema.safeParse(migrated);
   if (!res.success) return { ok: false, error: z.prettifyError(res.error).split('\n').slice(0, 6).join('\n') };
   return { ok: true, profile: res.data as Profile };
 }

@@ -36,7 +36,7 @@ export function updatePlan(state: GameState, plan: Plan): GameState {
 
 const STATS: StatKey[] = ['health', 'happiness', 'smarts', 'fitness', 'stress'];
 
-function finalizeRecap(s: GameState) {
+export function finalizeRecap(s: GameState) {
   const me = active(s);
   const snap = s.snapshot!;
   const statDeltas: Partial<Record<StatKey, number>> = {};
