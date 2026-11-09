@@ -86,7 +86,7 @@ export function strategyPlan(s: GameState, kind: Strategy): Plan {
 
   // First try without a second job; add one if the year would run a deficit.
   const build = (partTime: boolean, extra: JobIntent[]): Plan =>
-    sanitizePlan(s, { alloc: allocate(s, kind, [...intents, ...extra], partTime), children, jobIntents: [...intents, ...extra] });
+    sanitizePlan(s, { alloc: allocate(s, kind, [...intents, ...extra], partTime), children, jobIntents: [...intents, ...extra], retireContribution: kind === 'career' ? 0.15 : 0.1 });
 
   let plan = build(hasPart, []);
   const net = estimateYear({ ...s, plan }).net;

@@ -7,6 +7,7 @@ import { active, ageOf, kidsAtHome, membersOf, money } from '../../engine/util';
 import { useGame } from '../../store/gameStore';
 import { Section } from '../components';
 import { LifestylePicker } from './LifestylePicker';
+import { RetirementCard } from './RetirementCard';
 
 const signed = (n: number) => `${n >= 0 ? '+' : '−'}${money(Math.abs(n))}`;
 
@@ -153,6 +154,8 @@ export function MoneyTab({ g }: { g: GameState }) {
           </div>
         )}
       </Section>
+
+      <RetirementCard g={g} Act={Act} />
 
       <Section title="📊 Investments" aside={<strong>{money(hh.investments ?? 0)}</strong>}>
         <p className="hint">Grows about {Math.round(INVEST_RETURN * 1000) / 10}% a year on average, but some years it falls. Cash in the bank earns 1.5%.</p>

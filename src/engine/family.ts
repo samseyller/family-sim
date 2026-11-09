@@ -1,5 +1,5 @@
+import { retirePerson } from './retirement';
 import { ESTATE_EXEMPTION, ESTATE_TAX_RATE } from '../content/economy';
-import { CAREER_BY_ID, salaryOf } from '../content/careers';
 import { makeHousehold } from './generate';
 import type { Rng } from './rng';
 import type { GameState, Person } from './types';
@@ -142,16 +142,20 @@ export function moveOut(s: GameState, p: Person, startingMoney: number) {
   p.householdId = hh.id;
 }
 
-export function retire(p: Person) {
-  if (p.jobId) p.pension = Math.round(salaryOf(CAREER_BY_ID[p.jobId], p.jobLevel) * 0.4);
-  p.jobId = undefined;
-  p.retired = true;
+/** Stop working; the employer pension is set from years of service (reduced if before 65). */
+export function retire(p: Person, year: number) {
+  retirePerson(p, year);
 }
 
 export function die(s: GameState, p: Person, cause: string) {
   if (!alive(p)) return;
   p.deathYear = s.year;
   p.deathCause = cause;
+  // Their retirement savings pass to the household (and on through the estate).
+  if ((p.retirementSavings ?? 0) > 0) {
+    s.households[p.householdId].wallet += p.retirementSavings!;
+    p.retirementSavings = 0;
+  }
   const ps = activePartnership(s, p.id);
   if (ps) {
     // Only spouses are widowed (and can carry the story on); dating simply ends.

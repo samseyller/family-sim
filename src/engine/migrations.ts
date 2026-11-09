@@ -33,6 +33,9 @@ const STEPS: Record<number, Step> = {
   5: (s) => s,
   // v6 → v7: Activities — optional energy, activityLog, lastActivity. Nothing to rewrite.
   6: (s) => s,
+  // v7 → v8: retirement — optional career/pension/savings fields on people and a plan
+  // contribution rate. Existing retirees keep their recorded pension.
+  7: (s) => s,
 };
 
 /** Upgrade a loaded save to the current schema, or return undefined if it can't be. */

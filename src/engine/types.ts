@@ -59,6 +59,13 @@ export interface Person {
   studyKind?: 'university' | 'trade';
   /** Money saved toward this person's future (college fund). */
   fund: number;
+  /** Years worked full-time (state pension eligibility). */
+  careerYears?: number;
+  /** Years of service in jobs with an employer pension, and the best salary earned there. */
+  pensionYears?: number;
+  pensionSalary?: number;
+  /** Personal retirement savings account. */
+  retirementSavings?: number;
   /** Part-time adult education (night school) in progress. */
   education?: { program: Program; progress: number; required: number; startYear: number };
   householdId: string;
@@ -136,6 +143,8 @@ export interface Plan {
   eduIntent?: { kind: 'enroll'; program: Program } | { kind: 'drop' };
   /** How much of the household's discretionary money goes to lifestyle (default comfortable). */
   lifestyle?: 'frugal' | 'comfortable' | 'lavish';
+  /** Share of pay put into retirement savings (0, 0.05, 0.1, 0.15). */
+  retireContribution?: number;
   children: Record<string, ChildPlan>;
 }
 

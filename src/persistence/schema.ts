@@ -40,6 +40,10 @@ const Person = z.object({
   studyKind: z.enum(['university', 'trade']).optional(),
   fund: num,
   education: z.object({ program: z.enum(['degree', 'trade_cert']), progress: num, required: num, startYear: int }).optional(),
+  careerYears: int.optional(),
+  pensionYears: int.optional(),
+  pensionSalary: num.optional(),
+  retirementSavings: num.optional(),
   householdId: id,
   biologicalParents: z.array(id),
   adoptiveParents: z.array(id),
@@ -96,6 +100,7 @@ const Plan = z.object({
   jobIntents: z.array(JobIntent),
   eduIntent: z.union([z.object({ kind: z.literal('enroll'), program: z.enum(['degree', 'trade_cert']) }), z.object({ kind: z.literal('drop') })]).optional(),
   lifestyle: z.enum(['frugal', 'comfortable', 'lavish']).optional(),
+  retireContribution: num.optional(),
   children: z.record(z.string(), ChildPlan),
 });
 

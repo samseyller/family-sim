@@ -3,6 +3,8 @@ import { CHILD_EVENTS } from './childhood';
 import { FEMALE_NAMES, MALE_NAMES } from '../content/names';
 import { annuityPayment, HOMES, MORTGAGE_RATE, MORTGAGE_YEARS } from '../content/finance';
 import { carsOf, homeUpfront } from './finance';
+import { readiness } from './retirement';
+import { FULL_RETIREMENT_AGE } from '../content/retirement';
 import { CAREERS, CAREER_BY_ID, LEVEL_TITLES, PROGRAMS, qualifies, requiredBlocks, salaryOf } from '../content/careers';
 import { assignJob, makeAdultStranger, makePerson, pickCareer } from './generate';
 import {
@@ -210,18 +212,23 @@ const EVENTS: EventDef[] = [
     id: 'retirement',
     major: true,
     cooldown: 3,
-    candidates: (c) => one(!!c.me.jobId && age(c, c.me) >= 62, 5, true),
-    build: () => ({
+    candidates: (c) => one(!!c.me.jobId && age(c, c.me) >= FULL_RETIREMENT_AGE, 5, true),
+    build: (c) => {
+      const a = age(c, c.me);
+      const r = readiness(c.s, c.me, a);
+      const verdict = r.status === 'ready' ? 'Your numbers say you can afford it.' : r.status === 'tight' ? 'It would be tight.' : 'Money would be a struggle.';
+      return {
       title: 'Time to retire?',
-      text: 'Your coworkers keep asking about your plans. You could retire now on a pension of 40% of your salary.',
+      text: `Your coworkers keep asking about your plans. Retiring now: employer pension ${money(r.pension)}, state pension ${money(r.state)}, and about ${money(r.savingsIncome)} a year from savings, against a budget of ${money(r.need)}. ${verdict}`,
       choices: [
         { id: 'retire', label: 'Retire', hint: 'All your time is your own' },
         { id: 'stay', label: 'Keep working', hint: 'Full salary, for now' },
       ],
-    }),
+      };
+    },
     resolve: (c, ch) => {
       if (ch === 'retire') {
-        retire(c.me);
+        retire(c.me, c.s.year);
         stat(c.me, 'happiness', 8);
         stat(c.me, 'stress', -15);
         return 'Cake, a card everyone signed, and a very quiet Monday morning.';

@@ -4,6 +4,7 @@
  */
 import { COSTS } from '../content/actions';
 import { LIFESTYLES, incomeTax, medicalCost } from '../content/economy';
+import { drawdown, statePension } from './retirement';
 import { RENTALS, TRANSIT_COST } from '../content/finance';
 import { carsOf, commuters, homeOf, loanPayment, rentTierOf } from './finance';
 import { CAREER_BY_ID, PART_TIME_MAX, PROGRAMS, requiredBlocks, salaryOf, type Career } from '../content/careers';
@@ -71,8 +72,15 @@ export function householdBudget(s: GameState, householdId: string, activePay: nu
       earned += npcPart;
     }
     add(inc, label, earned);
-    if (p.retired) add(inc, 'Pensions', p.pension);
-    taxes += incomeTax(earned + (p.retired ? p.pension : 0));
+    if (p.retired) {
+      add(inc, 'Pensions', p.pension);
+      add(inc, 'State pension', statePension(p, age));
+      add(inc, 'Savings withdrawals', drawdown(p.retirementSavings ?? 0, age));
+    } else if (age >= 65) add(inc, 'State pension', statePension(p, age));
+    // Retirement contributions come out before tax (the player chooses a rate; employer may match).
+    const contrib = isMe && earned > 0 ? Math.round(earned * (s.plan.retireContribution ?? 0)) : 0;
+    add(exp, 'Retirement contributions', contrib);
+    taxes += incomeTax(earned - contrib + (p.retired ? p.pension + statePension(p, age) : statePension(p, age)));
     add(exp, 'Medical', medicalCost(age));
     // Night school tuition (for the active character the caller may predict enrollment).
     const enrolled = isMe && activeEnrolled !== undefined ? activeEnrolled : p.education?.program;

@@ -78,16 +78,17 @@ describe('plan', () => {
 });
 
 describe('succession and money', () => {
-  it('continuing as the spouse transfers nothing', () => {
+  it('continuing as the spouse transfers nothing (only the retirement savings of the deceased join the household)', () => {
     let s = newGame(21);
     const hh = active(s).householdId;
     const before = s.households[hh].wallet;
+    const savings = active(s).retirementSavings ?? 0;
     s = devKill(s);
     const spouse = eligibleHeirs(s).find((p) => p.householdId === hh)!;
     expect(spouse).toBeDefined();
     s = chooseHeir(s, spouse.id);
     expect(s.activeId).toBe(spouse.id);
-    expect(s.households[hh].wallet).toBe(before);
+    expect(s.households[hh].wallet).toBe(before + savings);
     expect(s.phase).toBe('PLANNING');
   });
 

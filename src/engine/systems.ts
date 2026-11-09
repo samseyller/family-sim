@@ -4,6 +4,8 @@ import { CAREER_BY_ID, PART_TIME_MAX, PROGRAMS, TWO_JOB_STRESS, qualifies, requi
 import { assignJob, canWorkFullTime, homeParents, makeAdultStranger, makeBaby, pickCareer } from './generate';
 import { fullTimePay, householdBudget, partTimePay } from './budget';
 import { capacityOf, loanPayment } from './finance';
+import { accrueWorkingYear, contributionFor, drawdown } from './retirement';
+import { SAVINGS_RETURN, SAVINGS_VOLATILITY } from '../content/retirement';
 import { INVEST_RETURN, INVEST_VOLATILITY } from '../content/finance';
 import { autoComeOfAge, die, isCloseKin, marry, moveOut, receptiveness, retire } from './family';
 import type { Rng } from './rng';
@@ -249,6 +251,21 @@ export function runEconomy(s: GameState, activePay: number, rng?: Rng) {
     }
     for (const p of mem) if (p.fund > 0) p.fund = Math.round(p.fund * 1.04);
     hh.wallet += budget.net;
+    // Retirement: working years accrue; contributions (+ match) go in; retirees draw down; savings grow.
+    for (const p of mem) {
+      const age = ageOf(p, s.year);
+      if (age < 18) continue;
+      accrueWorkingYear(p);
+      if (p.id === me.id && !p.studyingUntil && activePay > 0) {
+        const { employee, match } = contributionFor(p, activePay, s.plan.retireContribution ?? 0);
+        p.retirementSavings = (p.retirementSavings ?? 0) + employee + match;
+      }
+      if (p.retired) p.retirementSavings = Math.max(0, (p.retirementSavings ?? 0) - drawdown(p.retirementSavings ?? 0, age));
+      if ((p.retirementSavings ?? 0) > 0) {
+        const r = SAVINGS_RETURN + (rng ? (rng.next() * 2 - 1) * SAVINGS_VOLATILITY * 1.7 : 0);
+        p.retirementSavings = Math.round(p.retirementSavings! * (1 + r));
+      }
+    }
     hh.wallet = Math.round(hh.wallet * (hh.wallet > 0 ? 1 + SAVINGS_RATE : 1 + DEBT_RATE));
     // Investments swing year to year around their average return.
     if (rng && (hh.investments ?? 0) > 0) {
@@ -347,7 +364,7 @@ function adultYear(s: GameState, rng: Rng, p: Person) {
       p.jobLevel++;
       p.jobYears = 0;
     }
-    if (a >= 65 && rng.chance(0.5)) retire(p);
+    if (a >= 65 && rng.chance(0.5)) retire(p, s.year);
   }
   stat(p, 'stress', (35 - p.stats.stress) * 0.3);
   const pt = partnerOf(s, p.id);

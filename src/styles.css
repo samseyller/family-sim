@@ -429,3 +429,4 @@ kbd {
 .pick input { width: 20px; height: 20px; accent-color: var(--accent); }
 .sheet-cost { display: flex; gap: 16px; margin: 12px 0 4px; font-weight: 600; }
 .changes { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 4px; }
+.retire-table th { text-align: left; font-size: 0.75rem; color: var(--muted); font-weight: 600; }

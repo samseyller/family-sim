@@ -8,6 +8,9 @@ import {
   RENOVATION, RENTALS, SELL_COSTS, type CarKind, type HomeTier, type RentTier,
 } from '../content/finance';
 import type { Asset, GameState, Household } from './types';
+import { retirePerson } from './retirement';
+import { sanitizePlan } from './generate';
+import { EARLY_RETIREMENT_AGE } from '../content/retirement';
 import { active, ageOf, alive, journal, kidsAtHome, membersOf, money, newId, stat } from './util';
 
 export type FinanceAction =
@@ -20,7 +23,8 @@ export type FinanceAction =
   | { kind: 'sellCar'; assetId: string }
   | { kind: 'invest'; amount: number }
   | { kind: 'withdraw'; amount: number }
-  | { kind: 'fundDeposit'; childId: string; amount: number };
+  | { kind: 'fundDeposit'; childId: string; amount: number }
+  | { kind: 'retire' };
 
 export const homeOf = (hh: Household) => hh.assets.find((a) => a.kind === 'house');
 export const carsOf = (hh: Household) => hh.assets.filter((a) => a.kind === 'car');
@@ -30,7 +34,8 @@ export const capacityOf = (hh: Household) => homeOf(hh)?.capacity ?? (homeOf(hh)
 /** Everything the household owns minus what it owes (college funds belong to the kids). */
 export function netWorth(s: GameState, householdId: string) {
   const hh = s.households[householdId];
-  return Math.round(hh.wallet + (hh.investments ?? 0) + hh.assets.reduce((sum, a) => sum + a.value - a.mortgage, 0));
+  const savings = membersOf(s, householdId).reduce((sum, p) => sum + (p.retirementSavings ?? 0), 0);
+  return Math.round(hh.wallet + (hh.investments ?? 0) + savings + hh.assets.reduce((sum, a) => sum + a.value - a.mortgage, 0));
 }
 
 /** Upfront cash needed to buy a home with a given down payment. */
@@ -72,6 +77,9 @@ export function financeBlocker(s: GameState, a: FinanceAction): string | null {
       return a.amount > 0 && hh.wallet >= a.amount ? null : 'Not enough cash.';
     case 'withdraw':
       return a.amount > 0 && (hh.investments ?? 0) >= a.amount ? null : 'Not that much invested.';
+    case 'retire':
+      if (me.retired) return 'You are already retired.';
+      return ageOf(me, s.year) < EARLY_RETIREMENT_AGE ? `Retirement is possible from ${EARLY_RETIREMENT_AGE}.` : null;
     case 'fundDeposit': {
       const kid = kidsAtHome(s, me).find((k) => k.id === a.childId);
       if (!kid) return 'That child is not at home.';
@@ -159,6 +167,15 @@ export function financeAction(state: GameState, a: FinanceAction): GameState {
       hh.investments = (hh.investments ?? 0) - a.amount;
       hh.wallet += a.amount;
       break;
+    case 'retire': {
+      const age = ageOf(me, s.year);
+      retirePerson(me, s.year);
+      stat(me, 'happiness', 8);
+      stat(me, 'stress', -15);
+      s.plan = sanitizePlan(s, s.plan);
+      journal(s, `You retired at ${age}${me.pension ? ` with a pension of ${money(me.pension)} a year` : ''}.`, 'major');
+      break;
+    }
     case 'fundDeposit': {
       const kid = s.people[a.childId];
       hh.wallet -= a.amount;

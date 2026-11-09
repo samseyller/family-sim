@@ -4,11 +4,12 @@ import { TIME_BUDGET, defaultChildPlan } from '../content/actions';
 import { makeRng, type Rng } from './rng';
 import { inheritLooks, randomLooks } from './genome';
 import { CARS } from '../content/finance';
+import { CONTRIBUTION_OPTIONS } from '../content/retirement';
 import type { GameState, Household, Looks, Person, Plan, Trait } from './types';
 import { adjustBond, ageOf, alive, cleanName, kidsAtHome, newId, parentsOf, partnerOf, active } from './util';
 
-export const SCHEMA_VERSION = 7;
-export const RULES_VERSION = '0.6.0';
+export const SCHEMA_VERSION = 8;
+export const RULES_VERSION = '0.7.0';
 export const START_YEAR = 2026;
 
 const TRAITS: Trait[] = ['ambitious', 'kind', 'stubborn', 'curious', 'anxious', 'easygoing', 'creative', 'athletic'];
@@ -119,6 +120,7 @@ export function makeAdultStranger(s: GameState, rng: Rng, near: Person): Person 
   giveEducation(rng, p);
   const c = pickCareer(rng, p);
   if (c) assignJob(p, c);
+  seedWorkHistory(p, s.year);
   return p;
 }
 
@@ -228,7 +230,8 @@ export function sanitizePlan(s: GameState, plan: Plan, keepIntent = true): Plan 
   }
   const children: Plan['children'] = {};
   for (const k of kids) children[k.id] = { ...defaultChildPlan(), ...plan.children[k.id] };
-  return { alloc, children, jobIntents: intents, eduIntent, lifestyle: plan.lifestyle };
+  const retireContribution = CONTRIBUTION_OPTIONS.includes(plan.retireContribution ?? 0) ? plan.retireContribution : undefined;
+  return { alloc, children, jobIntents: intents, eduIntent, lifestyle: plan.lifestyle, retireContribution };
 }
 
 /** Night-school intents must make sense for the person's situation. */
@@ -284,6 +287,7 @@ function generateGame(seed: number, start: "adult" | "child"): GameState {
   if (job) {
     assignJob(me, job);
     me.jobYears = rng.int(1, 4);
+    seedWorkHistory(me, s.year);
   }
   s.activeId = me.id;
   s.lineage.push(me.id);
@@ -298,6 +302,7 @@ function generateGame(seed: number, start: "adult" | "child"): GameState {
     p.retired = ageOf(p, s.year) >= 64;
     if (!p.retired) assignJob(p, pickCareer(rng, p) ?? CAREERS[0]);
     else p.pension = rng.int(14000, 26000);
+    seedWorkHistory(p, s.year);
     p.stats.health = rng.int(50, 80);
     adjustBond(s, me.id, p.id, rng.int(20, 50), rng.int(20, 50));
   }
@@ -395,6 +400,7 @@ export function newChildGame(seed: number): GameState {
     giveEducation(rng, p);
     assignJob(p, pickCareer(rng, p) ?? CAREERS[0]);
     p.jobYears = rng.int(2, 8);
+    seedWorkHistory(p, s.year);
   }
   s.partnerships.push({ id: newId(s, 'r'), a: mom.id, b: dad.id, status: 'married', startYear: s.year - rng.int(8, 14), merged: true });
   adjustBond(s, mom.id, dad.id, rng.int(10, 60), rng.int(10, 60));
@@ -443,3 +449,21 @@ function applyNames(s: GameState, names?: StartNames): GameState {
   if (s.journal[0]) s.journal[0].text = `Your story begins as ${me.firstName} ${me.lastName}, age ${ageOf(me, s.year)}.`;
   return s;
 }
+
+/**
+ * Adults created mid-life get a plausible work history: years worked since ~22, pension years
+ * at their current job if it has a pension, and some retirement savings.
+ */
+export function seedWorkHistory(p: Person, year: number) {
+  const age = ageOf(p, year);
+  if (age < 23 || !(p.jobId || p.retired)) return;
+  p.careerYears = Math.max(p.careerYears ?? 0, Math.min(45, age - 22));
+  const c = p.jobId ? CAREER_BY_ID[p.jobId] : undefined;
+  if (c?.pension) {
+    p.pensionYears = Math.max(p.pensionYears ?? 0, Math.min(p.careerYears, Math.max(p.jobYears, Math.round(p.careerYears * 0.6))));
+    p.pensionSalary = Math.max(p.pensionSalary ?? 0, salaryOfLevel(c, p.jobLevel));
+  }
+  if (!p.retired) p.retirementSavings = Math.max(p.retirementSavings ?? 0, p.careerYears * 1500);
+}
+
+const salaryOfLevel = (c: Career, level: number) => Math.round(c.salary * (1 + 0.3 * (level - 1)));

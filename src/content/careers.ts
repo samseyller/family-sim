@@ -15,19 +15,21 @@ export interface Career {
   minSmarts: number;
   requires?: 'degree' | 'trade_cert';
   skill?: Hobby;
+  /** Employer pension (defined benefit) for years of service. */
+  pension?: boolean;
   minSkill?: number;
 }
 
 export const CAREERS: Career[] = [
   // Full-time
   { id: 'retail', name: 'Retail Associate', icon: '🛒', hours: 'full', salary: 32000, blocks: 4, stress: 4, minSmarts: 0 },
-  { id: 'electrician', name: 'Electrician', icon: '🔌', hours: 'full', salary: 58000, blocks: 4, stress: 5, minSmarts: 30, requires: 'trade_cert' },
-  { id: 'nurse', name: 'Nurse', icon: '🩺', hours: 'full', salary: 66000, blocks: 5, stress: 8, minSmarts: 50, requires: 'degree' },
+  { id: 'electrician', name: 'Electrician', icon: '🔌', hours: 'full', salary: 58000, blocks: 4, stress: 5, minSmarts: 30, requires: 'trade_cert', pension: true },
+  { id: 'nurse', name: 'Nurse', icon: '🩺', hours: 'full', salary: 66000, blocks: 5, stress: 8, minSmarts: 50, requires: 'degree', pension: true },
   { id: 'developer', name: 'Software Developer', icon: '💻', hours: 'full', salary: 92000, blocks: 5, stress: 6, minSmarts: 62, requires: 'degree' },
   { id: 'musician', name: 'Musician', icon: '🎸', hours: 'full', salary: 34000, blocks: 4, stress: 3, minSmarts: 0, skill: 'music', minSkill: 55 },
-  { id: 'coach', name: 'Sports Coach', icon: '🏅', hours: 'full', salary: 47000, blocks: 4, stress: 4, minSmarts: 0, skill: 'sports', minSkill: 55 },
+  { id: 'coach', name: 'Sports Coach', icon: '🏅', hours: 'full', salary: 47000, blocks: 4, stress: 4, minSmarts: 0, skill: 'sports', minSkill: 55, pension: true },
   { id: 'designer', name: 'Graphic Designer', icon: '🎨', hours: 'full', salary: 61000, blocks: 4, stress: 5, minSmarts: 35, skill: 'art', minSkill: 50 },
-  { id: 'teacher', name: 'Teacher', icon: '🍎', hours: 'full', salary: 52000, blocks: 4, stress: 6, minSmarts: 45, requires: 'degree' },
+  { id: 'teacher', name: 'Teacher', icon: '🍎', hours: 'full', salary: 52000, blocks: 4, stress: 6, minSmarts: 45, requires: 'degree', pension: true },
   { id: 'accountant', name: 'Accountant', icon: '📊', hours: 'full', salary: 71000, blocks: 5, stress: 5, minSmarts: 55, requires: 'degree' },
   { id: 'chef', name: 'Chef', icon: '👩‍🍳', hours: 'full', salary: 44000, blocks: 5, stress: 7, minSmarts: 0, requires: 'trade_cert' },
   { id: 'mechanic', name: 'Mechanic', icon: '🔧', hours: 'full', salary: 50000, blocks: 4, stress: 4, minSmarts: 25, requires: 'trade_cert' },
