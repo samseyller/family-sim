@@ -9,12 +9,15 @@ test('export, import into a new game, and restore the previous autosave', async 
   await page.getByRole('button', { name: /start a new family/i }).click();
   const firstName = (await page.locator('.hero h2').innerText()).trim();
 
-  // Export from the in-game menu.
+  // Export from Menu → Saves & backups.
   await page.getByRole('button', { name: 'Menu' }).click();
+  await page.getByRole('button', { name: /saves & backups/i }).click();
   const [download] = await Promise.all([
     page.waitForEvent('download'),
-    page.getByRole('button', { name: /export backup file/i }).click(),
+    page.getByRole('button', { name: /export this game only/i }).click(),
   ]);
+  await page.getByRole('button', { name: 'Close' }).click();
+  await page.getByRole('button', { name: 'Menu' }).click();
   expect(download.suggestedFilename()).toMatch(/^family-tree-.+-\d{4}\.json$/);
   const file = info.outputPath('backup.json');
   await download.saveAs(file);

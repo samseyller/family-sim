@@ -179,17 +179,12 @@ export function SavesPanel() {
 
 /** In-game menu behind the 🌳 button. */
 export function GameMenu() {
-  const { setPanel, toTitle, exportSave } = useGame();
-  const [exported, setExported] = useState(false);
+  const { setPanel, toTitle } = useGame();
   return (
     <Modal label="Menu" onClose={() => setPanel(null)}>
       <h2>Menu</h2>
       <div className="choices">
-        <button className="choice" onClick={() => { exportSave(); setExported(true); }}>
-          <span>⬇️ Export backup file</span>
-          {exported && <span className="hint">Downloaded.</span>}
-        </button>
-        <button className="choice" onClick={() => setPanel('saves')}><span>💾 Saves & backups</span></button>
+        <button className="choice" onClick={() => setPanel('saves')}><span>💾 Saves & backups</span><span className="hint">Export, import, and restore</span></button>
         <button className="choice" onClick={() => setPanel('achievements')}><span>🏅 Achievements & stats</span></button>
         <button className="choice" onClick={() => setPanel('settings')}><span>⚙️ Settings</span></button>
         <button className="choice" onClick={toTitle}><span>🏠 Title screen</span><span className="hint">Your game is saved automatically</span></button>

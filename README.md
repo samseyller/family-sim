@@ -39,7 +39,7 @@ e2e/             Playwright tests
 
 - The game autosaves to the browser (IndexedDB) after every plan change, decision, and year. The previous
   autosave is kept, so starting a new family, importing, or a damaged save can always be undone.
-- **Menu (🌳) → Export backup file** downloads a `.json` save. **Saves & backups → Import** checks the file
+- **Menu (🌳) → Saves & backups** exports a `.json` save (this game or a full backup). **Import** checks the file
   (format upgrade, schema, cross-references) before anything is replaced, and warns if it was made with
   different game rules.
 - Browsers can clear site data, so the year recap reminds you to export a backup every 10 years.
