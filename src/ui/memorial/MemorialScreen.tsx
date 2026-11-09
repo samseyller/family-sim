@@ -37,7 +37,7 @@ export function MemorialScreen({ g }: { g: GameState }) {
       <p className="hint center">Epitaphs are saved to your Family Archive (🏅 Achievements &amp; stats).</p>
       <div className="title-actions">
         <MemorialActions family={family} />
-        <button className="primary big" onClick={startNew}>🎲 Start a new family</button>
+        <button className="primary big" onClick={() => startNew()}>🎲 Start a new family</button>
         <button className="big" onClick={toTitle}>Title screen</button>
       </div>
     </main>

@@ -1,7 +1,7 @@
 import { HOBBY_BY_ID } from '../content/actions';
 import { DEBT_RATE, LIFESTYLES, SAVINGS_RATE } from '../content/economy';
 import { CAREER_BY_ID, PART_TIME_MAX, PROGRAMS, TWO_JOB_STRESS, qualifies, requiredBlocks } from '../content/careers';
-import { assignJob, canWorkFullTime, makeAdultStranger, makeBaby, pickCareer } from './generate';
+import { assignJob, canWorkFullTime, homeParents, makeAdultStranger, makeBaby, pickCareer } from './generate';
 import { fullTimePay, householdBudget, mortgagePayment, partTimePay } from './budget';
 import { autoComeOfAge, die, isCloseKin, marry, moveOut, receptiveness, retire } from './family';
 import type { Rng } from './rng';
@@ -91,6 +91,22 @@ export function applyPlan(s: GameState, rng: Rng): number {
   }
   const ln = g('learn');
   if (ln) stat(me, 'smarts', 3 * dim(ln));
+
+  // Hobby practice (kids and adults alike).
+  const pr = g('practice');
+  if (pr && me.hobby) {
+    me.skills[me.hobby] = Math.round(clamp((me.skills[me.hobby] ?? 0) + 4 * dim(pr), 0, 100));
+    stat(me, 'happiness', 2 * dim(pr));
+  }
+
+  // Time with parents who live at home (as a kid, a grown child who stayed, or a parent who moved in).
+  for (const parent of homeParents(s, me)) {
+    const n = g(`parent_time:${parent.id}`);
+    if (n) {
+      adjustBond(s, me.id, parent.id, 7 * dim(n), 6 * dim(n));
+      stat(parent, 'happiness', 3 * dim(n));
+    }
+  }
 
   const soc = g('socialize');
   if (soc) {
@@ -242,7 +258,7 @@ function childYear(s: GameState, rng: Rng, c: Person) {
   const cp = mine ? s.plan.children[c.id] : undefined;
   const r = mine ? receptiveness(s, me, c) : 0.5;
 
-  if (a >= 6 && !c.hobby) {
+  if (a >= 6 && !c.hobby && c.id !== me.id) {
     if (cp?.suggestHobby && rng.chance(r)) {
       c.hobby = cp.suggestHobby;
       journal(s, `${c.firstName} took up ${HOBBY_BY_ID[c.hobby].label.toLowerCase()} at your suggestion.`, 'good');
@@ -358,7 +374,8 @@ export function runPeople(s: GameState, rng: Rng) {
     if (!p.flags.came_of_age) {
       const theirParentIsMe = p.biologicalParents.includes(me.id) || p.adoptiveParents.includes(me.id);
       // The player's own children get a coming-of-age decision instead.
-      if (!(theirParentIsMe && p.householdId === me.householdId)) autoComeOfAge(s, rng, p, p.householdId === me.householdId ? false : true);
+      // The player's own coming of age is an event; the player's own children get one too.
+      if (p.id !== me.id && !(theirParentIsMe && p.householdId === me.householdId)) autoComeOfAge(s, rng, p, p.householdId === me.householdId ? false : true);
     }
     if (p.id === me.id) education(s, p);
     else adultYear(s, rng, p);

@@ -1,5 +1,5 @@
 import type { ChildFocus, GameState, Hobby, JobIntent, Plan } from '../../engine/types';
-import { canWorkFullTime } from '../../engine/generate';
+import { canWorkFullTime, homeParents } from '../../engine/generate';
 import { NightSchool } from './NightSchool';
 import { LifestylePicker } from './LifestylePicker';
 import { active, activePartnership, ageOf, kidsAtHome, membersOf, money, partnerOf } from '../../engine/util';
@@ -14,6 +14,10 @@ export function PlanTab({ g }: { g: GameState }) {
   const setPlan = useGame((s) => s.setPlan);
   const askEndYear = useGame((s) => s.askEndYear);
   const me = active(g);
+  const myAge = ageOf(me, g.year);
+  const isMinor = myAge < 18;
+  const workAge = myAge >= 16; // part-time from 16, full-time from 18
+  const parentsHere = homeParents(g, me);
   const plan = g.plan;
   const used = Object.values(plan.alloc).reduce((a, b) => a + b, 0);
   const left = TIME_BUDGET - used;
@@ -75,6 +79,7 @@ export function PlanTab({ g }: { g: GameState }) {
         {spend > 0 && <div className="hint">Planned extra spending: {money(spend)}</div>}
       </div>
 
+      {workAge && (
       <Section title="💼 Work">
         <div className="label">Full-time</div>
         {canWork ? (
@@ -116,7 +121,7 @@ export function PlanTab({ g }: { g: GameState }) {
         {twoJobs && partActive && <p className="hint">⚠️ Working two jobs adds stress every year.</p>}
 
         {(['full', 'part'] as const).map((slot) => {
-          if (slot === 'full' && me.studyingUntil) return null;
+          if (slot === 'full' && (me.studyingUntil || isMinor)) return null;
           const target = applyingTo(slot);
           const current = slot === 'full' ? me.jobId : me.partJobId;
           return (
@@ -143,19 +148,27 @@ export function PlanTab({ g }: { g: GameState }) {
           );
         })}
       </Section>
+      )}
 
-      <LifestylePicker g={g} />
+      {!isMinor && <LifestylePicker g={g} />}
 
       <Section title="🧘 Yourself">
         {step('exercise', ACTION_BY_ID.exercise.label, ACTION_BY_ID.exercise.icon, me.flags.health_vow ? 'Extra effective since your health scare' : 'Fitness, health; less stress')}
         {step('relax', ACTION_BY_ID.relax.label, ACTION_BY_ID.relax.icon, 'Less stress, more happiness')}
-        {step('learn', ACTION_BY_ID.learn.label, ACTION_BY_ID.learn.icon, 'Smarts: opens better careers')}
-        {step('socialize', ACTION_BY_ID.socialize.label, ACTION_BY_ID.socialize.icon, partner ? 'Happiness up, less stress' : 'Happiness up; more likely to meet someone')}
+        {step('learn', isMinor ? 'Study' : ACTION_BY_ID.learn.label, isMinor ? '🎒' : ACTION_BY_ID.learn.icon, isMinor ? 'Better grades; smarts up' : 'Smarts: opens better careers')}
+        {me.hobby && step('practice', `Practice ${HOBBY_BY_ID[me.hobby].label.toLowerCase()}`, HOBBY_BY_ID[me.hobby].icon, 'Skill up; it can become a career')}
+        {step('socialize', isMinor ? 'Friends' : ACTION_BY_ID.socialize.label, isMinor ? '🛝' : ACTION_BY_ID.socialize.icon, isMinor ? 'Make friends; happiness up' : partner ? 'Happiness up, less stress' : 'Happiness up; more likely to meet someone')}
         <p className="hint">Each extra block on the same thing is worth a bit less.</p>
         <NightSchool g={g} left={left} />
       </Section>
 
       <Section title="🏡 Family">
+        {parentsHere.map((p) => (
+          <div key={p.id} className="sub-group">
+            <div className="sub-head">{p.sex === 'F' ? 'Mom' : 'Dad'}: {p.firstName}</div>
+            {step(`parent_time:${p.id}`, 'Time together', isMinor ? '🧸' : '☕', 'Closer bonds; they will look out for you')}
+          </div>
+        ))}
         {partner && (
           <div className="sub-group">
             <div className="sub-head">{activePartnership(g, me.id)?.status === 'married' ? 'Spouse' : 'Dating'}: {partner.firstName}</div>
@@ -169,7 +182,7 @@ export function PlanTab({ g }: { g: GameState }) {
             {ageOf(k, g.year) >= 5 && step(`homework:${k.id}`, 'Homework help', '✏️', 'Their smarts up')}
           </div>
         ))}
-        {membersOf(g, me.householdId).length > 1 && (
+        {!isMinor && membersOf(g, me.householdId).length > 1 && (
           <div className="sub-group">
             <div className="sub-head">Whole family</div>
             {step('family_outing', 'Family outing', '🎡', '$1,500 per block; everyone bonds')}

@@ -1,7 +1,7 @@
 import { PROGRAMS } from '../../content/careers';
 import { TIME_BUDGET } from '../../content/actions';
 import type { GameState, Plan, Program } from '../../engine/types';
-import { active, money } from '../../engine/util';
+import { active, ageOf, money } from '../../engine/util';
 import { useGame } from '../../store/gameStore';
 import { Stepper } from '../components';
 
@@ -20,7 +20,7 @@ export function NightSchool({ g, left }: { g: GameState; left: number }) {
   const study = plan.alloc.study ?? 0;
   const setStudy = (n: number) => set((p) => { if (n > 0) p.alloc.study = n; else delete p.alloc.study; });
 
-  if (me.studyingUntil) return null;
+  if (me.studyingUntil || ageOf(me, g.year) < 18) return null;
 
   if (edu) {
     const prog = PROGRAMS[edu.program];

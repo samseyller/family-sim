@@ -78,6 +78,9 @@ export function householdBudget(s: GameState, householdId: string, activePay: nu
     if (p.flags.care_home && p.flags.care_support) add(inc, 'Family support', COSTS.careSupport);
   }
 
+  // Children with no adult at home (orphaned) receive survivor benefits.
+  if (mem.length && mem.every((p) => ageOf(p, s.year) < 18)) add(inc, 'Survivor benefits', 24000);
+
   if (!hh.assets.some((a) => a.kind === 'house')) add(exp, 'Rent', COSTS.rentBase + COSTS.rentPerExtra * Math.max(0, mem.length - 2));
   for (const a of hh.assets) {
     add(exp, 'Home upkeep', a.upkeep);

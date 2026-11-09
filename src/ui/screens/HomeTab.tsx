@@ -20,7 +20,7 @@ export function HomeTab({ g }: { g: GameState }) {
         <Avatar person={me} year={g.year} size={96} />
         <div>
           <h2>{me.firstName} {me.lastName}</h2>
-          <div className="muted">Age {ageOf(me, g.year)} · {job?.icon ?? '🧭'} {jobTitle(me)}</div>
+          <div className="muted">Age {ageOf(me, g.year)} · {ageOf(me, g.year) < 18 && !me.partJobId ? '🎒 In school' : `${job?.icon ?? '🧭'} ${jobTitle(me)}`}</div>
           <div className="traits">{me.traits.map((t) => <span key={t} className="chip">{t}</span>)}</div>
         </div>
       </section>

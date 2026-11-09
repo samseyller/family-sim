@@ -1,4 +1,5 @@
 import { HOBBY_BY_ID, TIME_BUDGET } from '../content/actions';
+import { CHILD_EVENTS } from './childhood';
 import { CAREERS, CAREER_BY_ID, LEVEL_TITLES, PROGRAMS, qualifies, requiredBlocks, salaryOf } from '../content/careers';
 import { assignJob, makeAdultStranger, makePerson, pickCareer } from './generate';
 import {
@@ -38,6 +39,8 @@ export interface EventDef {
   candidates?: (c: Ctx) => Candidate[];
   build: (c: Ctx, sub?: Person) => Built;
   resolve: (c: Ctx, choice: string, sub?: Person) => string;
+  /** Who can get this event: adults (default), children (under 18), or anyone. */
+  stage?: 'adult' | 'child' | 'any';
 }
 
 const wallet = (c: Ctx) => c.s.households[c.me.householdId];
@@ -997,7 +1000,9 @@ function bestNewJob(c: Ctx) {
     .sort((a, b) => b.salary - a.salary)[0];
 }
 
-export const EVENT_BY_ID: Record<string, EventDef> = Object.fromEntries(EVENTS.map((e) => [e.id, e]));
+const ALL_EVENTS: EventDef[] = [...EVENTS, ...CHILD_EVENTS];
+
+export const EVENT_BY_ID: Record<string, EventDef> = Object.fromEntries(ALL_EVENTS.map((e) => [e.id, e]));
 
 function pushPending(c: Ctx, def: EventDef, subject?: Person) {
   const built = def.build(c, subject);
@@ -1035,8 +1040,12 @@ export function generateEvents(s: GameState, rng: Rng) {
   }
 
   const eligible: { def: EventDef; cand: Candidate }[] = [];
-  for (const def of EVENTS) {
+  const childActive = ageOf(c.me, s.year) < 18;
+  for (const def of ALL_EVENTS) {
     if (!def.candidates) continue;
+    // Children only get childhood events; adults never do. "any" events check age themselves.
+    const stage = def.stage ?? 'adult';
+    if (stage !== 'any' && (stage === 'child') !== childActive) continue;
     const last = s.lastFired[def.id];
     if (last !== undefined && s.year - last < Math.max(1, def.cooldown)) continue;
     for (const cand of def.candidates(c)) if (cand.weight > 0) eligible.push({ def, cand });

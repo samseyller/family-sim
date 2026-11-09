@@ -36,7 +36,7 @@ interface Store {
   confirmEnd: boolean;
   showDev: boolean;
   init(): Promise<void>;
-  startNew(): void;
+  startNew(start?: "adult" | "child"): void;
   continueGame(): void;
   toTitle(): void;
   setTab(t: Tab): void;
@@ -119,8 +119,8 @@ export const useGame = create<Store>((set, get) => {
       // Never leave the title screen stuck: a failed load just means no "Continue".
       await refresh();
     },
-    startNew() {
-      const g = newGame((Date.now() ^ Math.floor(Math.random() * 1e9)) >>> 0);
+    startNew(start = "adult") {
+      const g = newGame((Date.now() ^ Math.floor(Math.random() * 1e9)) >>> 0, start);
       set({ tab: 'home', panel: null, game: null });
       setProfile(trackNewFamily(get().profile));
       // Rotate so the game being replaced stays recoverable as "previous".

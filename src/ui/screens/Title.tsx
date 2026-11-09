@@ -28,8 +28,11 @@ export function Title() {
             </span>
           </button>
         )}
-        <button className={me ? 'big' : 'primary big'} onClick={startNew} disabled={!ready}>
+        <button className={me ? "big" : "primary big"} onClick={() => startNew()} disabled={!ready}>
           🎲 Start a new family
+        </button>
+        <button className="big" onClick={() => startNew("child")} disabled={!ready}>
+          🧒 Start as a child
         </button>
         <button className="big" onClick={() => setPanel('saves')} disabled={!ready}>
           💾 Saves & backups
