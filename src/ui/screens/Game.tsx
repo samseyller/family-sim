@@ -7,6 +7,7 @@ import { FamilyTab } from './FamilyTab';
 import { JournalTab } from './JournalTab';
 import { ConfirmEndYear, DevPanel, EventModal, MemorialScreen, RecapModal, SuccessionScreen } from './Overlays';
 import { GameMenu, SavesPanel } from './SavesPanel';
+import { isTyping } from '../input';
 import { AchievementsPanel, SettingsPanel } from './ProfilePanels';
 
 const TABS: { id: Tab; label: string; icon: string }[] = [
@@ -22,18 +23,23 @@ export function Game() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement;
-      if (t.tagName === 'INPUT' && (t as HTMLInputElement).type === 'text') return;
+      if (isTyping(t)) return;
       if (e.key === '`') toggleDev();
       const st = useGame.getState();
       const modalOpen = !!document.querySelector('.backdrop');
       if (modalOpen) return;
       const n = Number(e.key);
       if (n >= 1 && n <= TABS.length) setTab(TABS[n - 1].id);
+      // [ and ] (controller LB/RB) cycle tabs; m (Select) opens the menu.
+      const i = TABS.findIndex((x) => x.id === st.tab);
+      if (e.key === '[') setTab(TABS[(i + TABS.length - 1) % TABS.length].id);
+      if (e.key === ']') setTab(TABS[(i + 1) % TABS.length].id);
+      if (e.key === 'm' || e.key === 'M') setPanel('menu');
       if ((e.key === 'e' || e.key === 'E') && st.game?.phase === 'PLANNING') askEndYear(true);
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [setTab, askEndYear, toggleDev]);
+  }, [setTab, askEndYear, toggleDev, setPanel]);
 
   if (!g) return null;
   if (g.phase === 'GAME_OVER') return <MemorialScreen g={g} />;

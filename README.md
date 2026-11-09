@@ -21,7 +21,8 @@ See [PLAN.md](PLAN.md) for the full design and roadmap. Done so far: **Stage 1**
 
 - Mouse / touch: everything is a button.
 - Keyboard: arrow keys move focus, Enter/Space activate, Esc closes, `1`–`4` switch tabs, `E` ends the year (with confirmation).
-- Controller: D-pad moves, A activates, B backs out, Start ends the year.
+- Controller: D-pad or left stick moves, A activates, B backs out, LB/RB switch tabs, Start ends the year, Select opens the menu.
+- Keyboard extras: `[` `]` switch tabs, `M` opens the menu. Shortcuts pause while you type in a text field.
 - `` ` `` (backtick) opens dev tools: skip 10 years, kill the main character.
 
 ## Layout

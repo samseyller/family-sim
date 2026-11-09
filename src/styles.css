@@ -380,3 +380,8 @@ kbd {
   .tree-scroll { max-height: 72dvh; }
   .update-banner { bottom: 20px; }
 }
+
+/* controller: always show where focus is */
+:root.using-pad :focus { outline: 3px solid var(--accent); outline-offset: 2px; }
+.controls-list { list-style: none; padding: 0; margin: 4px 0 0; display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; font-size: 0.9rem; }
+.controls-list kbd { justify-self: start; }
