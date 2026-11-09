@@ -2,12 +2,13 @@ import { describe, expect, it } from 'vitest';
 import { CARS, GARAGE_BUILD, HOMES, SCRAP_VALUE } from '../content/finance';
 import { ageCars, allCars, breakdownChance, carAge, conditionOf, garageOf, makeCar, parkingSpots, workingCars } from './cars';
 import { estimateYear } from './budget';
-import { financeAction, financeBlocker } from './finance';
+import { capacityOf, financeAction, financeBlocker } from './finance';
+import { ACHIEVEMENT_BY_ID } from '../content/achievements';
 import { newGame } from './generate';
 import { migrate } from './migrations';
 import { makeRng } from './rng';
 import type { GameState } from './types';
-import { active } from './util';
+import { active, membersOf } from './util';
 
 const rich = (seed: number, cash = 2_000_000) => {
   const s = newGame(seed);
@@ -93,6 +94,33 @@ describe('parking and garages', () => {
     const hh = hhOf(s);
     hh.assets.push(makeCar(s, 'compact'), makeCar(s, 'compact'));
     expect(estimateYear(s).expenses.find((l) => l.label === 'Street parking')?.amount).toBeGreaterThan(0);
+  });
+});
+
+describe('the mansion', () => {
+  it('holds 18 people and 24 cars, with an achievement for each', () => {
+    const got = (s: GameState, id: string) => ACHIEVEMENT_BY_ID[id].test(s);
+    let s = rich(731, 20_000_000);
+    expect(got(s, 'mansion')).toBe(false);
+    s = financeAction(s, { kind: 'buyHome', tier: 'mansion', downPct: 0.2 });
+    const hh = hhOf(s);
+    expect(got(s, 'mansion')).toBe(true);
+    expect(parkingSpots(hh)).toBe(24);
+    expect(capacityOf(hh)).toBe(18);
+
+    // Fill every parking spot.
+    expect(got(s, 'car_collector')).toBe(false);
+    while (allCars(hh).length < 24) hh.assets.push(makeCar(s, 'sports'));
+    expect(got(s, 'car_collector')).toBe(true);
+    expect(financeBlocker(s, { kind: 'buyCar', car: 'compact', financed: false })).toMatch(/parking/);
+
+    // Fill every bedroom.
+    expect(got(s, 'full_mansion')).toBe(false);
+    const me = active(s);
+    for (let i = 0; membersOf(s, hh.id).length < 18; i++) {
+      s.people[`guest${i}`] = { ...structuredClone(me), id: `guest${i}`, firstName: `Guest${i}`, flags: {} };
+    }
+    expect(got(s, 'full_mansion')).toBe(true);
   });
 });
 

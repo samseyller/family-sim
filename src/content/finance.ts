@@ -9,7 +9,7 @@ export const RENTALS: Record<RentTier, { label: string; icon: string; rent: numb
 /** One-off cost of moving between rentals (movers, deposits). */
 export const MOVING_COST = 2000;
 
-export type HomeTier = 'condo' | 'starter' | 'townhouse' | 'family' | 'large' | 'estate';
+export type HomeTier = 'condo' | 'starter' | 'townhouse' | 'family' | 'large' | 'estate' | 'mansion';
 export interface HomeDef { label: string; icon: string; price: number; upkeep: number; capacity: number; /** Garage spaces. */ garage: number }
 export const HOMES: Record<HomeTier, HomeDef> = {
   condo: { label: 'Condo', icon: '🏢', price: 180000, upkeep: 2500, capacity: 2, garage: 0 },
@@ -18,6 +18,8 @@ export const HOMES: Record<HomeTier, HomeDef> = {
   family: { label: 'Family home', icon: '🏡', price: 340000, upkeep: 4500, capacity: 5, garage: 2 },
   large: { label: 'Large home', icon: '🏛️', price: 520000, upkeep: 7000, capacity: 7, garage: 2 },
   estate: { label: 'Country estate', icon: '🏰', price: 950000, upkeep: 14000, capacity: 9, garage: 4 },
+  // 2 outdoor spots + 22 garage spaces = room for 24 cars.
+  mansion: { label: 'Mansion', icon: '🏯', price: 15000000, upkeep: 150000, capacity: 18, garage: 22 },
 };
 /** Every home and rental has room for this many cars outside; garages add to it. */
 export const BASE_PARKING = 2;

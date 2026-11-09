@@ -108,7 +108,7 @@ for random). When your baby is born, a naming event offers suggestions or lets y
 
 ## Homes and cars
 
-- Six home types (condo → country estate) with different prices, sizes and garages. Every home has 2 parking
+- Seven home types (condo → $15M mansion for 18 people and 24 cars, with achievements for buying and filling it) with different prices, sizes and garages. Every home has 2 parking
   spots plus its garage spaces; owners can add garage spaces (up to 4). Cars beyond your spots pay for street parking.
 - Ten car models, new and used, with different prices, upkeep, reliability, seats and lifespans. Only new cars can
   be bought on a loan. A car is named by its model year ("2031 Sedan") and ages every year: it loses value,

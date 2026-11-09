@@ -1,5 +1,6 @@
 import type { GameState } from '../engine/types';
-import { active, ageOf, alive, childrenOf, getBond, kidsAtHome } from '../engine/util';
+import { active, ageOf, alive, childrenOf, getBond, kidsAtHome, membersOf, money } from '../engine/util';
+import { BASE_PARKING, HOMES } from './finance';
 
 export interface AchievementDef {
   id: string;
@@ -13,6 +14,8 @@ export interface AchievementDef {
 }
 
 const household = (s: GameState) => s.households[active(s).householdId];
+/** The mansion the player's household owns, if any. */
+const mansionOf = (s: GameState) => household(s).assets.find((a) => a.kind === 'house' && a.name === HOMES.mansion.label);
 const lineagePeople = (s: GameState) => s.lineage.map((id) => s.people[id]);
 
 export const ACHIEVEMENTS: AchievementDef[] = [
@@ -29,6 +32,27 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     desc: 'Buy a family home.',
     icon: '🏡',
     test: (s) => household(s).assets.some((a) => a.kind === 'house'),
+  },
+  {
+    id: 'mansion',
+    title: 'Lap of Luxury',
+    desc: `Buy a ${money(HOMES.mansion.price)} mansion.`,
+    icon: HOMES.mansion.icon,
+    test: (s) => !!mansionOf(s),
+  },
+  {
+    id: 'full_mansion',
+    title: 'Full House',
+    desc: `Fill your mansion: ${HOMES.mansion.capacity} people under one roof.`,
+    icon: '👨‍👩‍👧‍👦',
+    test: (s) => !!mansionOf(s) && membersOf(s, household(s).id).length >= HOMES.mansion.capacity,
+  },
+  {
+    id: 'car_collector',
+    title: 'Car Collector',
+    desc: `Fill every parking spot at your mansion: ${BASE_PARKING + HOMES.mansion.garage} cars.`,
+    icon: '🏎️',
+    test: (s) => !!mansionOf(s) && household(s).assets.filter((a) => a.kind === 'car').length >= BASE_PARKING + HOMES.mansion.garage,
   },
   {
     id: 'mortgage_free',
