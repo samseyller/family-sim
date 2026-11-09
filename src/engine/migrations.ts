@@ -1,4 +1,5 @@
 import { SCHEMA_VERSION } from './generate';
+import { fillLooks } from './genome';
 import type { GameState } from './types';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -20,6 +21,11 @@ const STEPS: Record<number, Step> = {
   // v2 → v3: night school (Person.education, Plan.eduIntent) — both optional, so
   // old saves are already valid; the step exists so the version chain stays explicit.
   2: (s) => s,
+  // v3 → v4: richer appearance genome. Missing genes are filled deterministically per person.
+  3: (s) => {
+    for (const p of Object.values<any>(s.people)) p.looks = fillLooks(p.looks, p.id);
+    return s;
+  },
 };
 
 /** Upgrade a loaded save to the current schema, or return undefined if it can't be. */

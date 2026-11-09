@@ -1,10 +1,12 @@
+import { useState } from 'react';
 import type { GameState, Person } from '../../engine/types';
 import { active, ageOf, alive, childrenOf, getBond, parentsOf, partnerOf } from '../../engine/util';
 import { jobTitle } from '../../content/careers';
 import { HOBBY_BY_ID } from '../../content/actions';
 import { receptiveness, receptivenessLabel } from '../../engine/family';
 import { Avatar } from '../Avatar';
-import { Section } from '../components';
+import { Section, Segmented } from '../components';
+import { FamilyTree } from '../tree/FamilyTree';
 
 function role(g: GameState, me: Person, p: Person): string {
   const ps = [...g.partnerships].reverse().find((x) => (x.a === me.id && x.b === p.id) || (x.b === me.id && x.a === p.id));
@@ -33,7 +35,7 @@ function BondMeter({ label, v }: { label: string; v: number }) {
   );
 }
 
-export function FamilyTab({ g }: { g: GameState }) {
+function FamilyList({ g }: { g: GameState }) {
   const me = active(g);
   const seen = new Set<string>([me.id]);
   const list: Person[] = [];
@@ -85,6 +87,34 @@ export function FamilyTab({ g }: { g: GameState }) {
     <div className="stack">
       <Section title="Family">{living.length ? living.map(card) : <p className="muted">No living relatives yet.</p>}</Section>
       {dead.length > 0 && <Section title="In memory">{dead.map(card)}</Section>}
+    </div>
+  );
+}
+
+type View = 'list' | 'tree';
+const VIEW_KEY = 'family-view';
+
+export function FamilyTab({ g }: { g: GameState }) {
+  const [view, setView] = useState<View>(() => {
+    try {
+      return localStorage.getItem(VIEW_KEY) === 'tree' ? 'tree' : 'list';
+    } catch {
+      return 'list';
+    }
+  });
+  const choose = (v: View) => {
+    setView(v);
+    try {
+      localStorage.setItem(VIEW_KEY, v);
+    } catch {
+      /* per-viewer convenience only */
+    }
+  };
+  return (
+    <div className="stack">
+      <Segmented<View> label="Family view" value={view} onChange={choose}
+        options={[{ value: 'list', label: '👪 List' }, { value: 'tree', label: '🌳 Tree' }]} />
+      {view === 'list' ? <FamilyList g={g} /> : <FamilyTree g={g} />}
     </div>
   );
 }

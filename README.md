@@ -4,7 +4,7 @@ A turn-based family life simulator. Each turn is one year: split your limited ti
 between work, yourself, and your family, guide your children, face life events, and
 when your character dies, continue as your spouse, child, or grandchild.
 
-See [PLAN.md](PLAN.md) for the full design and roadmap. Done so far: **Stage 1** (family loop), **Stage 2** (reliable saves), **Stage 3** (profile & data format), **Stage 4** (dating & divorce, night school, a fuller household).
+See [PLAN.md](PLAN.md) for the full design and roadmap. Done so far: **Stage 1** (family loop), **Stage 2** (reliable saves), **Stage 3** (profile & data format), **Stage 4** (dating & divorce, night school, a fuller household), **Stage 5** (aging avatars, family tree, memorials).
 
 ## Commands
 
@@ -55,3 +55,14 @@ games (its own IndexedDB table, schema version, and previous-copy recovery).
   "Use the settings from this backup". Loading the backup's game is optional.
 - Achievements are pure checks on the game state (`src/content/achievements.ts`), evaluated after every
   transition by `src/profile/tracker.ts`, so `npm run sim` can report how often each one unlocks.
+
+## Identity
+
+- **Avatars** are drawn from a 9-gene genome (skin, hair color/style, eyes, face shape, nose, facial hair,
+  glasses, freckles). Children inherit each gene from a parent with a small mutation rate, and portraits
+  age: proportions, graying, receding hair, glasses in middle age, wrinkles, cardigans. Stress and
+  happiness show in the brows and mouth. Dev gallery: `npm run dev`, then open `/dev/avatars.html?seed=7&size=140`.
+- **Family tree**: Family tab → 🌳 Tree. Rooted at the oldest known ancestor; played characters are ringed.
+- **Memorials**: ending a story builds a memorial with a generated epitaph per generation. Epitaphs can be
+  rewritten and are saved in the Family Archive (🏅 Achievements & stats), where past families can be
+  reopened. **Download memorial** saves a standalone web page (inline portraits, no scripts).

@@ -89,7 +89,7 @@ describe('merge', () => {
     a.stats.yearsPlayed = 100;
     b.stats.yearsPlayed = 40;
     b.stats.longestLife = 92;
-    const entry = { id: 'f1', familyName: 'X', startYear: 1, endYear: 2, generations: 1, members: [], legacy: 5, endedAt: NOW };
+    const entry = { id: 'f1', familyName: 'X', startYear: 1, endYear: 2, generations: 1, members: [], legacy: 5, breakdown: { wealth: 0, bonds: 0, achievement: 0, wellbeing: 0 }, endedAt: NOW };
     a.archive.push(entry);
     b.archive.push(entry, { ...entry, id: 'f2' });
     const { profile, summary } = mergeProfiles(a, b);

@@ -1071,7 +1071,10 @@ export function resolveEvent(s: GameState, rng: Rng, pe: PendingEvent, choiceId:
   const c: Ctx = { s, rng, me: active(s) };
   const sub = pe.subjectId ? s.people[pe.subjectId] : undefined;
   if (pe.subjectId && (!sub || !alive(sub))) return 'Circumstances changed before you could act.';
+  const before = s.journal.length;
   const outcome = def.resolve(c, choiceId, sub);
-  journal(s, `${pe.title}: ${outcome}`, pe.major ? 'major' : 'info');
+  // If the event already wrote its own headline, log the outcome as a normal entry so highlights don't repeat.
+  const headlined = s.journal.slice(before).some((j) => j.kind === 'major' || j.kind === 'birth');
+  journal(s, `${pe.title}: ${outcome}`, pe.major && !headlined ? 'major' : 'info');
   return outcome;
 }

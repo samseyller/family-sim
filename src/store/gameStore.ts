@@ -9,7 +9,7 @@ import { downloadJson, downloadSave, fullBackupFileName, serializeFullBackup } f
 import type { AchievementDef } from '../content/achievements';
 import { track, trackNewFamily } from '../profile/tracker';
 import { mergeProfiles, type MergeSummary } from '../profile/merge';
-import { newProfile, type Profile, type Settings } from '../profile/types';
+import { EPITAPH_MAX, newProfile, type Profile, type Settings } from '../profile/types';
 
 export type Tab = 'home' | 'plan' | 'family' | 'journal';
 export type Panel = null | 'menu' | 'saves' | 'settings' | 'achievements';
@@ -51,6 +51,7 @@ interface Store {
   toggleDev(): void;
   dev(kind: 'skip10' | 'kill'): void;
   updateSettings(patch: Partial<Settings>): void;
+  updateEpitaph(familyId: string, memberId: string, text: string): void;
   dismissToast(): void;
   exportSave(): void;
   exportFullBackup(): void;
@@ -154,6 +155,18 @@ export const useGame = create<Store>((set, get) => {
     toggleDev: () => set((s) => ({ showDev: !s.showDev })),
     dev(kind) {
       withGame((g) => (kind === 'kill' ? devKill(g) : devSkip(g, 10)));
+    },
+    updateEpitaph(familyId, memberId, text) {
+      const p = get().profile;
+      const clean = text.replace(/\s+/g, ' ').trim().slice(0, EPITAPH_MAX);
+      if (!clean) return;
+      setProfile({
+        ...p,
+        archive: p.archive.map((f) => (f.id !== familyId ? f : {
+          ...f,
+          members: f.members.map((m) => (m.id === memberId ? { ...m, epitaph: clean } : m)),
+        })),
+      });
     },
     updateSettings(patch) {
       const p = get().profile;

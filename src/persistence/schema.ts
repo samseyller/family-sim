@@ -43,7 +43,7 @@ const Person = z.object({
   householdId: id,
   biologicalParents: z.array(id),
   adoptiveParents: z.array(id),
-  looks: z.object({ skin: int, hairColor: int, hairStyle: int, eyes: int }),
+  looks: z.object({ skin: int, hairColor: int, hairStyle: int, eyes: int, face: int, nose: int, facialHair: int, glasses: int, freckles: int }),
 });
 
 const Partnership = z.object({

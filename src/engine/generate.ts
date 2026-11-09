@@ -2,11 +2,12 @@ import { CAREERS, PART_TIME_MAX, PROGRAMS, qualifies, requiredBlocks, CAREER_BY_
 import { FEMALE_NAMES, LAST_NAMES, MALE_NAMES } from '../content/names';
 import { TIME_BUDGET, defaultChildPlan } from '../content/actions';
 import { makeRng, type Rng } from './rng';
+import { inheritLooks, randomLooks } from './genome';
 import type { GameState, Household, Looks, Person, Plan, Trait } from './types';
 import { adjustBond, ageOf, alive, kidsAtHome, newId, partnerOf, active } from './util';
 
-export const SCHEMA_VERSION = 3;
-export const RULES_VERSION = '0.2.0';
+export const SCHEMA_VERSION = 4;
+export const RULES_VERSION = '0.3.0';
 export const START_YEAR = 2026;
 
 const TRAITS: Trait[] = ['ambitious', 'kind', 'stubborn', 'curious', 'anxious', 'easygoing', 'creative', 'athletic'];
@@ -19,15 +20,7 @@ function pickTraits(rng: Rng): Trait[] {
   return [a, b];
 }
 
-export function randomLooks(rng: Rng): Looks {
-  return { skin: rng.int(0, 5), hairColor: rng.int(0, 5), hairStyle: rng.int(0, 3), eyes: rng.int(0, 3) };
-}
-
-export function inheritLooks(rng: Rng, a: Looks, b: Looks): Looks {
-  const fresh = randomLooks(rng);
-  const gene = (k: keyof Looks) => (rng.chance(0.08) ? fresh[k] : rng.chance(0.5) ? a[k] : b[k]);
-  return { skin: gene('skin'), hairColor: gene('hairColor'), hairStyle: gene('hairStyle'), eyes: gene('eyes') };
-}
+export { inheritLooks, randomLooks };
 
 export function makeHousehold(s: GameState, wallet: number): Household {
   const h: Household = { id: newId(s, 'h'), wallet: Math.round(wallet), assets: [], settled: false };

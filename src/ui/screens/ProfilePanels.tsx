@@ -1,4 +1,7 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { ArchiveMemorial } from '../memorial/MemorialScreen';
+import { memberSpec } from '../memorial/MemorialView';
+import { AvatarFace } from '../Avatar';
 import { ACHIEVEMENTS } from '../../content/achievements';
 import { money } from '../../engine/util';
 import type { Settings } from '../../profile/types';
@@ -49,8 +52,10 @@ const STAT_LABELS: [keyof ReturnType<typeof useGame.getState>['profile']['stats'
 
 export function AchievementsPanel() {
   const { profile, setPanel } = useGame();
+  const [openFamily, setOpenFamily] = useState<string | null>(null);
   const unlocked = profile.achievements;
   const count = Object.keys(unlocked).length;
+  if (openFamily) return <ArchiveMemorial familyId={openFamily} onClose={() => setOpenFamily(null)} />;
   return (
     <Modal label="Achievements and stats" onClose={() => setPanel(null)}>
       <h2>🏅 Achievements & stats</h2>
@@ -84,15 +89,18 @@ export function AchievementsPanel() {
       </Section>
       <Section title={`Family archive (${profile.archive.length})`}>
         {profile.archive.length === 0 && <p className="muted">Finished families will be remembered here.</p>}
-        <ul className="journal-list">
+        <div className="choices">
           {[...profile.archive].reverse().map((f) => (
-            <li key={f.id}>
+            <button key={f.id} className="choice archive-item" onClick={() => setOpenFamily(f.id)}>
+              <span className="archive-faces" aria-hidden>
+                {f.members.slice(0, 5).map((m) => <AvatarFace key={m.id} spec={memberSpec(m, f.endYear)} size={36} />)}
+              </span>
               <strong>The {f.familyName} family</strong>
-              <div className="hint">{f.startYear}–{f.endYear} · {f.generations} generation{f.generations === 1 ? '' : 's'} · legacy {f.legacy}</div>
-              <div className="hint">{f.members.map((m) => m.name).join(' → ')}</div>
-            </li>
+              <span className="hint">{f.startYear}–{f.endYear} · {f.generations} generation{f.generations === 1 ? '' : 's'} · legacy {f.legacy}</span>
+              <span className="hint">{f.members.map((m) => m.name.split(' ')[0]).join(' → ')}</span>
+            </button>
           ))}
-        </ul>
+        </div>
       </Section>
       <button className="big close-btn" onClick={() => setPanel(null)}>Close</button>
     </Modal>

@@ -22,6 +22,11 @@ export interface Looks {
   hairColor: number;
   hairStyle: number;
   eyes: number;
+  face: number;
+  nose: number;
+  facialHair: number;
+  glasses: number;
+  freckles: number;
 }
 
 export interface Person {

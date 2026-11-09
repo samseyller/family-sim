@@ -1,5 +1,6 @@
 import { z } from 'zod';
-import { DEFAULT_SETTINGS, EMPTY_STATS, PROFILE_SCHEMA_VERSION, type Profile } from './types';
+import { DEFAULT_SETTINGS, EMPTY_STATS, EPITAPH_MAX, PROFILE_SCHEMA_VERSION, type Profile } from './types';
+import { fillLooks } from '../engine/genome';
 
 const nonneg = z.number().finite().nonnegative();
 
@@ -36,8 +37,26 @@ export const ProfileSchema = z.object({
       startYear: z.number().int(),
       endYear: z.number().int(),
       generations: z.number().int(),
-      members: z.array(z.object({ name: z.string(), lifespan: z.string(), knownFor: z.string() })),
+      members: z.array(
+        z.object({
+          id: z.string(),
+          name: z.string(),
+          sex: z.enum(['F', 'M']),
+          looks: z.object({
+            skin: z.number().int(), hairColor: z.number().int(), hairStyle: z.number().int(), eyes: z.number().int(),
+            face: z.number().int(), nose: z.number().int(), facialHair: z.number().int(), glasses: z.number().int(), freckles: z.number().int(),
+          }),
+          birthYear: z.number().int(),
+          deathYear: z.number().int().optional(),
+          title: z.string(),
+          knownFor: z.string(),
+          epitaph: z.string().max(EPITAPH_MAX),
+          children: z.number().int().nonnegative(),
+          highlights: z.array(z.string()),
+        }),
+      ),
       legacy: z.number().finite(),
+      breakdown: z.object({ wealth: z.number().finite(), bonds: z.number().finite(), achievement: z.number().finite(), wellbeing: z.number().finite() }),
       endedAt: z.string(),
     }),
   ),
@@ -49,7 +68,32 @@ void assertAssignable;
 
 /** Upgrade steps for profiles: PROFILE_STEPS[n] turns version n into n + 1. */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const PROFILE_STEPS: Record<number, (p: any) => any> = {};
+const PROFILE_STEPS: Record<number, (p: any) => any> = {
+  // v1 → v2: archive members became full records (portrait genome, years, epitaph).
+  1: (p) => {
+    for (const fam of p.archive ?? []) {
+      fam.breakdown ??= { wealth: 0, bonds: 0, achievement: 0, wellbeing: 0 };
+      fam.members = (fam.members ?? []).map((m: { name?: string; lifespan?: string; knownFor?: string }, i: number) => {
+        const years = /(\d{4})\s*[–-]\s*(\d{4})?/.exec(m.lifespan ?? '');
+        const id = `${fam.id}-m${i}`;
+        return {
+          id,
+          name: m.name ?? 'Unknown',
+          sex: 'F',
+          looks: fillLooks(undefined, id),
+          birthYear: years ? Number(years[1]) : fam.startYear,
+          deathYear: years?.[2] ? Number(years[2]) : undefined,
+          title: '',
+          knownFor: m.knownFor ?? 'a life well lived',
+          epitaph: `Remembered for ${m.knownFor ?? 'a life well lived'}.`,
+          children: 0,
+          highlights: [],
+        };
+      });
+    }
+    return p;
+  },
+};
 
 export function migrateProfile(raw: unknown): unknown {
   if (!raw || typeof raw !== 'object') return raw;

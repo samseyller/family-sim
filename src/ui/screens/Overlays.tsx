@@ -1,7 +1,6 @@
 import type { GameState, StatKey } from '../../engine/types';
 import { active, ageOf, fullName, money } from '../../engine/util';
 import { eligibleHeirs } from '../../engine/phases';
-import { buildMemorial } from '../../engine/memorial';
 import { jobTitle } from '../../content/careers';
 import { useGame } from '../../store/gameStore';
 import { Avatar } from '../Avatar';
@@ -115,43 +114,7 @@ export function SuccessionScreen({ g }: { g: GameState }) {
   );
 }
 
-export function MemorialScreen({ g }: { g: GameState }) {
-  const toTitle = useGame((s) => s.toTitle);
-  const startNew = useGame((s) => s.startNew);
-  const m = buildMemorial(g);
-  return (
-    <main className="memorial stack">
-      <div className="center">
-        <div className="logo" aria-hidden>🌳</div>
-        <h1>The {m.familyName} Family</h1>
-        <p className="muted">{m.generations} generation{m.generations > 1 ? 's' : ''} · {m.years}</p>
-      </div>
-      <section className="card legacy">
-        <div><span className="hint">Legacy</span><strong>{m.legacy.total}</strong></div>
-        <div><span className="hint">Family wealth</span><strong>{money(m.legacy.wealth)}</strong></div>
-        <div><span className="hint">Parent bonds</span><strong>{m.legacy.bonds}</strong></div>
-        <div><span className="hint">Wellbeing</span><strong>{m.legacy.wellbeing}</strong></div>
-      </section>
-      {m.entries.map((e) => (
-        <section key={e.person.id} className="card">
-          <div className="person">
-            <Avatar person={e.person} year={g.year} size={64} />
-            <div className="person-body">
-              <strong>{fullName(e.person)}</strong>
-              <div className="hint">{e.lifespan} · {e.title} · {e.children} child{e.children === 1 ? '' : 'ren'}</div>
-              <div className="epitaph">Remembered for {e.knownFor}.</div>
-              <ul className="journal-list">{e.highlights.map((h, i) => <li key={i}>{h.year}: {h.text}</li>)}</ul>
-            </div>
-          </div>
-        </section>
-      ))}
-      <div className="title-actions">
-        <button className="primary big" onClick={startNew}>🎲 Start a new family</button>
-        <button className="big" onClick={toTitle}>Title screen</button>
-      </div>
-    </main>
-  );
-}
+export { MemorialScreen } from '../memorial/MemorialScreen';
 
 export { EndYearDialog as ConfirmEndYear } from './EndYearDialog';
 

@@ -26,8 +26,21 @@ export function archiveEntry(s: GameState, now: string): ArchivedFamily {
     startYear: s.journal[0]?.year ?? s.year,
     endYear: s.year,
     generations: m.generations,
-    members: m.entries.map((e) => ({ name: `${e.person.firstName} ${e.person.lastName}`, lifespan: e.lifespan, knownFor: e.knownFor })),
+    members: m.entries.map((e) => ({
+      id: e.person.id,
+      name: `${e.person.firstName} ${e.person.lastName}`,
+      sex: e.person.sex,
+      looks: { ...e.person.looks },
+      birthYear: e.person.birthYear,
+      deathYear: e.person.deathYear,
+      title: e.title,
+      knownFor: e.knownFor,
+      epitaph: e.epitaph,
+      children: e.children,
+      highlights: e.highlights.map((h) => `${h.year}: ${h.text}`),
+    })),
     legacy: m.legacy.total,
+    breakdown: { wealth: m.legacy.wealth, bonds: m.legacy.bonds, achievement: m.legacy.achievement, wellbeing: m.legacy.wellbeing },
     endedAt: now,
   };
 }

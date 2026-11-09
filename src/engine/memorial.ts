@@ -8,6 +8,7 @@ export interface MemorialEntry {
   lifespan: string;
   children: number;
   knownFor: string;
+  epitaph: string;
   highlights: JournalEntry[];
 }
 
@@ -30,6 +31,25 @@ function knownFor(s: GameState, p: Person): string {
   return 'quiet perseverance';
 }
 
+const NUMBER_WORDS = ['no', 'one', 'two', 'three', 'four', 'five', 'six', 'seven'];
+
+/** A short generated epitaph. Deterministic per person, so it doesn't change between views. */
+export function epitaphFor(s: GameState, p: Person, known: string): string {
+  const kids = childrenOf(s, p.id).length;
+  const age = ageOf(p, s.year);
+  const role = kids
+    ? `${p.sex === 'F' ? 'mother' : 'father'} of ${NUMBER_WORDS[kids] ?? kids}`
+    : p.flags.degree ? 'a lifelong learner' : 'a steady friend';
+  const work = p.jobId || p.retired ? jobTitle(p).toLowerCase() : '';
+  const lines = [
+    `${p.firstName}, ${role}${work && work !== 'unemployed' ? ` and ${/^[aeiou]/.test(work) ? 'an' : 'a'} ${work}` : ''}. Remembered for ${known}.`,
+    `${age} years, ${role}. Remembered for ${known}.`,
+    `${p.firstName} gave the family ${known}.`,
+  ];
+  const pick = [...p.id].reduce((h, c) => h + c.charCodeAt(0), 0) % lines.length;
+  return lines[pick];
+}
+
 export function buildMemorial(s: GameState): Memorial {
   const entries = s.lineage.map((id) => {
     const p = s.people[id];
@@ -39,6 +59,7 @@ export function buildMemorial(s: GameState): Memorial {
       lifespan: `${p.birthYear}–${p.deathYear ?? 'present'} (${ageOf(p, s.year)})`,
       children: childrenOf(s, id).length,
       knownFor: knownFor(s, p),
+      epitaph: epitaphFor(s, p, knownFor(s, p)),
       highlights: s.journal.filter((j) => j.who === id && (j.kind === 'major' || j.kind === 'birth')).slice(0, 6),
     };
   });

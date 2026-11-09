@@ -1,3 +1,5 @@
+import type { Looks } from '../engine/types';
+
 /**
  * The player profile lives outside any single game: settings, achievements,
  * lifetime stats, and the Family Archive. It is stored and versioned separately
@@ -37,15 +39,39 @@ export interface LifetimeStats {
   richestHousehold: number;
 }
 
-/** Summary of a finished family. The full memorial view arrives in a later stage. */
+/** One played character, frozen for the memorial (enough to redraw their portrait). */
+export interface ArchivedMember {
+  id: string;
+  name: string;
+  sex: 'F' | 'M';
+  looks: Looks;
+  birthYear: number;
+  deathYear?: number;
+  title: string;
+  knownFor: string;
+  /** Generated at the end of the story; the player can rewrite it. */
+  epitaph: string;
+  children: number;
+  highlights: string[];
+}
+
+export interface LegacyBreakdown {
+  wealth: number;
+  bonds: number;
+  achievement: number;
+  wellbeing: number;
+}
+
+/** A finished family, kept in the profile's Family Archive. */
 export interface ArchivedFamily {
   id: string;
   familyName: string;
   startYear: number;
   endYear: number;
   generations: number;
-  members: { name: string; lifespan: string; knownFor: string }[];
+  members: ArchivedMember[];
   legacy: number;
+  breakdown: LegacyBreakdown;
   endedAt: string;
 }
 
@@ -57,7 +83,9 @@ export interface Profile {
   archive: ArchivedFamily[];
 }
 
-export const PROFILE_SCHEMA_VERSION = 1;
+export const PROFILE_SCHEMA_VERSION = 2;
+/** Longest epitaph the player can write. */
+export const EPITAPH_MAX = 160;
 
 export const DEFAULT_SETTINGS: Settings = {
   theme: 'system',
