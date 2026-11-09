@@ -12,6 +12,7 @@ import type { GameState, Person, Plan, StatKey } from './types';
 import { defaultPlan, sanitizePlan } from './generate';
 import { applyPlan, driftBonds, runEconomy, runHealth, runPeople } from './systems';
 import { generateEvents, resolveEvent } from './events';
+import { strategyPlan } from './strategies';
 import { autoComeOfAge, die, settleEstates } from './family';
 import { active, ageOf, alive, childrenOf, fullName, journal, partnerOf } from './util';
 
@@ -169,6 +170,8 @@ export function devKill(state: GameState): GameState {
 export function devSkip(state: GameState, years: number): GameState {
   let s = state;
   for (let i = 0; i < years && s.phase !== 'SUCCESSION' && s.phase !== 'GAME_OVER'; i++) {
+    // Plan like a sensible player (jobs, second jobs when money is tight), then take first choices.
+    if (s.phase === 'PLANNING') s = updatePlan(s, strategyPlan(s, 'balanced'));
     s = autoplayYear(s, (pe) => pe.choices.find((c) => !c.disabled)!.id);
   }
   return s;
