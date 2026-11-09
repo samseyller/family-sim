@@ -5,6 +5,7 @@ import { markSeen, skipTutorial } from '../engine/tutorial';
 import { financeAction, type FinanceAction } from '../engine/finance';
 import { dismissActivity, performActivity } from '../engine/activities';
 import { householdAction, type HouseholdAction } from '../engine/household';
+import { dogAction, type DogAction } from '../engine/dogs';
 import {
   choose, chooseHeir, devKill, devSkip, dismissOutcome, nextYear, resolveYear, updatePlan,
 } from '../engine/phases';
@@ -65,6 +66,7 @@ interface Store {
   setPlan(p: Plan): void;
   finance(a: FinanceAction): void;
   household(a: HouseholdAction): void;
+  dog(a: DogAction): void;
   activity(id: string, people: string[]): void;
   dismissActivity(): void;
   askEndYear(open: boolean): void;
@@ -201,6 +203,7 @@ export const useGame = create<Store>((set, get) => {
     setPlan: (p) => withGame((g) => updatePlan(g, p)),
     finance: (a) => withGame((g) => financeAction(g, a)),
     household: (a) => withGame((g) => householdAction(g, a)),
+    dog: (a) => withGame((g) => dogAction(g, a)),
     activity: (id, people) => withGame((g) => performActivity(g, id, people)),
     dismissActivity: () => withGame(dismissActivity),
     markTip: (id) => withGame((g) => markSeen(g, id)),

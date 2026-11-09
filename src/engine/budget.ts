@@ -8,6 +8,7 @@ import { drawdown, statePension } from './retirement';
 import { RENTALS, TRANSIT_COST } from '../content/finance';
 import { commuters, homeOf, loanPayment, rentTierOf } from './finance';
 import { streetParkingCost, workingCars } from './cars';
+import { petCosts } from './dogs';
 import { CAREER_BY_ID, PART_TIME_MAX, PROGRAMS, requiredBlocks, salaryOf, type Career } from '../content/careers';
 import { canWorkFullTime } from './generate';
 import type { GameState, Program } from './types';
@@ -104,6 +105,7 @@ export function householdBudget(s: GameState, householdId: string, activePay: nu
   if (!homeOf(hh)) add(exp, 'Rent', RENTALS[rentTierOf(hh)].rent);
   if (!workingCars(hh).length && commuters(s, householdId)) add(exp, 'Transit', TRANSIT_COST);
   add(exp, 'Street parking', streetParkingCost(hh));
+  add(exp, 'Pet care', petCosts(s, hh));
   for (const a of hh.assets) {
     add(exp, a.kind === 'house' ? 'Home upkeep' : 'Car upkeep', a.upkeep);
     if (a.mortgage > 0) add(exp, a.kind === 'house' ? 'Mortgage' : 'Car loan', loanPayment(a));

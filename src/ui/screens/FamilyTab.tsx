@@ -7,6 +7,7 @@ import { receptiveness, receptivenessLabel } from '../../engine/family';
 import { Avatar } from '../Avatar';
 import { Section, Segmented } from '../components';
 import { FamilyTree } from '../tree/FamilyTree';
+import { DogsCard } from './DogsCard';
 
 function role(g: GameState, me: Person, p: Person): string {
   const ps = [...g.partnerships].reverse().find((x) => (x.a === me.id && x.b === p.id) || (x.b === me.id && x.a === p.id));
@@ -86,6 +87,7 @@ function FamilyList({ g }: { g: GameState }) {
   return (
     <div className="stack">
       <Section title="Family">{living.length ? living.map(card) : <p className="muted">No living relatives yet.</p>}</Section>
+      <DogsCard g={g} />
       {dead.length > 0 && <Section title="In memory">{dead.map(card)}</Section>}
     </div>
   );

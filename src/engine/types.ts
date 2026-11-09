@@ -128,6 +128,8 @@ export interface Household {
   investments?: number;
   /** Size of the rental when the household has no home of its own. */
   rentTier?: 'small' | 'apartment' | 'house';
+  /** Pet dogs (including ones that have passed away, for memory). */
+  dogs?: Dog[];
   /** Who runs the household (owns the home, decides who lives here). Falls back by age when unset. */
   headId?: string;
 }
@@ -247,4 +249,23 @@ export interface ActivityResult {
   tone: 'good' | 'bad' | 'neutral';
   /** Changes to show: e.g. "Happiness +6", "Bond with Maya +8", "-$800". */
   changes: string[];
+}
+
+export interface Dog {
+  id: string;
+  name: string;
+  breed: import('../content/dogs').DogBreed;
+  /** Index into the breed's coat colors (fixed for life). */
+  coat: number;
+  birthYear: number;
+  deathYear?: number;
+  /** 0–100: how close the dog is to the family. */
+  bond: number;
+  /** 0–100. */
+  health: number;
+  /** The dog moves with this person when households split. */
+  ownerId?: string;
+  trained?: boolean;
+  rescued?: boolean;
+  lastWalkYear?: number;
 }

@@ -53,6 +53,8 @@ const STEPS: Record<number, Step> = {
   9: (s) => s,
   // v10 → v11: car models that age, and garages. Older cars get a model and a plausible age
   // ("New car" ≈ 3 years, "Used car" ≈ 8); homes get the garage of the matching home type.
+  // v11 → v12: optional pet dogs on households. Nothing to rewrite.
+  11: (s) => s,
   10: (s) => {
     const garages: Record<string, number> = { 'Starter home': 0, 'Family home': 2, 'Large home': 2 };
     for (const hh of isObj(s.households) ? Object.values(s.households).filter(isObj) : []) {

@@ -11,6 +11,7 @@ import { makeRng, type Rng } from './rng';
 import type { GameState, Person, Plan, StatKey } from './types';
 import { defaultPlan, sanitizePlan } from './generate';
 import { applyPlan, driftBonds, runEconomy, runHealth, runPeople } from './systems';
+import { dogYear } from './dogs';
 import { generateEvents, resolveEvent } from './events';
 import { strategyPlan } from './strategies';
 import { applyCushion } from './tutorial';
@@ -64,6 +65,7 @@ export function resolveYear(state: GameState): GameState {
   applyCushion(s); //                  (guided playthrough: no ruin before 24)
   runPeople(s, rng); //             3. births, kids, NPC decisions
   driftBonds(s); //                 4. relationship drift
+  dogYear(s, rng); //                  pets: mood, bonds, aging
   runHealth(s, rng); //             6. aging effects, deaths at year end
   settleEstates(s);
   if (alive(active(s))) generateEvents(s, rng); // 5 + 7. due consequences and events

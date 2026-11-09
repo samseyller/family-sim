@@ -118,6 +118,20 @@ for random). When your baby is born, a naming event offers suggestions or lets y
   pregnancy. The partner's wishes are shown, and going against them strains the relationship.
 - Achievements: Butterflies, Playing the Field (5 people), Second Spark, Hopeless Romantic (10 dates), Surprise!
 
+## Dogs
+
+- **Family → Dogs**: adopt a puppy (Labrador, Golden Retriever, German Shepherd, French Bulldog or Beagle,
+  $1,200–$3,500) or an adult rescue from the shelter ($300), and name them. Up to 3 dogs (1 in a small apartment).
+- Portraits are generated SVGs: breed shapes the head, ears and markings, and each dog's coat and collar stay
+  the same as it grows from puppy to adult to senior (grey muzzle). A dog that's close to you sticks its tongue out.
+  Dev gallery: `/dev/dogs.html?size=150` (`npx tsx scripts/shot-dogs.ts` saves a screenshot).
+- Yearly: "Pet care" costs ($1,300–$2,100 by size, +50% for seniors); everyone at home is happier and less
+  stressed; bond drifts without walks (fastest for high-energy breeds); seniors lose health; dogs pass away near
+  their breed's lifespan and are remembered on the card. Dogs move with their owner when households split.
+- Activities → Dogs: walk, fetch, dog park (singles might meet someone), obedience class, vet check-up, grooming.
+  Events: a sick dog (vet bill), puppy mischief, and kids begging for a dog.
+- Achievements: Best Friend, Rescue Hero, Pack Leader (3 dogs), Who's a Good Walker? (20 walks), Good Old Dog (14).
+
 ## Homes and cars
 
 - Seven home types (condo → $15M mansion for 18 people and 24 cars, with achievements for buying and filling it) with different prices, sizes and garages. Every home has 2 parking

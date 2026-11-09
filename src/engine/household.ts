@@ -132,6 +132,13 @@ export function splitOff(s: GameState, group: Person[], cash: number, invest: nu
     p.fund = 0;
   }
   for (const p of group) p.householdId = hh.id;
+  // Dogs go with their owner.
+  const ids = new Set(group.map((p) => p.id));
+  const going = (from.dogs ?? []).filter((d) => d.deathYear === undefined && d.ownerId && ids.has(d.ownerId));
+  if (going.length) {
+    hh.dogs = going;
+    from.dogs = (from.dogs ?? []).filter((d) => !going.includes(d));
+  }
   if (from.headId && group.some((p) => p.id === from.headId)) from.headId = undefined;
   return hh;
 }
@@ -356,6 +363,8 @@ export function householdAction(state: GameState, a: HouseholdAction): GameState
       theirs.wallet = 0;
       theirs.investments = 0;
       theirs.assets = [];
+      hh.dogs = [...(hh.dogs ?? []), ...(theirs.dogs ?? [])];
+      theirs.dogs = [];
       theirs.settled = true;
       for (const p of movers) {
         p.householdId = hh.id;

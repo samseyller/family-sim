@@ -453,3 +453,12 @@ kbd {
 
 /* household move-out panel */
 .move-out { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--border); }
+
+/* dogs */
+.dog-row { display: flex; gap: 12px; align-items: flex-start; padding: 8px 0 12px; border-bottom: 1px dashed var(--border); }
+.dog-row:last-of-type { border-bottom: none; }
+.dog-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.dog-face { flex: none; }
+.adopt { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+.breed-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 8px; }
+.buy-home.breed { display: flex; gap: 8px; align-items: center; }

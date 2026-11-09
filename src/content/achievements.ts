@@ -1,6 +1,8 @@
 import type { GameState } from '../engine/types';
 import { active, ageOf, alive, childrenOf, getBond, kidsAtHome, membersOf, money } from '../engine/util';
 import { BASE_PARKING, HOMES } from './finance';
+import { MAX_DOGS } from './dogs';
+import { dogsOf } from '../engine/dogs';
 
 const DATE_IDS = new Set(['date_night', 'picnic', 'concert_date', 'weekend_getaway']);
 
@@ -70,6 +72,41 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     icon: '🍼',
     hidden: true,
     test: (s) => !!active(s).flags.surprise_baby,
+  },
+  {
+    id: 'best_friend',
+    title: 'Best Friend',
+    desc: 'Bring a dog into the family.',
+    icon: '🐕',
+    test: (s) => !!active(s).flags.adopted_dog || !!active(s).flags.rescued_dog,
+  },
+  {
+    id: 'rescue_hero',
+    title: 'Rescue Hero',
+    desc: 'Adopt a dog from the shelter.',
+    icon: '🏠',
+    test: (s) => !!active(s).flags.rescued_dog,
+  },
+  {
+    id: 'pack_leader',
+    title: 'Pack Leader',
+    desc: `Have ${MAX_DOGS} dogs at once.`,
+    icon: '🐾',
+    test: (s) => dogsOf(household(s)).length >= MAX_DOGS,
+  },
+  {
+    id: 'daily_walks',
+    title: 'Who’s a Good Walker?',
+    desc: 'Walk the dog 20 times.',
+    icon: '🦮',
+    test: (s) => (s.activityLog ?? []).filter((x) => x.id === 'walk_dogs').length >= 20,
+  },
+  {
+    id: 'good_old_dog',
+    title: 'Good Old Dog',
+    desc: 'Have a dog live to 14.',
+    icon: '🦴',
+    test: (s) => !!active(s).flags.old_dog,
   },
   {
     id: 'mansion',

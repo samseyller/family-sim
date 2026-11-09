@@ -12,6 +12,7 @@ import {
 import { homeParents } from './generate';
 import { breakUp, mergeHouseholds, startDating } from './family';
 import { shareAmounts, splitOff } from './household';
+import { dogsOf } from './dogs';
 import { canConceive, conceive, exesOf, isSingle, jobBlurb, meetSomeone, pregnancyChance } from './romance';
 import { unlockedTabs } from './tutorial';
 
@@ -62,9 +63,10 @@ export function distanceOf(householdId: string): 'near' | 'far' {
 
 // ── Catalog ──────────────────────────────────────────────────────────
 
-export type Category = 'home' | 'health' | 'learning' | 'leisure' | 'visits' | 'romance' | 'social' | 'risk' | 'vices' | 'kid';
+export type Category = 'home' | 'pets' | 'health' | 'learning' | 'leisure' | 'visits' | 'romance' | 'social' | 'risk' | 'vices' | 'kid';
 export const CATEGORIES: Record<Category, { label: string; icon: string }> = {
   home: { label: 'At home', icon: '🏡' },
+  pets: { label: 'Dogs', icon: '🐕' },
   health: { label: 'Health', icon: '🩺' },
   learning: { label: 'Learning', icon: '📚' },
   leisure: { label: 'Fun & travel', icon: '🌴' },
@@ -116,6 +118,9 @@ const bondAll = (c: ActivityCtx, a: number, t: number) => c.people.forEach((p) =
 const moodAll = (c: ActivityCtx, k: StatKey, d: number) => [c.me, ...c.people].forEach((p) => stat(p, k, d));
 const hasHobby = (_s: GameState, me: Person) => (me.hobby ? null : 'Pick up a hobby first.');
 const working = (_s: GameState, me: Person) => (me.jobId ? null : 'You need a job for this.');
+const hasDog = (s: GameState, me: Person) => (dogsOf(s.households[me.householdId]).length ? null : 'You need a dog (adopt one in the Family tab).');
+const myDogs = (c: ActivityCtx) => dogsOf(c.s.households[c.me.householdId]);
+const dogNames = (dogs: { name: string }[]) => (dogs.length <= 2 ? dogs.map((d) => d.name).join(' and ') : `${dogs.slice(0, -1).map((d) => d.name).join(', ')} and ${dogs[dogs.length - 1].name}`);
 const single = (s: GameState, me: Person) => (isSingle(s, me) ? null : 'You are already seeing someone.');
 /** Try to meet someone; on success you start dating them. */
 function tryToMeet(c: ActivityCtx, chance: number, how: string, misses: string[]): { text: string; tone: ActivityResult['tone'] } {
@@ -313,6 +318,74 @@ export const ACTIVITIES: ActivityDef[] = [
       }
       stat(c.me, 'happiness', 6);
       return { text: 'A full table, a fuller fridge, and leftovers for days.', tone: 'good' };
+    },
+  },
+
+  // 🐕 Dogs (everything here includes all your dogs)
+  {
+    id: 'walk_dogs', category: 'pets', icon: '🦮', label: 'Walk the dog', who: 'household', min: 0, requires: hasDog, desc: 'Fresh air for everyone. Energetic breeds need this most.',
+    energy: flat(5), cost: flat(0),
+    run: (c) => {
+      const dogs = myDogs(c);
+      dogs.forEach((d) => { d.lastWalkYear = c.s.year; d.bond = clamp(d.bond + 6, 0, 100); d.health = clamp(d.health + 2, 0, 100); });
+      moodAll(c, 'fitness', 2);
+      moodAll(c, 'stress', -3);
+      bondAll(c, 2, 1);
+      return { text: `${dogNames(dogs)} sniffed every single tree on the block.`, tone: 'good' };
+    },
+  },
+  {
+    id: 'play_fetch', category: 'pets', icon: '🎾', label: 'Play fetch', who: 'household', min: 0, requires: hasDog, desc: 'A ball, a yard, endless enthusiasm.',
+    energy: flat(4), cost: flat(0),
+    run: (c) => {
+      const dogs = myDogs(c);
+      dogs.forEach((d) => { d.bond = clamp(d.bond + 4, 0, 100); });
+      moodAll(c, 'happiness', 3);
+      bondAll(c, 2, 1);
+      return { text: dogs.some((d) => d.breed === 'frenchie') ? 'One throw, one fetch, one long nap. Classic.' : `${dogNames(dogs)} brought the ball back 200 times.`, tone: 'good' };
+    },
+  },
+  {
+    id: 'dog_park', category: 'pets', icon: '🌳', label: 'Dog park', who: 'solo', requires: hasDog, desc: 'Zoomies, sniffing, and chatting with other dog people.',
+    energy: flat(7), cost: flat(0),
+    run: (c) => {
+      const dogs = myDogs(c);
+      dogs.forEach((d) => { d.lastWalkYear = c.s.year; d.bond = clamp(d.bond + 5, 0, 100); });
+      stat(c.me, 'happiness', 4);
+      // Dogs are great icebreakers.
+      if (isSingle(c.s, c.me) && c.rng.chance(0.15)) {
+        const sp = meetSomeone(c.s, c.rng, c.me, 'at the dog park');
+        return { text: `${dogNames(dogs)} made friends with ${sp.firstName}'s dog, and you made friends with ${sp.firstName}. You're dating now.`, tone: 'good' };
+      }
+      return { text: `${dogNames(dogs)} ran laps until they flopped down in the shade.`, tone: 'good' };
+    },
+  },
+  {
+    id: 'obedience_class', category: 'pets', icon: '🎓', label: 'Obedience class', who: 'solo', perYear: 1, requires: hasDog, desc: 'Sit, stay, leave it. Fewer chewed shoes.',
+    energy: flat(10), cost: (s) => 300 * dogsOf(s.households[active(s).householdId]).length,
+    run: (c) => {
+      const dogs = myDogs(c);
+      dogs.forEach((d) => { d.trained = true; d.bond = clamp(d.bond + 5, 0, 100); });
+      return { text: `${dogNames(dogs)} graduated! (Mostly for good behavior.)`, tone: 'good' };
+    },
+  },
+  {
+    id: 'vet_visit', category: 'pets', icon: '🩺', label: 'Vet check-up', who: 'solo', perYear: 2, requires: hasDog, desc: 'Shots, a once-over, and a treat for being brave.',
+    energy: flat(4), cost: (s) => 250 * dogsOf(s.households[active(s).householdId]).length,
+    run: (c) => {
+      const dogs = myDogs(c);
+      dogs.forEach((d) => { d.health = clamp(d.health + 12, 0, 100); });
+      return { text: `The vet says ${dogNames(dogs)} ${dogs.length > 1 ? 'are' : 'is'} doing well. Treats all around.`, tone: 'good' };
+    },
+  },
+  {
+    id: 'dog_grooming', category: 'pets', icon: '🛁', label: 'Grooming day', who: 'solo', requires: hasDog, desc: 'A bath, a trim, and a bandana.',
+    energy: flat(3), cost: (s) => 90 * dogsOf(s.households[active(s).householdId]).length,
+    run: (c) => {
+      const dogs = myDogs(c);
+      dogs.forEach((d) => { d.bond = clamp(d.bond + 3, 0, 100); });
+      stat(c.me, 'happiness', 2);
+      return { text: `${dogNames(dogs)} came home fluffy and very proud of the bandana.`, tone: 'good' };
     },
   },
 

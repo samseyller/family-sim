@@ -4,6 +4,7 @@
  */
 import { z } from 'zod';
 import { CARS, type CarKind } from '../content/finance';
+import { BREEDS, type DogBreed } from '../content/dogs';
 import type { GameState } from '../engine/types';
 
 const num = z.number().finite();
@@ -78,6 +79,20 @@ const Asset = z.object({
   broken: z.boolean().optional(),
 });
 
+const Dog = z.object({
+  id,
+  name: z.string().max(40),
+  breed: z.enum(Object.keys(BREEDS) as [DogBreed, ...DogBreed[]]),
+  coat: int,
+  birthYear: int,
+  deathYear: int.optional(),
+  bond: num,
+  health: num,
+  ownerId: id.optional(),
+  trained: z.boolean().optional(),
+  rescued: z.boolean().optional(),
+  lastWalkYear: int.optional(),
+});
 const Household = z.object({
   id,
   wallet: num,
@@ -87,6 +102,7 @@ const Household = z.object({
   investments: num.optional(),
   rentTier: z.enum(['small', 'apartment', 'house']).optional(),
   headId: id.optional(),
+  dogs: z.array(Dog).optional(),
 });
 
 const ChildPlan = z.object({
