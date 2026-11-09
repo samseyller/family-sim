@@ -13,6 +13,9 @@ export type Trait =
 
 export type Hobby = 'music' | 'sports' | 'art';
 
+/** Credentials earned through adult education; the id doubles as the person flag. */
+export type Program = 'degree' | 'trade_cert';
+
 /** Genome for the SVG avatar. Children inherit each gene from a parent. */
 export interface Looks {
   skin: number;
@@ -51,13 +54,15 @@ export interface Person {
   studyKind?: 'university' | 'trade';
   /** Money saved toward this person's future (college fund). */
   fund: number;
+  /** Part-time adult education (night school) in progress. */
+  education?: { program: Program; progress: number; required: number; startYear: number };
   householdId: string;
   biologicalParents: string[];
   adoptiveParents: string[];
   looks: Looks;
 }
 
-export type PartnershipStatus = 'dating' | 'married' | 'separated' | 'divorced' | 'widowed';
+export type PartnershipStatus = 'dating' | 'married' | 'separated' | 'divorced' | 'widowed' | 'ended';
 
 export interface Partnership {
   id: string;
@@ -111,6 +116,8 @@ export interface Plan {
   alloc: Record<string, number>;
   /** At most one intent per job slot (full-time, part-time). */
   jobIntents: JobIntent[];
+  /** Enroll in night school or drop out, decided when the year resolves. */
+  eduIntent?: { kind: 'enroll'; program: Program } | { kind: 'drop' };
   children: Record<string, ChildPlan>;
 }
 

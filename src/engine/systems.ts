@@ -1,8 +1,8 @@
 import { HOBBY_BY_ID } from '../content/actions';
-import { CAREER_BY_ID, PART_TIME_MAX, TWO_JOB_STRESS, qualifies, requiredBlocks } from '../content/careers';
+import { CAREER_BY_ID, PART_TIME_MAX, PROGRAMS, TWO_JOB_STRESS, qualifies, requiredBlocks } from '../content/careers';
 import { assignJob, canWorkFullTime, makeAdultStranger, makeBaby, pickCareer } from './generate';
 import { fullTimePay, householdBudget, mortgagePayment, partTimePay } from './budget';
-import { autoComeOfAge, die, isCloseKin, marry, receptiveness, retire } from './family';
+import { autoComeOfAge, die, isCloseKin, marry, moveOut, receptiveness, retire } from './family';
 import type { Rng } from './rng';
 import type { GameState, Hobby, Person } from './types';
 import {
@@ -91,6 +91,52 @@ export function applyPlan(s: GameState, rng: Rng): number {
   const ln = g('learn');
   if (ln) stat(me, 'smarts', 3 * dim(ln));
 
+  const soc = g('socialize');
+  if (soc) {
+    stat(me, 'happiness', 3 * dim(soc));
+    stat(me, 'stress', -2 * dim(soc));
+  }
+
+  // Night school: enroll/drop take effect now; each study block is 1 progress.
+  const edu = plan.eduIntent;
+  plan.eduIntent = undefined;
+  if (edu?.kind === 'drop' && me.education) {
+    journal(s, `You dropped out of night school (${PROGRAMS[me.education.program].short}).`, 'info');
+    me.education = undefined;
+    flag(me, 'dropped_out');
+  } else if (edu?.kind === 'enroll' && !me.education) {
+    const prog = PROGRAMS[edu.program];
+    me.education = { program: prog.id, progress: 0, required: prog.required, startYear: s.year };
+    journal(s, `You enrolled in night school: ${prog.short}.`, 'good');
+  }
+  if (me.education) {
+    const st = g('study');
+    me.education.progress += st;
+    stat(me, 'stress', st * 2);
+    if (me.education.progress >= me.education.required) {
+      const prog = PROGRAMS[me.education.program];
+      me.flags[prog.id] = 1;
+      me.flags.fresh_credential = s.year;
+      stat(me, 'smarts', prog.id === 'degree' ? 6 : 3);
+      stat(me, 'happiness', 8);
+      journal(s, `You earned your ${prog.short.toLowerCase()}!`, 'major');
+      me.education = undefined;
+    } else if (!st) {
+      // Two idle years in a row and the school drops you, so tuition can't silently drain the wallet.
+      flag(me, 'idle_study');
+      if (me.flags.idle_study >= 2) {
+        journal(s, `You stopped showing up to night school and were withdrawn from the ${PROGRAMS[me.education.program].short.toLowerCase()} program.`, 'bad');
+        me.education = undefined;
+        flag(me, 'dropped_out');
+        delete me.flags.idle_study;
+      } else {
+        journal(s, 'You made no progress at night school this year. Plan some Night school blocks or drop out.', 'bad');
+      }
+    } else {
+      delete me.flags.idle_study;
+    }
+  }
+
   const outing = g('family_outing');
   if (outing) {
     for (const m of membersOf(s, me.householdId)) {
@@ -103,13 +149,14 @@ export function applyPlan(s: GameState, rng: Rng): number {
   }
 
   const partner = partnerOf(s, me.id);
-  if (partner && partner.householdId === me.householdId) {
+  if (partner) {
     const n = g('partner_time');
+    const together = partner.householdId === me.householdId;
     if (n) {
       adjustBond(s, me.id, partner.id, 8 * dim(n), 5 * dim(n));
       stat(me, 'happiness', 2 * dim(n));
       stat(partner, 'happiness', 3 * dim(n));
-    } else if (!outing) {
+    } else if (!outing || !together) {
       adjustBond(s, me.id, partner.id, -9, -4);
       journal(s, `${partner.firstName} felt you were never around this year.`, 'bad');
     }
@@ -257,6 +304,14 @@ function adultYear(s: GameState, rng: Rng, p: Person) {
   const pt = partnerOf(s, p.id);
   const mood = pt ? getBond(s, p.id, pt.id).affinity / 10 : 0;
   stat(p, 'happiness', (60 + mood - p.stats.happiness) * 0.3);
+
+  // Grown children living at home eventually leave once they're working.
+  const myChild = p.biologicalParents.includes(me.id) || p.adoptiveParents.includes(me.id);
+  if (myChild && p.householdId === me.householdId && a >= 23 && p.jobId && !p.studyingUntil && rng.chance(0.2)) {
+    moveOut(s, p, Math.max(0, p.fund));
+    journal(s, `${p.firstName} found their own place and moved out.`, 'info');
+    return;
+  }
 
   // Close branches of the family live their own lives; distant branches stop
   // expanding so long family lines stay cheap to simulate.

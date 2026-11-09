@@ -39,6 +39,7 @@ const Person = z.object({
   studyingUntil: int.optional(),
   studyKind: z.enum(['university', 'trade']).optional(),
   fund: num,
+  education: z.object({ program: z.enum(['degree', 'trade_cert']), progress: num, required: num, startYear: int }).optional(),
   householdId: id,
   biologicalParents: z.array(id),
   adoptiveParents: z.array(id),
@@ -49,7 +50,7 @@ const Partnership = z.object({
   id,
   a: id,
   b: id,
-  status: z.enum(['dating', 'married', 'separated', 'divorced', 'widowed']),
+  status: z.enum(['dating', 'married', 'separated', 'divorced', 'widowed', 'ended']),
   startYear: int,
   endYear: int.optional(),
   merged: z.boolean(),
@@ -88,6 +89,7 @@ const JobIntent = z.union([
 const Plan = z.object({
   alloc: z.record(z.string(), int.nonnegative()),
   jobIntents: z.array(JobIntent),
+  eduIntent: z.union([z.object({ kind: z.literal('enroll'), program: z.enum(['degree', 'trade_cert']) }), z.object({ kind: z.literal('drop') })]).optional(),
   children: z.record(z.string(), ChildPlan),
 });
 

@@ -1,14 +1,15 @@
-import { HOBBY_BY_ID } from '../content/actions';
-import { CAREER_BY_ID, LEVEL_TITLES, requiredBlocks, salaryOf } from '../content/careers';
-import { makeAdultStranger } from './generate';
+import { HOBBY_BY_ID, TIME_BUDGET } from '../content/actions';
+import { CAREERS, CAREER_BY_ID, LEVEL_TITLES, PROGRAMS, qualifies, requiredBlocks, salaryOf } from '../content/careers';
+import { assignJob, makeAdultStranger, makePerson, pickCareer } from './generate';
 import {
-  marry, moveOut, partnerInHome, preferredPath, receptiveness, receptivenessLabel, retire, separate,
-  startPath, type LifePath,
+  breakUp, divorce, homeEquityShare, marry, mergeHouseholds, moveOut, partnerInHome, preferredPath, receptiveness,
+  receptivenessLabel, reconcile, retire, separate, separatedFrom, startDating, startPath, type LifePath,
 } from './family';
 import type { Rng } from './rng';
 import type { GameState, PendingChoice, PendingEvent, Person } from './types';
 import {
-  active, adjustBond, ageOf, alive, childrenOf, flag, getBond, journal, kidsAtHome, money, newId, stat,
+  active, activePartnership, adjustBond, ageOf, alive, childrenOf, flag, fullName, getBond, journal, kidsAtHome,
+  membersOf, money, newId, parentsOf, partnerOf, stat,
 } from './util';
 
 export interface Ctx {
@@ -398,14 +399,20 @@ const EVENTS: EventDef[] = [
     cooldown: 0,
     build: (c, k) => ({
       title: `${k!.firstName} moves out`,
-      text: `${k!.firstName} is packing boxes. They take their college fund (${money(k!.fund)}). Will you add a gift to help them start out?`,
+      text: `${k!.firstName} is ready to start out on their own. They take their college fund (${money(k!.fund)}). Will you add a gift, or ask them to stay a while?`,
       choices: [
         { id: '0', label: 'A hug and good luck', hint: 'No money' },
         { id: '5000', label: 'Give $5,000', disabled: wallet(c).wallet < 5000 },
         { id: '15000', label: 'Give $15,000', disabled: wallet(c).wallet < 15000 },
+        { id: 'stay', label: 'Stay home for now', hint: 'They live with you; their living costs stay with your household' },
       ],
     }),
     resolve: (c, ch, k) => {
+      if (ch === 'stay') {
+        k!.flags.lives_at_home = 1;
+        adjustBond(c.s, c.me.id, k!.id, 5, 3);
+        return `${k!.firstName} unpacked the boxes. Their room stays theirs a little longer.`;
+      }
       const gift = Number(ch);
       wallet(c).wallet -= gift;
       adjustBond(c.s, c.me.id, k!.id, gift >= 15000 ? 10 : gift > 0 ? 5 : 0, gift > 0 ? 3 : 0);
@@ -456,7 +463,7 @@ const EVENTS: EventDef[] = [
       choices: [
         { id: 'counsel', label: 'Couples counseling ($3,000)', hint: 'Usually helps', disabled: wallet(c).wallet < 3000 },
         { id: 'talk', label: 'Talk it out tonight', hint: 'Depends on the trust you have left' },
-        { id: 'separate', label: 'Separate', hint: `${p!.firstName} moves out with half the savings` },
+        { id: 'separate', label: 'Separate', hint: `${p!.firstName} moves out with half the savings; divorce is decided later` },
       ],
     }),
     resolve: (c, ch, p) => {
@@ -472,6 +479,7 @@ const EVENTS: EventDef[] = [
         return ok ? 'You talked until the candles burned out. Something shifted.' : 'It turned into an argument about everything.';
       }
       separate(c.s, c.me, p!);
+      c.me.flags.separated_year = c.s.year;
       for (const k of kidsAtHome(c.s, c.me)) {
         flag(k, 'parents_divorced');
         adjustBond(c.s, c.me.id, k.id, -5, -5);
@@ -531,24 +539,137 @@ const EVENTS: EventDef[] = [
     cooldown: 2,
     candidates: (c) => {
       const a = age(c, c.me);
-      return one(!partnerInHome(c.s, c.me) && a >= 20 && a <= 55 && !c.me.studyingUntil, a <= 40 ? 4 : 2, a <= 38);
+      // Being single and getting out there makes meeting someone likelier.
+      const social = c.s.plan.alloc.socialize ?? 0;
+      const free = !partnerOf(c.s, c.me.id) && !separatedFrom(c.s, c.me.id);
+      return one(free && a >= 18 && a <= 60, (a <= 40 ? 2 : 1) * (1 + social), a <= 38 && social > 0);
     },
     build: () => ({
       title: 'Someone new',
       text: "At a friend's party you end up talking with someone for hours. They ask if you'd like to see them again.",
       choices: [
-        { id: 'yes', label: 'Say yes, and see where it goes', hint: 'Could become a life together' },
+        { id: 'yes', label: 'Start dating', hint: 'You each keep your own place for now' },
         { id: 'no', label: 'Focus on yourself for now' },
       ],
     }),
     resolve: (c, ch) => {
       if (ch !== 'yes') return 'You went home alone, and that was alright.';
       const sp = makeAdultStranger(c.s, c.rng, c.me);
-      const theirSavings = c.s.households[sp.householdId].wallet;
-      marry(c.s, c.me, sp);
-      stat(c.me, 'happiness', 10);
-      journal(c.s, `You married ${sp.firstName} ${sp.lastName}.`, 'major');
-      return `A year later you married ${sp.firstName} ${sp.lastName}${sp.jobId ? `, a ${CAREER_BY_ID[sp.jobId].name.toLowerCase()}` : ''}. They brought ${money(theirSavings)} in savings into the household.`;
+      startDating(c.s, c.me, sp);
+      stat(c.me, 'happiness', 8);
+      journal(c.s, `You started dating ${fullName(sp)}.`, 'major');
+      return `You and ${sp.firstName}${sp.jobId ? `, a ${CAREER_BY_ID[sp.jobId].name.toLowerCase()},` : ''} have a second date, then a third. Spend time together to see where it goes.`;
+    },
+  },
+  {
+    id: 'proposal',
+    major: true,
+    cooldown: 2,
+    candidates: (c) => {
+      const p = partnerOf(c.s, c.me.id);
+      const ps = activePartnership(c.s, c.me.id);
+      if (!p || ps?.status !== 'dating' || c.s.year - ps.startYear < 1) return [];
+      const aff = getBond(c.s, c.me.id, p.id).affinity;
+      return one(aff >= 30, aff >= 60 ? 6 : 3, aff >= 60, p);
+    },
+    build: (c, p) => {
+      const b = getBond(c.s, c.me.id, p!.id);
+      const odds = b.affinity >= 70 ? 'They light up around you.' : b.affinity >= 45 ? 'Things are good between you.' : 'You are fairly sure they care.';
+      const savings = c.s.households[p!.householdId].wallet;
+      return {
+        title: `Forever with ${p!.firstName}?`,
+        text: `You've been dating ${p!.firstName} for ${c.s.year - activePartnership(c.s, c.me.id)!.startYear} year(s). ${odds} Marrying means moving in together and combining finances (${p!.firstName} has ${money(savings)}).`,
+        choices: [
+          { id: 'propose', label: 'Propose', hint: 'They might say no if the bond is weak' },
+          { id: 'wait', label: 'Not yet', hint: 'Keep dating' },
+          { id: 'end', label: 'End it', hint: 'This is not the one' },
+        ],
+      };
+    },
+    resolve: (c, ch, p) => {
+      if (ch === 'wait') return 'You decided there was no rush.';
+      if (ch === 'end') {
+        breakUp(c.s, c.me, p!);
+        stat(c.me, 'happiness', -4);
+        return `You and ${p!.firstName} parted ways.`;
+      }
+      const b = getBond(c.s, c.me.id, p!.id);
+      if (c.rng.chance(0.3 + (b.affinity + b.trust) / 200)) {
+        marry(c.s, c.me, p!);
+        stat(c.me, 'happiness', 12);
+        journal(c.s, `You married ${fullName(p!)}.`, 'major');
+        return `${p!.firstName} said yes! A small wedding, a big party, and one shared address.`;
+      }
+      adjustBond(c.s, c.me.id, p!.id, -10, -5);
+      stat(c.me, 'happiness', -8);
+      return `${p!.firstName} said they need more time. The car ride home was very quiet.`;
+    },
+  },
+  {
+    id: 'dating_rocky',
+    major: true,
+    cooldown: 2,
+    candidates: (c) => {
+      const p = partnerOf(c.s, c.me.id);
+      if (!p || activePartnership(c.s, c.me.id)?.status !== 'dating') return [];
+      return one(getBond(c.s, c.me.id, p.id).affinity < 0, 5, true, p);
+    },
+    build: (_c, p) => ({
+      title: 'Cancelled plans',
+      text: `${p!.firstName} has cancelled on you three times this month, and you've barely made time either.`,
+      choices: [
+        { id: 'try', label: 'Make it work', hint: 'Plan more time together next year' },
+        { id: 'end', label: 'Call it off' },
+      ],
+    }),
+    resolve: (c, ch, p) => {
+      if (ch === 'try') {
+        adjustBond(c.s, c.me.id, p!.id, 12, 5);
+        return `You promised each other a real effort. Time will tell.`;
+      }
+      breakUp(c.s, c.me, p!);
+      return `You and ${p!.firstName} agreed it had run its course.`;
+    },
+  },
+  {
+    id: 'divorce_or_reconcile',
+    major: true,
+    cooldown: 2,
+    candidates: (c) => {
+      const ex = separatedFrom(c.s, c.me.id);
+      return one(!!ex && c.s.year > (c.me.flags.separated_year ?? 0), 8, true, ex);
+    },
+    build: (c, ex) => {
+      const share = homeEquityShare(c.s, c.me);
+      const b = getBond(c.s, c.me.id, ex!.id);
+      return {
+        title: 'Papers on the table',
+        text: `You and ${ex!.firstName} have lived apart for a year. Time to decide.${share ? ` A divorce means paying ${ex!.firstName} ${money(share)}, half the equity in the house.` : ''}`,
+        choices: [
+          { id: 'divorce', label: 'Finalize the divorce', hint: share ? `Pay ${money(share)}` : 'A clean break' },
+          { id: 'reconcile', label: 'Try again together', hint: b.affinity + b.trust > 0 ? 'There is still something there' : 'A long shot' },
+          { id: 'wait', label: 'Stay separated for now' },
+        ],
+      };
+    },
+    resolve: (c, ch, ex) => {
+      if (ch === 'wait') return 'Neither of you is ready to sign anything yet.';
+      if (ch === 'reconcile') {
+        const b = getBond(c.s, c.me.id, ex!.id);
+        if (c.rng.chance(0.3 + (b.affinity + b.trust) / 300)) {
+          reconcile(c.s, c.me, ex!);
+          delete c.me.flags.separated_year;
+          for (const k of kidsAtHome(c.s, c.me)) stat(k, 'happiness', 8);
+          journal(c.s, `You and ${ex!.firstName} got back together.`, 'major');
+          return `${ex!.firstName} moved back home. It's fragile, but it's yours.`;
+        }
+        adjustBond(c.s, c.me.id, ex!.id, -5, -5);
+        return `${ex!.firstName} wasn't ready. You're still separated.`;
+      }
+      const paid = divorce(c.s, c.me, ex!);
+      delete c.me.flags.separated_year;
+      journal(c.s, `You and ${ex!.firstName} divorced.`, 'major');
+      return paid ? `It's final. You paid ${money(paid)} to settle the house.` : "It's final. A new chapter begins.";
     },
   },
   {
@@ -557,21 +678,41 @@ const EVENTS: EventDef[] = [
     cooldown: 2,
     candidates: (c) => {
       const p = partnerInHome(c.s, c.me);
-      if (!p || age(c, c.me) > 44 || age(c, p) > 44 || wallet(c).pendingBirth) return [];
+      if (!p || age(c, c.me) > 55 || wallet(c).pendingBirth || activePartnership(c.s, c.me.id)?.status !== 'married') return [];
       const kids = childrenOf(c.s, c.me.id).length;
       if (kids >= 4) return [];
       return [{ subject: p, weight: kids === 0 ? 5 : 2, urgent: kids === 0 && age(c, c.me) <= 40 }];
     },
-    build: (_c, p) => ({
-      title: 'A bigger family?',
-      text: `${p!.firstName} asks whether it's time to have a child together.`,
-      choices: [
-        { id: 'yes', label: 'Start trying', hint: 'A baby costs time and money' },
-        { id: 'no', label: 'Not right now' },
-      ],
-    }),
+    build: (c, p) => {
+      const canBirth = age(c, c.me) <= 44 && age(c, p!) <= 44 && c.me.sex !== p!.sex;
+      return {
+        title: 'A bigger family?',
+        text: `${p!.firstName} asks whether it's time to grow your family.`,
+        choices: [
+          { id: 'yes', label: 'Start trying for a baby', hint: canBirth ? 'A baby costs time and money' : 'Not possible for you two', disabled: !canBirth },
+          { id: 'adopt', label: 'Adopt a child ($10,000)', hint: 'Usually a young child, 0–6', disabled: wallet(c).wallet < 10000 },
+          { id: 'no', label: 'Not right now' },
+        ],
+      };
+    },
     resolve: (c, ch, p) => {
-      if (ch !== 'yes') return 'You agreed to talk about it again later.';
+      if (ch === 'no') return 'You agreed to talk about it again later.';
+      if (ch === 'adopt') {
+        wallet(c).wallet -= 10000;
+        const kid = makePerson(c.s, c.rng, {
+          birthYear: c.s.year - c.rng.int(0, 6),
+          lastName: c.me.lastName,
+          householdId: c.me.householdId,
+          generation: c.me.generation + 1,
+        });
+        kid.biologicalParents = [];
+        kid.adoptiveParents = [c.me.id, p!.id];
+        kid.stats.smarts = c.rng.int(25, 45);
+        kid.stats.stress = 25;
+        for (const parent of [c.me, p!]) adjustBond(c.s, parent.id, kid.id, 30, 15);
+        journal(c.s, `You adopted ${kid.firstName}, age ${ageOf(kid, c.s.year)}.`, 'birth');
+        return `${kid.firstName} came home with one small suitcase. Trust will take time to build.`;
+      }
       if (c.rng.chance(0.8)) {
         wallet(c).pendingBirth = { year: c.s.year + 1, parents: [c.me.id, p!.id] };
         adjustBond(c.s, c.me.id, p!.id, 6, 3);
@@ -628,7 +769,233 @@ const EVENTS: EventDef[] = [
       return 'The bus is slow, but you got through a lot of podcasts.';
     },
   },
+
+  // ── Arc: a full house ──────────────────────────────────────────────
+  {
+    id: 'kid_moves_back',
+    major: false,
+    cooldown: 4,
+    candidates: (c) =>
+      childrenOf(c.s, c.me.id)
+        .filter((k) => alive(k) && k.householdId !== c.me.householdId && age(c, k) >= 19 && age(c, k) <= 35
+          && !partnerOf(c.s, k.id) && membersOf(c.s, k.householdId).length === 1 && c.s.households[k.householdId].wallet < -8000)
+        .map((k) => ({ subject: k, weight: 4 })),
+    build: (c, k) => {
+      const debt = -c.s.households[k!.householdId].wallet;
+      return {
+        title: `${k!.firstName} calls home`,
+        text: `${k!.firstName} is ${money(debt)} in debt and can't make rent. They ask, quietly, whether they could move back home.`,
+        choices: [
+          { id: 'home', label: 'Of course, come home', hint: `Their debt (${money(debt)}) becomes your household's` },
+          { id: 'help', label: 'Send $5,000 instead', disabled: wallet(c).wallet < 5000 },
+          { id: 'no', label: 'They need to figure it out', hint: 'Tough love' },
+        ],
+      };
+    },
+    resolve: (c, ch, k) => {
+      if (ch === 'home') {
+        mergeHouseholds(c.s, k!.householdId, c.me.householdId);
+        k!.flags.lives_at_home = 1;
+        adjustBond(c.s, c.me.id, k!.id, 10, 10);
+        journal(c.s, `${k!.firstName} moved back home.`, 'info');
+        return `${k!.firstName}'s old room fills up with boxes again.`;
+      }
+      if (ch === 'help') {
+        wallet(c).wallet -= 5000;
+        c.s.households[k!.householdId].wallet += 5000;
+        adjustBond(c.s, c.me.id, k!.id, 6, 4);
+        return `${k!.firstName} thanked you three times on the phone.`;
+      }
+      adjustBond(c.s, c.me.id, k!.id, -8, -6);
+      flag(k!, 'tough_love');
+      return `${k!.firstName} said they understood. They didn't call for a while.`;
+    },
+  },
+  {
+    id: 'adult_kid_idle',
+    major: false,
+    cooldown: 3,
+    candidates: (c) =>
+      membersOf(c.s, c.me.householdId)
+        .filter((k) => (k.biologicalParents.includes(c.me.id) || k.adoptiveParents.includes(c.me.id))
+          && age(c, k) >= 20 && !k.jobId && !k.partJobId && !k.studyingUntil)
+        .map((k) => ({ subject: k, weight: 3 })),
+    build: (c, k) => ({
+      title: 'Still on the couch',
+      text: `${k!.firstName} is ${age(c, k!)}, living at home, and hasn't found work.`,
+      choices: [
+        { id: 'push', label: 'Push them to find a job', hint: 'Likely works; they may resent it' },
+        { id: 'school', label: 'Pay for trade school ($6,000)', hint: '2 years, then steady work', disabled: wallet(c).wallet < 6000 },
+        { id: 'patience', label: 'Be patient', hint: 'Everyone moves at their own pace' },
+      ],
+    }),
+    resolve: (c, ch, k) => {
+      if (ch === 'push') {
+        const job = pickCareer(c.rng, k!) ?? pickCareer(c.rng, k!, 'part');
+        adjustBond(c.s, c.me.id, k!.id, -6, -3);
+        if (job) {
+          assignJob(k!, job);
+          return `${k!.firstName} grumbled, then started as a ${job.name.toLowerCase()} the next month.`;
+        }
+        return `${k!.firstName} applied everywhere. Nothing yet.`;
+      }
+      if (ch === 'school') {
+        wallet(c).wallet -= 6000;
+        startPath(c.s, k!, 'trade');
+        adjustBond(c.s, c.me.id, k!.id, 6, 6);
+        return `${k!.firstName} started trade school with real energy.`;
+      }
+      stat(k!, 'happiness', 3);
+      return `You let it be. ${k!.firstName} seemed relieved.`;
+    },
+  },
+  {
+    id: 'parent_needs_care',
+    major: true,
+    cooldown: 4,
+    candidates: (c) =>
+      parentsOf(c.s, c.me)
+        .filter((p) => alive(p) && age(c, p) >= 75 && p.stats.health < 55 && p.householdId !== c.me.householdId
+          && !p.flags.care_home && membersOf(c.s, p.householdId).length === 1)
+        .map((p) => ({ subject: p, weight: 5, urgent: p.stats.health < 40 })),
+    build: (c, p) => {
+      const theirs = c.s.households[p!.householdId].wallet;
+      return {
+        title: `${p!.firstName} can't live alone`,
+        text: `After a fall, ${p!.firstName}'s doctor says living alone isn't safe anymore. ${p!.firstName} has ${money(theirs)} saved.`,
+        choices: [
+          { id: 'move_in', label: 'Move in with us', hint: `Their savings join your household; more stress for you` },
+          { id: 'care_help', label: 'Care home, and you help pay', hint: '$15,000/yr from you toward $35,000/yr' },
+          { id: 'care', label: 'Care home on their own savings', hint: '$35,000/yr from their money' },
+          { id: 'no', label: 'They will manage', hint: 'Risky' },
+        ],
+      };
+    },
+    resolve: (c, ch, p) => {
+      if (ch === 'move_in') {
+        mergeHouseholds(c.s, p!.householdId, c.me.householdId);
+        adjustBond(c.s, c.me.id, p!.id, 12, 10);
+        stat(c.me, 'stress', 8);
+        stat(p!, 'happiness', 10);
+        journal(c.s, `${p!.firstName} moved in with you.`, 'major');
+        return `The guest room became ${p!.firstName}'s room. Dinners got louder and longer.`;
+      }
+      if (ch === 'care' || ch === 'care_help') {
+        p!.flags.care_home = 1;
+        if (ch === 'care_help') p!.flags.care_support = 1;
+        adjustBond(c.s, c.me.id, p!.id, ch === 'care_help' ? 6 : 0, 3);
+        stat(p!, 'health', 10);
+        journal(c.s, `${p!.firstName} moved into a care home.`, 'info');
+        return `The staff are kind. ${p!.firstName} already has opinions about the food.`;
+      }
+      adjustBond(c.s, c.me.id, p!.id, -10, -8);
+      stat(p!, 'happiness', -10);
+      stat(p!, 'health', -8);
+      return `${p!.firstName} insisted they were fine. You hope they're right.`;
+    },
+  },
+
+  // ── Arc: never too late to learn ───────────────────────────────────
+  {
+    id: 'night_school_flyer',
+    major: false,
+    cooldown: 5,
+    candidates: (c) => {
+      const a = age(c, c.me);
+      const stuck = !c.me.jobId || c.me.jobId === 'retail' || (c.me.jobLevel === 1 && c.me.jobYears >= 4);
+      const missing = !c.me.flags.degree || !c.me.flags.trade_cert;
+      return one(a >= 22 && a <= 55 && !c.me.education && !c.me.studyingUntil && missing && stuck, 3);
+    },
+    build: (c) => ({
+      title: 'A flyer for night school',
+      text: 'The community college down the road runs evening programs for working adults. Each year takes some of your time and tuition.',
+      choices: [
+        { id: 'degree', label: `Enroll: ${PROGRAMS.degree.short}`, hint: `${PROGRAMS.degree.required} study blocks total · ${money(PROGRAMS.degree.tuition)}/yr`, disabled: !!c.me.flags.degree || c.me.stats.smarts < PROGRAMS.degree.minSmarts },
+        { id: 'trade_cert', label: `Enroll: ${PROGRAMS.trade_cert.short}`, hint: `${PROGRAMS.trade_cert.required} study blocks total · ${money(PROGRAMS.trade_cert.tuition)}/yr`, disabled: !!c.me.flags.trade_cert },
+        { id: 'no', label: 'Not now' },
+      ],
+    }),
+    resolve: (c, ch) => {
+      if (ch === 'no') return 'You stuck the flyer on the fridge. Maybe someday.';
+      const prog = PROGRAMS[ch as 'degree' | 'trade_cert'];
+      c.me.education = { program: prog.id, progress: 0, required: prog.required, startYear: c.s.year };
+      // Pencil study time into next year's plan, taken from relaxing first.
+      const alloc = c.s.plan.alloc;
+      const fromRelax = Math.min(3, alloc.relax ?? 0);
+      alloc.relax = (alloc.relax ?? 0) - fromRelax;
+      if (!alloc.relax) delete alloc.relax;
+      const unused = Math.max(0, TIME_BUDGET - Object.values(alloc).reduce((a, b) => a + b, 0));
+      const blocks = fromRelax + Math.min(3 - fromRelax, unused);
+      if (blocks) alloc.study = (alloc.study ?? 0) + blocks;
+      return alloc.study ? `You're enrolled. ${alloc.study} Night school blocks are in next year's plan; ${prog.required} in total gets you there.` : `You're enrolled. Free up time for Night school blocks next year; ${prog.required} in total gets you there.`;
+    },
+  },
+  {
+    id: 'new_credential_job',
+    major: true,
+    cooldown: 0,
+    candidates: (c) => {
+      if (!c.me.flags.fresh_credential || c.s.year - c.me.flags.fresh_credential > 1) return [];
+      return one(!!bestNewJob(c), 8, true);
+    },
+    build: (c) => {
+      const job = bestNewJob(c)!;
+      const now = c.me.jobId ? salaryOf(CAREER_BY_ID[c.me.jobId], c.me.jobLevel) : 0;
+      return {
+        title: 'Your new credential pays off',
+        text: `A recruiter saw your new qualification. They offer you a job as a ${job.name} at ${money(job.salary)} a year${now ? ` (you make ${money(now)} now)` : ''}.`,
+        choices: [
+          { id: 'take', label: `Become a ${job.name}`, hint: `Expects ${job.blocks} blocks a year` },
+          { id: 'stay', label: c.me.jobId ? 'Stay where you are' : 'Not right now' },
+        ],
+      };
+    },
+    resolve: (c, ch) => {
+      const job = bestNewJob(c)!;
+      delete c.me.flags.fresh_credential;
+      if (ch !== 'take') return 'You thanked them and kept their number.';
+      assignJob(c.me, job);
+      c.me.retired = false;
+      journal(c.s, `You started a new career as a ${job.name}.`, 'major');
+      return `New badge, new desk, new title: ${job.name}.`;
+    },
+  },
+  {
+    id: 'workplace_credit',
+    major: false,
+    cooldown: 4,
+    candidates: (c) => one(!!c.me.jobId, 1),
+    build: () => ({
+      title: 'Stolen credit',
+      text: 'A coworker presents your idea in a meeting as their own.',
+      choices: [
+        { id: 'confront', label: 'Speak up in the meeting', hint: 'Bold; could go either way' },
+        { id: 'boss', label: 'Talk to your manager later', hint: 'Slower, safer' },
+        { id: 'let', label: 'Let it go', hint: 'Keep the peace' },
+      ],
+    }),
+    resolve: (c, ch) => {
+      if (ch === 'confront') {
+        const ok = c.rng.chance(0.5);
+        c.me.workPerf = Math.max(0, Math.min(100, c.me.workPerf + (ok ? 10 : -8)));
+        return ok ? 'The room turned to you. The idea, and the credit, are yours.' : 'It came off as petty. The meeting moved on.';
+      }
+      if (ch === 'boss') {
+        c.me.workPerf = Math.min(100, c.me.workPerf + 4);
+        return 'Your manager nodded slowly. They noticed.';
+      }
+      stat(c.me, 'stress', 5);
+      return 'You let it slide. It still bothers you at night.';
+    },
+  },
 ];
+
+/** The best-paying new career a fresh credential unlocks, if it beats the current job. */
+function bestNewJob(c: Ctx) {
+  const current = c.me.jobId ? salaryOf(CAREER_BY_ID[c.me.jobId], c.me.jobLevel) : 0;
+  return CAREERS.filter((j) => j.hours === 'full' && j.id !== c.me.jobId && (j.requires ? !!c.me.flags[j.requires] : false) && qualifies(c.me, j) && j.salary > current)
+    .sort((a, b) => b.salary - a.salary)[0];
+}
 
 export const EVENT_BY_ID: Record<string, EventDef> = Object.fromEntries(EVENTS.map((e) => [e.id, e]));
 

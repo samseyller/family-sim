@@ -1,12 +1,12 @@
-import { CAREERS, PART_TIME_MAX, qualifies, requiredBlocks, CAREER_BY_ID, type Career, type JobSlot } from '../content/careers';
+import { CAREERS, PART_TIME_MAX, PROGRAMS, qualifies, requiredBlocks, CAREER_BY_ID, type Career, type JobSlot } from '../content/careers';
 import { FEMALE_NAMES, LAST_NAMES, MALE_NAMES } from '../content/names';
 import { TIME_BUDGET, defaultChildPlan } from '../content/actions';
 import { makeRng, type Rng } from './rng';
 import type { GameState, Household, Looks, Person, Plan, Trait } from './types';
 import { adjustBond, ageOf, alive, kidsAtHome, newId, partnerOf, active } from './util';
 
-export const SCHEMA_VERSION = 2;
-export const RULES_VERSION = '0.1.0';
+export const SCHEMA_VERSION = 3;
+export const RULES_VERSION = '0.2.0';
 export const START_YEAR = 2026;
 
 const TRAITS: Trait[] = ['ambitious', 'kind', 'stubborn', 'curious', 'anxious', 'easygoing', 'creative', 'athletic'];
@@ -155,8 +155,10 @@ export function defaultPlan(s: GameState): Plan {
   };
   if (canWorkFullTime(me)) give('work', requiredBlocks(CAREER_BY_ID[me.jobId!], me.jobLevel));
   if (canWorkPartTime(me)) give('parttime', 2);
+  if (me.education) give('study', 3);
   const partner = partnerOf(s, me.id);
-  if (partner && partner.householdId === me.householdId) give('partner_time', 1);
+  if (partner) give('partner_time', 1);
+  else if (ageOf(me, s.year) >= 18) give('socialize', 1);
   const children: Plan['children'] = {};
   for (const k of kidsAtHome(s, me)) {
     give(`child_time:${k.id}`, 1);
@@ -193,6 +195,8 @@ export function sanitizePlan(s: GameState, plan: Plan, keepIntent = true): Plan 
   const applying = (slot: JobSlot) => intents.some((i) => i.kind === 'apply' && CAREER_BY_ID[i.careerId].hours === slot);
   const canWork = canWorkFullTime(me) || applying('full');
   const canPart = canWorkPartTime(me) || applying('part');
+  const eduIntent = keepIntent ? sanitizeEduIntent(me, plan.eduIntent) : undefined;
+  const canStudy = (!!me.education && eduIntent?.kind !== 'drop') || eduIntent?.kind === 'enroll';
   const alloc: Record<string, number> = {};
   let total = 0;
   for (const [k, raw] of Object.entries(plan.alloc)) {
@@ -205,14 +209,24 @@ export function sanitizePlan(s: GameState, plan: Plan, keepIntent = true): Plan 
       if (!canPart) continue;
       n = Math.min(n, PART_TIME_MAX);
     }
-    if (action === 'partner_time' && !(partner && partner.householdId === me.householdId)) continue;
+    // Dating partners count too; they just don't live with you yet.
+    if (action === 'partner_time' && !partner) continue;
+    if (action === 'study' && !canStudy) continue;
     const g = Math.min(n, TIME_BUDGET - total);
     if (g > 0) alloc[k] = g;
     total += g;
   }
   const children: Plan['children'] = {};
   for (const k of kids) children[k.id] = { ...defaultChildPlan(), ...plan.children[k.id] };
-  return { alloc, children, jobIntents: intents };
+  return { alloc, children, jobIntents: intents, eduIntent };
+}
+
+/** Night-school intents must make sense for the person's situation. */
+function sanitizeEduIntent(me: Person, it: Plan['eduIntent']): Plan['eduIntent'] {
+  if (!it) return undefined;
+  if (it.kind === 'drop') return me.education ? it : undefined;
+  if (me.education || me.studyingUntil || me.flags[it.program]) return undefined;
+  return me.stats.smarts >= PROGRAMS[it.program].minSmarts ? it : undefined;
 }
 
 export function newGame(seed: number): GameState {
@@ -251,6 +265,29 @@ export function newGame(seed: number): GameState {
   }
   s.activeId = me.id;
   s.lineage.push(me.id);
+
+  // Your parents: retired, in their own home. Sometimes only one is still living.
+  const parentsHh = makeHousehold(s, rng.int(20000, 90000));
+  const parentBirth = me.birthYear - rng.int(26, 32);
+  const mom = makePerson(s, rng, { sex: 'F', birthYear: parentBirth + rng.int(-2, 2), lastName, householdId: parentsHh.id, generation: 0 });
+  const dad = makePerson(s, rng, { sex: 'M', birthYear: parentBirth + rng.int(-2, 2), lastName, householdId: parentsHh.id, generation: 0 });
+  for (const p of [mom, dad]) {
+    p.flags.came_of_age = 1;
+    p.retired = ageOf(p, s.year) >= 64;
+    if (!p.retired) assignJob(p, pickCareer(rng, p) ?? CAREERS[0]);
+    else p.pension = rng.int(14000, 26000);
+    p.stats.health = rng.int(50, 80);
+    adjustBond(s, me.id, p.id, rng.int(20, 50), rng.int(20, 50));
+  }
+  s.partnerships.push({ id: newId(s, 'r'), a: mom.id, b: dad.id, status: 'married', startYear: parentBirth + 25, merged: true });
+  if (rng.chance(0.3)) {
+    const gone = rng.chance(0.5) ? mom : dad;
+    gone.deathYear = s.year - rng.int(1, 8);
+    gone.deathCause = 'illness';
+    s.partnerships[s.partnerships.length - 1].status = 'widowed';
+  }
+  me.biologicalParents = [mom.id, dad.id];
+  me.looks = inheritLooks(rng, mom.looks, dad.looks);
 
   const partner = makeAdultStranger(s, rng, me);
   delete s.households[partner.householdId];

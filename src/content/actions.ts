@@ -18,6 +18,8 @@ export const ACTIONS: ActionDef[] = [
   { id: 'exercise', label: 'Exercise', icon: '🏃', category: 'self', desc: 'Fitness and health up, stress down.' },
   { id: 'relax', label: 'Relax', icon: '🛋️', category: 'self', desc: 'Stress down, happiness up.' },
   { id: 'learn', label: 'Learn', icon: '📚', category: 'self', desc: 'Smarts up. Opens better careers.' },
+  { id: 'socialize', label: 'Social life', icon: '🥂', category: 'self', desc: 'Happiness up, a little less stress. Single? You are more likely to meet someone.' },
+  { id: 'study', label: 'Night school', icon: '🎓', category: 'self', desc: 'Progress toward your degree or certificate.' },
   { id: 'partner_time', label: 'Time with partner', icon: '💞', category: 'family', target: 'partner', desc: 'Affinity and trust with your partner.' },
   { id: 'child_time', label: 'Time together', icon: '🧸', category: 'family', target: 'child', desc: 'Affinity and trust. Trust makes them listen to you.' },
   { id: 'homework', label: 'Homework help', icon: '✏️', category: 'family', target: 'child', desc: 'Their smarts up, a little trust.' },
@@ -44,6 +46,8 @@ export const COSTS = {
   rentPerExtra: 3000,
   studentLiving: 10000,
   tuition: 8000,
+  careHome: 35000,
+  careSupport: 15000,
   studentWage: 9000,
 };
 

@@ -17,6 +17,9 @@ const STEPS: Record<number, Step> = {
     }
     return s;
   },
+  // v2 → v3: night school (Person.education, Plan.eduIntent) — both optional, so
+  // old saves are already valid; the step exists so the version chain stays explicit.
+  2: (s) => s,
 };
 
 /** Upgrade a loaded save to the current schema, or return undefined if it can't be. */

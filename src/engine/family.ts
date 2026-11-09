@@ -43,27 +43,90 @@ export function mergeHouseholds(s: GameState, fromId: string, intoId: string) {
   for (const p of Object.values(s.people)) if (p.householdId === fromId) p.householdId = intoId;
 }
 
-/** Marry two people; `b` moves into `a`'s household and finances merge exactly once. */
-export function marry(s: GameState, a: Person, b: Person) {
-  const ps = { id: newId(s, 'r'), a: a.id, b: b.id, status: 'married' as const, startYear: s.year, merged: false };
-  s.partnerships.push(ps);
-  adjustBond(s, a.id, b.id, 45, 35);
-  mergeHouseholds(s, b.householdId, a.householdId);
-  ps.merged = true;
+const between = (s: GameState, a: string, b: string) =>
+  [...s.partnerships].reverse().find((x) => (x.a === a && x.b === b) || (x.a === b && x.b === a));
+
+/** Start dating. Each keeps their own household and money until marriage. */
+export function startDating(s: GameState, a: Person, b: Person) {
+  s.partnerships.push({ id: newId(s, 'r'), a: a.id, b: b.id, status: 'dating', startYear: s.year, merged: false });
+  adjustBond(s, a.id, b.id, 35, 20);
 }
 
-export function separate(s: GameState, a: Person, b: Person) {
-  const ps = activePartnership(s, a.id);
-  if (ps) {
-    ps.status = 'divorced';
+/**
+ * Marry two people; `b` moves into `a`'s household and finances merge exactly once.
+ * An existing dating relationship is upgraded rather than duplicated.
+ */
+export function marry(s: GameState, a: Person, b: Person) {
+  let ps = between(s, a.id, b.id);
+  if (ps && ps.status === 'dating') {
+    ps.status = 'married';
+    ps.startYear = s.year;
+    adjustBond(s, a.id, b.id, 10, 10);
+  } else {
+    ps = { id: newId(s, 'r'), a: a.id, b: b.id, status: 'married', startYear: s.year, merged: false };
+    s.partnerships.push(ps);
+    adjustBond(s, a.id, b.id, 45, 35);
+  }
+  if (!ps.merged) {
+    mergeHouseholds(s, b.householdId, a.householdId);
+    ps.merged = true;
+  }
+}
+
+/** End a dating relationship. */
+export function breakUp(s: GameState, a: Person, b: Person) {
+  const ps = between(s, a.id, b.id);
+  if (ps && ps.status === 'dating') {
+    ps.status = 'ended';
     ps.endYear = s.year;
   }
+  adjustBond(s, a.id, b.id, -15, -10);
+}
+
+/** A married couple separates: `b` moves out with half the savings. Divorce is decided later. */
+export function separate(s: GameState, a: Person, b: Person) {
+  const ps = activePartnership(s, a.id);
+  if (ps) ps.status = 'separated';
   const old = s.households[a.householdId];
   const half = Math.max(0, Math.round(old.wallet / 2));
   old.wallet -= half;
   const hh = makeHousehold(s, half);
   b.householdId = hh.id;
   adjustBond(s, a.id, b.id, -20, -15);
+}
+
+export function separatedFrom(s: GameState, id: string): Person | undefined {
+  const ps = [...s.partnerships].reverse().find((x) => (x.a === id || x.b === id) && x.status === 'separated');
+  if (!ps) return undefined;
+  const other = s.people[ps.a === id ? ps.b : ps.a];
+  return other && alive(other) ? other : undefined;
+}
+
+/** Equity owed to an ex at divorce: half of the home's value minus the mortgage. */
+export function homeEquityShare(s: GameState, p: Person) {
+  const house = s.households[p.householdId].assets.find((x) => x.kind === 'house');
+  return house ? Math.max(0, Math.round((house.value - house.mortgage) / 2)) : 0;
+}
+
+/** Finalize a divorce. The ex is paid half the home equity in cash. */
+export function divorce(s: GameState, a: Person, b: Person) {
+  const ps = between(s, a.id, b.id);
+  if (ps) {
+    ps.status = 'divorced';
+    ps.endYear = s.year;
+  }
+  const share = homeEquityShare(s, a);
+  s.households[a.householdId].wallet -= share;
+  s.households[b.householdId].wallet += share;
+  return share;
+}
+
+/** Get back together: the ex moves home and their household merges back in. */
+export function reconcile(s: GameState, a: Person, b: Person) {
+  const ps = between(s, a.id, b.id);
+  if (ps) ps.status = 'married';
+  mergeHouseholds(s, b.householdId, a.householdId);
+  adjustBond(s, a.id, b.id, 20, 15);
 }
 
 /** Adult child leaves home with their fund plus any gift. */
@@ -85,7 +148,8 @@ export function die(s: GameState, p: Person, cause: string) {
   p.deathCause = cause;
   const ps = activePartnership(s, p.id);
   if (ps) {
-    ps.status = 'widowed';
+    // Only spouses are widowed (and can carry the story on); dating simply ends.
+    ps.status = ps.status === 'married' ? 'widowed' : 'ended';
     ps.endYear = s.year;
   }
   if (isCloseKin(s, p)) {

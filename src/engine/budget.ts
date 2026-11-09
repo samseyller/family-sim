@@ -3,10 +3,10 @@
  * the End Year preview, so the estimate and the real result can't drift apart.
  */
 import { COSTS } from '../content/actions';
-import { CAREER_BY_ID, PART_TIME_MAX, requiredBlocks, salaryOf, type Career } from '../content/careers';
+import { CAREER_BY_ID, PART_TIME_MAX, PROGRAMS, requiredBlocks, salaryOf, type Career } from '../content/careers';
 import { canWorkFullTime } from './generate';
-import type { GameState } from './types';
-import { active, ageOf, kidsAtHome, membersOf } from './util';
+import type { GameState, Program } from './types';
+import { active, ageOf, alive, kidsAtHome, membersOf, parentsOf } from './util';
 
 export const fullTimePay = (c: Career, level: number, work: number) => {
   const req = requiredBlocks(c, level);
@@ -32,7 +32,7 @@ export interface Budget {
 }
 
 /** Pure: this year's income and expenses for a household, before interest. */
-export function householdBudget(s: GameState, householdId: string, activePay: number): Budget {
+export function householdBudget(s: GameState, householdId: string, activePay: number, activeEnrolled?: Program | null): Budget {
   const me = active(s);
   const hh = s.households[householdId];
   const mem = membersOf(s, householdId);
@@ -62,6 +62,11 @@ export function householdBudget(s: GameState, householdId: string, activePay: nu
       add(inc, label, npcPart);
     }
     if (p.retired) add(inc, 'Pensions', p.pension);
+    // Night school tuition (for the active character the caller may predict enrollment).
+    const enrolled = isMe && activeEnrolled !== undefined ? activeEnrolled : p.education?.program;
+    if (enrolled) add(exp, 'Night school', PROGRAMS[enrolled].tuition);
+    if (p.flags.care_home) add(exp, 'Care home', COSTS.careHome);
+    if (p.flags.care_home && p.flags.care_support) add(inc, 'Family support', COSTS.careSupport);
   }
 
   if (!hh.assets.some((a) => a.kind === 'house')) add(exp, 'Rent', COSTS.rentBase + COSTS.rentPerExtra * Math.max(0, mem.length - 2));
@@ -78,6 +83,9 @@ export function householdBudget(s: GameState, householdId: string, activePay: nu
       if (cp?.lessons && kid.hobby) add(exp, "Kids' tutoring & lessons", COSTS.lessons);
       if (kid.flags.advanced) add(exp, "Kids' tutoring & lessons", COSTS.advancedLessons);
       add(exp, 'College funds', cp?.fundContribution ?? 0);
+    }
+    for (const parent of parentsOf(s, me)) {
+      if (alive(parent) && parent.flags.care_home && parent.flags.care_support) add(exp, "Parent's care", COSTS.careSupport);
     }
   }
 
@@ -102,8 +110,14 @@ export function estimateYear(s: GameState): YearEstimate {
   let pay = 0;
   if (canWorkFullTime(me) && !quitting('full')) pay += fullTimePay(CAREER_BY_ID[me.jobId!], me.jobLevel, plan.alloc.work ?? 0);
   if (me.partJobId && !quitting('part')) pay += partTimePay(CAREER_BY_ID[me.partJobId], plan.alloc.parttime ?? 0);
+  // Mirror applyPlan: tuition is charged if enrolled after this year's study, unless graduating.
+  const edu = plan.eduIntent;
+  const study = plan.alloc.study ?? 0;
+  let enrolled: Program | null = null;
+  if (me.education && edu?.kind !== 'drop') enrolled = me.education.progress + study >= me.education.required ? null : me.education.program;
+  else if (edu?.kind === 'enroll') enrolled = study >= PROGRAMS[edu.program].required ? null : edu.program;
   return {
-    ...householdBudget(s, me.householdId, Math.round(pay)),
+    ...householdBudget(s, me.householdId, Math.round(pay), enrolled),
     pendingApplications: plan.jobIntents.filter((i) => i.kind === 'apply').length,
   };
 }

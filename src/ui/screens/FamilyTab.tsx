@@ -7,13 +7,16 @@ import { Avatar } from '../Avatar';
 import { Section } from '../components';
 
 function role(g: GameState, me: Person, p: Person): string {
-  if (partnerOf(g, me.id)?.id === p.id) return 'Partner';
-  if (p.biologicalParents.includes(me.id)) return p.sex === 'F' ? 'Daughter' : 'Son';
-  if (me.biologicalParents.includes(p.id)) return p.sex === 'F' ? 'Mother' : 'Father';
-  if (p.biologicalParents.some((id) => me.biologicalParents.includes(id))) return p.sex === 'F' ? 'Sister' : 'Brother';
-  if (p.biologicalParents.some((id) => g.people[id]?.biologicalParents.includes(me.id))) return p.sex === 'F' ? 'Granddaughter' : 'Grandson';
-  const ex = g.partnerships.find((x) => (x.a === me.id && x.b === p.id) || (x.b === me.id && x.a === p.id));
-  if (ex) return ex.status === 'divorced' ? 'Ex-partner' : 'Late partner';
+  const ps = [...g.partnerships].reverse().find((x) => (x.a === me.id && x.b === p.id) || (x.b === me.id && x.a === p.id));
+  if (ps?.status === 'married') return 'Spouse';
+  if (ps?.status === 'dating') return 'Dating';
+  if (ps?.status === 'separated') return 'Separated';
+  const parents = (x: Person) => [...x.biologicalParents, ...x.adoptiveParents];
+  if (parents(p).includes(me.id)) return (p.sex === 'F' ? 'Daughter' : 'Son') + (p.adoptiveParents.includes(me.id) ? ' (adopted)' : '');
+  if (parents(me).includes(p.id)) return p.sex === 'F' ? 'Mother' : 'Father';
+  if (parents(p).some((id) => parents(me).includes(id))) return p.sex === 'F' ? 'Sister' : 'Brother';
+  if (parents(p).some((id) => g.people[id] && parents(g.people[id]).includes(me.id))) return p.sex === 'F' ? 'Granddaughter' : 'Grandson';
+  if (ps) return ps.status === 'widowed' ? 'Late spouse' : 'Ex-partner';
   return 'Relative';
 }
 
@@ -63,6 +66,7 @@ export function FamilyTab({ g }: { g: GameState }) {
             {alive(p) ? `Age ${ageOf(p, g.year)}` : `${p.birthYear}–${p.deathYear}`}
             {ageOf(p, g.year) >= 18 ? ` · ${jobTitle(p)}` : p.hobby ? ` · ${HOBBY_BY_ID[p.hobby].icon} ${HOBBY_BY_ID[p.hobby].label}` : ''}
             {p.householdId === me.householdId && alive(p) ? ' · lives with you' : ''}
+            {alive(p) && p.flags.care_home ? ' · in a care home' : ''}
           </div>
           <div className="traits">{p.traits.map((t) => <span key={t} className="chip subtle">{t}</span>)}</div>
           {alive(p) && (

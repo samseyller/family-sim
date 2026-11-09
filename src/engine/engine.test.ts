@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { newGame } from './generate';
+import { newGame, SCHEMA_VERSION } from './generate';
 import { autoplayYear, choose, chooseHeir, devKill, eligibleHeirs, nextYear, resolveYear, updatePlan } from './phases';
 import { makeRng } from './rng';
 import { strategyPlan } from './strategies';
@@ -203,7 +203,7 @@ describe('migrations', () => {
     delete v1.plan.jobIntents;
     for (const p of Object.values<any>(v1.people)) { delete p.partPerf; delete p.partYears; }
     const up = migrate(v1)!;
-    expect(up.schemaVersion).toBe(2);
+    expect(up.schemaVersion).toBe(SCHEMA_VERSION);
     expect(up.plan.jobIntents).toEqual([{ kind: 'quit', slot: 'full' }]);
     expect(Object.values(up.people).every((p) => p.partPerf === 50)).toBe(true);
     expect(migrate({ schemaVersion: 99 })).toBeUndefined();

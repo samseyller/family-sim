@@ -1,6 +1,7 @@
 import type { ChildFocus, GameState, Hobby, JobIntent, Plan } from '../../engine/types';
 import { canWorkFullTime } from '../../engine/generate';
-import { active, activePartnership, ageOf, kidsAtHome, money, partnerOf } from '../../engine/util';
+import { NightSchool } from './NightSchool';
+import { active, activePartnership, ageOf, kidsAtHome, membersOf, money, partnerOf } from '../../engine/util';
 import { ACTION_BY_ID, COSTS, FUND_OPTIONS, HOBBIES, HOBBY_BY_ID, TIME_BUDGET, defaultChildPlan } from '../../content/actions';
 import { CAREERS, CAREER_BY_ID, PART_TIME_MAX, qualifies, requiredBlocks, salaryOf, type JobSlot } from '../../content/careers';
 import { receptiveness, receptivenessLabel } from '../../engine/family';
@@ -146,14 +147,16 @@ export function PlanTab({ g }: { g: GameState }) {
         {step('exercise', ACTION_BY_ID.exercise.label, ACTION_BY_ID.exercise.icon, me.flags.health_vow ? 'Extra effective since your health scare' : 'Fitness, health; less stress')}
         {step('relax', ACTION_BY_ID.relax.label, ACTION_BY_ID.relax.icon, 'Less stress, more happiness')}
         {step('learn', ACTION_BY_ID.learn.label, ACTION_BY_ID.learn.icon, 'Smarts: opens better careers')}
+        {step('socialize', ACTION_BY_ID.socialize.label, ACTION_BY_ID.socialize.icon, partner ? 'Happiness up, less stress' : 'Happiness up; more likely to meet someone')}
         <p className="hint">Each extra block on the same thing is worth a bit less.</p>
+        <NightSchool g={g} left={left} />
       </Section>
 
       <Section title="🏡 Family">
-        {partner && partner.householdId === me.householdId && (
+        {partner && (
           <div className="sub-group">
-            <div className="sub-head">{activePartnership(g, me.id)?.status === 'married' ? 'Spouse' : 'Partner'}: {partner.firstName}</div>
-            {step('partner_time', 'Time together', '💞', 'None at all and they will feel neglected')}
+            <div className="sub-head">{activePartnership(g, me.id)?.status === 'married' ? 'Spouse' : 'Dating'}: {partner.firstName}</div>
+            {step('partner_time', 'Time together', '💞', partner.householdId === me.householdId ? 'None at all and they will feel neglected' : 'Dates build the relationship; none and it fades')}
           </div>
         )}
         {kids.map((k) => (
@@ -163,13 +166,13 @@ export function PlanTab({ g }: { g: GameState }) {
             {ageOf(k, g.year) >= 5 && step(`homework:${k.id}`, 'Homework help', '✏️', 'Their smarts up')}
           </div>
         ))}
-        {(partner || kids.length > 0) && (
+        {membersOf(g, me.householdId).length > 1 && (
           <div className="sub-group">
             <div className="sub-head">Whole family</div>
             {step('family_outing', 'Family outing', '🎡', '$1,500 per block; everyone bonds')}
           </div>
         )}
-        {!partner && !kids.length && <p className="muted">No one at home right now.</p>}
+        {!partner && membersOf(g, me.householdId).length <= 1 && <p className="muted">No one at home right now.</p>}
       </Section>
 
       {kids.map((k) => {

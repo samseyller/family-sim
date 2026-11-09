@@ -27,6 +27,10 @@ export const CAREERS: Career[] = [
   { id: 'musician', name: 'Musician', icon: '🎸', hours: 'full', salary: 34000, blocks: 4, stress: 3, minSmarts: 0, skill: 'music', minSkill: 55 },
   { id: 'coach', name: 'Sports Coach', icon: '🏅', hours: 'full', salary: 47000, blocks: 4, stress: 4, minSmarts: 0, skill: 'sports', minSkill: 55 },
   { id: 'designer', name: 'Graphic Designer', icon: '🎨', hours: 'full', salary: 61000, blocks: 4, stress: 5, minSmarts: 35, skill: 'art', minSkill: 50 },
+  { id: 'teacher', name: 'Teacher', icon: '🍎', hours: 'full', salary: 52000, blocks: 4, stress: 6, minSmarts: 45, requires: 'degree' },
+  { id: 'accountant', name: 'Accountant', icon: '📊', hours: 'full', salary: 71000, blocks: 5, stress: 5, minSmarts: 55, requires: 'degree' },
+  { id: 'chef', name: 'Chef', icon: '👩‍🍳', hours: 'full', salary: 44000, blocks: 5, stress: 7, minSmarts: 0, requires: 'trade_cert' },
+  { id: 'mechanic', name: 'Mechanic', icon: '🔧', hours: 'full', salary: 50000, blocks: 4, stress: 4, minSmarts: 25, requires: 'trade_cert' },
   // Part-time: no degree/cert requirements, lower pay, 1–4 blocks (2 expected)
   { id: 'barista', name: 'Barista', icon: '☕', hours: 'part', salary: 15000, blocks: 2, stress: 3, minSmarts: 0 },
   { id: 'delivery', name: 'Delivery Driver', icon: '🚚', hours: 'part', salary: 17000, blocks: 2, stress: 4, minSmarts: 0 },
@@ -70,3 +74,9 @@ export function jobTitle(p: Person) {
   } else main = part ? '' : 'Unemployed';
   return [main, partTxt].filter(Boolean).join(' + ');
 }
+
+/** Night-school programs. Each "study" block adds 1 progress; tuition is charged each year enrolled. */
+export const PROGRAMS = {
+  degree: { id: 'degree' as const, name: 'University degree (night school)', short: 'Degree', icon: '🎓', required: 12, tuition: 6000, minSmarts: 45 },
+  trade_cert: { id: 'trade_cert' as const, name: 'Trade certificate (night school)', short: 'Trade certificate', icon: '🛠️', required: 6, tuition: 3000, minSmarts: 0 },
+};
