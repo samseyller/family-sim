@@ -62,6 +62,8 @@ games (its own IndexedDB table, schema version, and previous-copy recovery).
   glasses, freckles). Children inherit each gene from a parent with a small mutation rate, and portraits
   age: proportions, graying, receding hair, glasses in middle age, wrinkles, cardigans. Stress and
   happiness show in the brows and mouth. Dev gallery: `npm run dev`, then open `/dev/avatars.html?seed=7&size=140`.
+  `e2e/hair.spec.ts` renders every face × hairstyle × sex × age (`/dev/hair-check.html`) and fails if any scalp
+  shows on the crown.
 - **Family tree**: Family tab → 🌳 Tree. Rooted at the oldest known ancestor; played characters are ringed.
 - **Memorials**: ending a story builds a memorial with a generated epitaph per generation. Epitaphs can be
   rewritten and are saved in the Family Archive (🏅 Achievements & stats), where past families can be

@@ -17,6 +17,8 @@ export interface AvatarSpec {
   happiness: number;
   stress: number;
   dead: boolean;
+  /** Test hook: paint the scalp/face a sentinel color for the hair-coverage check. */
+  debugSkin?: string;
 }
 
 export function specOf(p: Person, year: number): AvatarSpec {
@@ -41,39 +43,47 @@ function mix(hex: string, toward: string, t: number) {
 
 const hash = (id: string) => [...id].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7);
 
-/** Generated portrait. Proportions, hair, lines, glasses and expression change with age and mood. */
-export const AvatarFace = memo(function AvatarFace({ spec, size = 56 }: { spec: AvatarSpec; size?: number }) {
+/** Head geometry in the 100×100 viewBox, shared with the hair-coverage check. */
+export function headGeometry(spec: Pick<AvatarSpec, 'age' | 'looks' | 'sex'>) {
   const { age, looks: L, sex } = spec;
-  const skin = SKIN[L.skin % SKIN.length];
-  const skinShade = mix(SKIN[L.skin % SKIN.length], '#000000', 0.12);
-  const gray = Math.max(0, Math.min(1, (age - 45) / 30));
-  const hair = mix(HAIR[L.hairColor % HAIR.length], '#d8d8d8', gray);
   const isBaby = age < 3;
   const isKid = age < 13;
-  const isSenior = age >= 65;
   const r = isBaby ? 20 : isKid ? 20.5 : 18.5; // head radius
   const cx = 50;
   const cy = isBaby ? 52 : isKid ? 47 : 42;
-  const shirt = SHIRT[hash(spec.id) % SHIRT.length];
-
-  // Head shape from the face gene.
   const rx = L.face === 1 ? r * 0.9 : r;
   const ry = L.face === 1 ? r * 1.08 : r;
-  const head = L.face === 2
-    ? <rect x={cx - r} y={cy - r} width={r * 2} height={r * 2.02} rx={r * 0.55} fill={skin} />
-    : <ellipse cx={cx} cy={cy} rx={rx} ry={ry} fill={skin} />;
-
   // Hair style: 0 short, 1 long, 2 curly, 3 bald pattern (men 40+) or bun (others).
   const receding = sex === 'M' && age > 55 && L.hairStyle !== 1;
   let style = isBaby ? -1 : L.hairStyle % 4;
   if (style === 3 && !(sex === 'M' && age > 40)) style = sex === 'F' ? 4 : 0; // 4 = bun
+  /** True when the crown should be fully covered by hair. */
+  const coveredCrown = style >= 0 && style !== 3 && !receding;
+  return { r, cx, cy, rx, ry, style, receding, coveredCrown, isBaby, isKid };
+}
+
+/** Generated portrait. Proportions, hair, lines, glasses and expression change with age and mood. */
+export const AvatarFace = memo(function AvatarFace({ spec, size = 56 }: { spec: AvatarSpec; size?: number }) {
+  const { age, looks: L, sex } = spec;
+  const skin = spec.debugSkin ?? SKIN[L.skin % SKIN.length];
+  const skinShade = mix(SKIN[L.skin % SKIN.length], '#000000', 0.12);
+  const gray = Math.max(0, Math.min(1, (age - 45) / 30));
+  const hair = mix(HAIR[L.hairColor % HAIR.length], '#d8d8d8', gray);
+  const { r, cx, cy, rx, ry, style, receding, isBaby, isKid } = headGeometry(spec);
+  const isSenior = age >= 65;
+  const shirt = SHIRT[hash(spec.id) % SHIRT.length];
+
+  const head = L.face === 2
+    ? <rect x={cx - r} y={cy - r} width={r * 2} height={r * 2.02} rx={r * 0.55} fill={skin} />
+    : <ellipse cx={cx} cy={cy} rx={rx} ry={ry} fill={skin} />;
   const top = cy - ry;
 
   /**
    * Hair cap over the crown, `pad` px outside the head, ending at `baseY` on both sides,
-   * with a curved hairline through (innerX, innerY). It follows the head's outline:
-   * square faces are rounded rectangles, so the cap traces their corners; round and oval
-   * heads use a quadratic whose peak (halfway to the control point) clears the crown.
+   * with a curved hairline through (innerX, innerY). The outer edge traces the head's real
+   * outline so no scalp can show at the corners of the crown:
+   *  - square faces are rounded rectangles → follow the rect and its corner radius;
+   *  - round/oval faces are ellipses → an elliptical arc over the top (plus a little volume).
    */
   const capPath = (pad: number, baseY: number, innerX: number, innerY: number) => {
     const hairline = `Q${innerX} ${innerY} ${cx - rx - pad} ${baseY} Z`;
@@ -83,7 +93,9 @@ export const AvatarFace = memo(function AvatarFace({ spec, size = 56 }: { spec: 
       return `M${cx - r - pad} ${baseY} L${cx - r - pad} ${cy - r + k} Q${cx - r - pad} ${t} ${cx - r + k} ${t} `
         + `L${cx + r - k} ${t} Q${cx + r + pad} ${t} ${cx + r + pad} ${cy - r + k} L${cx + r + pad} ${baseY} ${hairline}`;
     }
-    return `M${cx - rx - pad} ${baseY} Q${cx} ${cy - 2 * ry - 4 - pad} ${cx + rx + pad} ${baseY} ${hairline}`;
+    const ax = rx + pad;
+    const ay = ry + pad + 2; // a touch of volume on top
+    return `M${cx - ax} ${baseY} L${cx - ax} ${cy} A${ax} ${ay} 0 0 1 ${cx + ax} ${cy} L${cx + ax} ${baseY} ${hairline}`;
   };
 
   const happy = spec.dead ? 50 : spec.happiness;
