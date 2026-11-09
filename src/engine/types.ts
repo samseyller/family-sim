@@ -123,6 +123,8 @@ export interface Plan {
   jobIntents: JobIntent[];
   /** Enroll in night school or drop out, decided when the year resolves. */
   eduIntent?: { kind: 'enroll'; program: Program } | { kind: 'drop' };
+  /** How much of the household's discretionary money goes to lifestyle (default comfortable). */
+  lifestyle?: 'frugal' | 'comfortable' | 'lavish';
   children: Record<string, ChildPlan>;
 }
 

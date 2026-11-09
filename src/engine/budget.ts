@@ -3,6 +3,7 @@
  * the End Year preview, so the estimate and the real result can't drift apart.
  */
 import { COSTS } from '../content/actions';
+import { LIFESTYLES, incomeTax, medicalCost } from '../content/economy';
 import { CAREER_BY_ID, PART_TIME_MAX, PROGRAMS, requiredBlocks, salaryOf, type Career } from '../content/careers';
 import { canWorkFullTime } from './generate';
 import type { GameState, Program } from './types';
@@ -39,9 +40,11 @@ export function householdBudget(s: GameState, householdId: string, activePay: nu
   const inc = new Map<string, number>();
   const exp = new Map<string, number>();
   const add = (m: Map<string, number>, label: string, n: number) => n && m.set(label, (m.get(label) ?? 0) + n);
+  let taxes = 0;
 
   for (const p of mem) {
-    if (ageOf(p, s.year) < 18) {
+    const age = ageOf(p, s.year);
+    if (age < 18) {
       add(exp, 'Children', COSTS.child);
       continue;
     }
@@ -51,17 +54,23 @@ export function householdBudget(s: GameState, householdId: string, activePay: nu
     if (p.studyingUntil) {
       add(exp, 'Living costs', COSTS.studentLiving);
       add(exp, 'Tuition', p.studyKind === 'university' ? COSTS.tuition : COSTS.tuition / 2);
-      // Students without a real part-time job pick up odd jobs.
-      add(inc, label, isMe ? activePay || (p.partJobId ? 0 : COSTS.studentWage) : npcPart || COSTS.studentWage);
+      // Students without a real part-time job pick up odd jobs (untaxed).
+      const pay = isMe ? activePay || (p.partJobId ? 0 : COSTS.studentWage) : npcPart || COSTS.studentWage;
+      add(inc, label, pay);
+      if (isMe ? activePay : npcPart) taxes += incomeTax(pay);
       continue;
     }
     add(exp, 'Living costs', COSTS.adult);
-    if (isMe) add(inc, label, activePay);
+    let earned = 0;
+    if (isMe) earned += activePay;
     else {
-      if (p.jobId) add(inc, label, salaryOf(CAREER_BY_ID[p.jobId], p.jobLevel));
-      add(inc, label, npcPart);
+      if (p.jobId) earned += salaryOf(CAREER_BY_ID[p.jobId], p.jobLevel);
+      earned += npcPart;
     }
+    add(inc, label, earned);
     if (p.retired) add(inc, 'Pensions', p.pension);
+    taxes += incomeTax(earned + (p.retired ? p.pension : 0));
+    add(exp, 'Medical', medicalCost(age));
     // Night school tuition (for the active character the caller may predict enrollment).
     const enrolled = isMe && activeEnrolled !== undefined ? activeEnrolled : p.education?.program;
     if (enrolled) add(exp, 'Night school', PROGRAMS[enrolled].tuition);
@@ -75,7 +84,8 @@ export function householdBudget(s: GameState, householdId: string, activePay: nu
     if (a.mortgage > 0) add(exp, 'Mortgage', mortgagePayment(a.mortgage));
   }
 
-  if (householdId === me.householdId) {
+  const isActiveHome = householdId === me.householdId;
+  if (isActiveHome) {
     add(exp, 'Family outings', (s.plan.alloc.family_outing ?? 0) * 1500);
     for (const kid of kidsAtHome(s, me)) {
       const cp = s.plan.children[kid.id];
@@ -88,6 +98,13 @@ export function householdBudget(s: GameState, householdId: string, activePay: nu
       if (alive(parent) && parent.flags.care_home && parent.flags.care_support) add(exp, "Parent's care", COSTS.careSupport);
     }
   }
+  add(exp, 'Taxes', taxes);
+
+  // Lifestyle: a share of whatever is left after taxes and essentials.
+  const sum = (m: Map<string, number>) => [...m.values()].reduce((a, b) => a + b, 0);
+  const discretionary = sum(inc) - sum(exp);
+  const style = isActiveHome ? s.plan.lifestyle ?? 'comfortable' : 'comfortable';
+  add(exp, 'Lifestyle', Math.max(0, discretionary) * LIFESTYLES[style].share);
 
   const lines = (m: Map<string, number>) => [...m].map(([label, amount]) => ({ label, amount: Math.round(amount) }));
   const income = lines(inc);

@@ -90,6 +90,7 @@ const Plan = z.object({
   alloc: z.record(z.string(), int.nonnegative()),
   jobIntents: z.array(JobIntent),
   eduIntent: z.union([z.object({ kind: z.literal('enroll'), program: z.enum(['degree', 'trade_cert']) }), z.object({ kind: z.literal('drop') })]).optional(),
+  lifestyle: z.enum(['frugal', 'comfortable', 'lavish']).optional(),
   children: z.record(z.string(), ChildPlan),
 });
 

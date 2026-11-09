@@ -1,4 +1,5 @@
 import { HOBBY_BY_ID } from '../content/actions';
+import { DEBT_RATE, LIFESTYLES, SAVINGS_RATE } from '../content/economy';
 import { CAREER_BY_ID, PART_TIME_MAX, PROGRAMS, TWO_JOB_STRESS, qualifies, requiredBlocks } from '../content/careers';
 import { assignJob, canWorkFullTime, makeAdultStranger, makeBaby, pickCareer } from './generate';
 import { fullTimePay, householdBudget, mortgagePayment, partTimePay } from './budget';
@@ -181,6 +182,15 @@ export function applyPlan(s: GameState, rng: Rng): number {
     }
   }
 
+  // Lifestyle: how the household lives this year shows in everyone's mood.
+  const ls = LIFESTYLES[plan.lifestyle ?? 'comfortable'];
+  if (ls.happiness || ls.stress) {
+    for (const m of membersOf(s, me.householdId)) {
+      stat(m, 'happiness', ls.happiness);
+      stat(m, 'stress', ls.stress);
+    }
+  }
+
   // Baseline life pressure.
   stat(me, 'stress', 5);
   if (me.stats.stress > 70) {
@@ -207,7 +217,7 @@ export function runEconomy(s: GameState, activePay: number) {
     }
     for (const p of mem) if (p.fund > 0) p.fund = Math.round(p.fund * 1.04);
     hh.wallet += budget.net;
-    hh.wallet = Math.round(hh.wallet * (hh.wallet > 0 ? 1.02 : 1.08));
+    hh.wallet = Math.round(hh.wallet * (hh.wallet > 0 ? 1 + SAVINGS_RATE : 1 + DEBT_RATE));
     if (hh.wallet < 0) {
       for (const p of mem) {
         if (ageOf(p, s.year) < 18) continue;

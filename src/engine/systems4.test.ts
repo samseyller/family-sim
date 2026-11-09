@@ -1,4 +1,5 @@
 /** Stage 4: dating, divorce, night school, home and family arcs. */
+import { DEBT_RATE, SAVINGS_RATE } from '../content/economy';
 import { describe, expect, it } from 'vitest';
 import { newGame } from './generate';
 import { breakUp, divorce, homeEquityShare, marry, reconcile, separate, separatedFrom, startDating } from './family';
@@ -174,7 +175,7 @@ describe('night school', () => {
     const w0 = hh.wallet;
     runEconomy(draft, applyPlan(draft, makeRng(draft.rngState)));
     const raw = w0 + est.net;
-    expect(hh.wallet).toBe(Math.round(raw * (raw > 0 ? 1.02 : 1.08)));
+    expect(hh.wallet).toBe(Math.round(raw * (raw > 0 ? 1 + SAVINGS_RATE : 1 + DEBT_RATE)));
     expect(active(draft).education?.progress).toBe(3);
 
     // Finish it.
@@ -230,5 +231,43 @@ describe('night school safety', () => {
     applyPlan(s, makeRng(2));
     expect(me.education).toBeUndefined();
     expect(me.flags.dropped_out).toBe(1);
+  });
+});
+
+describe('economy balance', () => {
+  it('income tax is progressive', async () => {
+    const { incomeTax } = await import('../content/economy');
+    expect(incomeTax(10000)).toBe(0);
+    expect(incomeTax(30000)).toBe(1800);
+    const low = incomeTax(40000) / 40000;
+    const high = incomeTax(150000) / 150000;
+    expect(high).toBeGreaterThan(low);
+  });
+
+  it('lifestyle trades savings for happiness', () => {
+    const base = newGame(301);
+    const net = (style: 'frugal' | 'comfortable' | 'lavish') => estimateYear(updatePlan(base, { ...base.plan, lifestyle: style })).net;
+    expect(net('frugal')).toBeGreaterThan(net('comfortable'));
+    expect(net('comfortable')).toBeGreaterThan(net('lavish'));
+    const s = updatePlan(base, { ...base.plan, lifestyle: 'lavish' });
+    const before = active(s).stats.happiness;
+    const d = structuredClone(s);
+    applyPlan(d, makeRng(1));
+    const lavishGain = active(d).stats.happiness - before;
+    const f = updatePlan(base, { ...base.plan, lifestyle: 'frugal' });
+    const d2 = structuredClone(f);
+    applyPlan(d2, makeRng(1));
+    expect(lavishGain).toBeGreaterThan(active(d2).stats.happiness - before);
+  });
+
+  it('the lifestyle choice survives plan updates and year changes', () => {
+    const s = updatePlan(newGame(302), { ...newGame(302).plan, lifestyle: 'frugal' });
+    expect(s.plan.lifestyle).toBe('frugal');
+  });
+
+  it('estates above the exemption are taxed once', async () => {
+    const { estateTax } = await import('./family');
+    expect(estateTax(800000)).toBe(0);
+    expect(estateTax(2000000)).toBe(300000);
   });
 });

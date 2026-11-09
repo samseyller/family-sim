@@ -101,3 +101,12 @@ describe('backup reminders', () => {
     expect(yearsSinceBackup({ ...s, lastBackupYear: s.year - 3 })).toBe(3);
   });
 });
+
+describe('plan fields survive validation', () => {
+  it('lifestyle is kept through a save round-trip', () => {
+    const s = newGame(31);
+    s.plan.lifestyle = 'lavish';
+    const res = parseSaveFile(serializeSave(s));
+    expect(res.ok && res.kind === 'game' && res.state.plan.lifestyle).toBe('lavish');
+  });
+});

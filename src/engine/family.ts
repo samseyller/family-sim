@@ -1,3 +1,4 @@
+import { ESTATE_EXEMPTION, ESTATE_TAX_RATE } from '../content/economy';
 import { CAREER_BY_ID, salaryOf } from '../content/careers';
 import { makeHousehold } from './generate';
 import type { Rng } from './rng';
@@ -174,7 +175,9 @@ export function settleEstates(s: GameState) {
     hh.wallet = 0;
     hh.assets = [];
     if (!heirs.size || estate <= 0) continue;
-    const share = Math.round(estate / heirs.size);
+    const tax = estateTax(estate);
+    if (tax && [...heirs.values()].some((h) => isCloseKin(s, h))) journal(s, `Estate tax took ${money(tax)} of the inheritance.`, 'info');
+    const share = Math.round((estate - tax) / heirs.size);
     for (const h of heirs.values()) {
       s.households[h.householdId].wallet += share;
       if (isCloseKin(s, h)) journal(s, `${h.id === s.activeId ? 'You' : fullName(h)} inherited ${money(share)}.`, 'good');
@@ -217,3 +220,6 @@ export function partnerInHome(s: GameState, p: Person) {
 
 export const householdOf = (s: GameState, p: Person) => s.households[p.householdId];
 export const householdSize = (s: GameState, p: Person) => membersOf(s, p.householdId).length;
+
+/** Tax on the part of an estate above the exemption. */
+export const estateTax = (estate: number) => Math.round(Math.max(0, estate - ESTATE_EXEMPTION) * ESTATE_TAX_RATE);

@@ -1,3 +1,4 @@
+import { DEBT_RATE, SAVINGS_RATE } from '../content/economy';
 import { describe, expect, it } from 'vitest';
 import { newGame, SCHEMA_VERSION } from './generate';
 import { autoplayYear, choose, chooseHeir, devKill, eligibleHeirs, nextYear, resolveYear, updatePlan } from './phases';
@@ -223,7 +224,7 @@ describe('end-year estimate', () => {
       const pay = applyPlan(draft, makeRng(draft.rngState));
       runEconomy(draft, pay);
       const raw = before + est.net;
-      expect(hh.wallet).toBe(Math.round(raw * (raw > 0 ? 1.02 : 1.08)));
+      expect(hh.wallet).toBe(Math.round(raw * (raw > 0 ? 1 + SAVINGS_RATE : 1 + DEBT_RATE)));
       expect(est.totalIncome - est.totalExpenses).toBe(est.net);
     }
   });

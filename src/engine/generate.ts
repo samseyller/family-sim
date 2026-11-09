@@ -6,8 +6,8 @@ import { inheritLooks, randomLooks } from './genome';
 import type { GameState, Household, Looks, Person, Plan, Trait } from './types';
 import { adjustBond, ageOf, alive, kidsAtHome, newId, partnerOf, active } from './util';
 
-export const SCHEMA_VERSION = 4;
-export const RULES_VERSION = '0.3.0';
+export const SCHEMA_VERSION = 5;
+export const RULES_VERSION = '0.4.0';
 export const START_YEAR = 2026;
 
 const TRAITS: Trait[] = ['ambitious', 'kind', 'stubborn', 'curious', 'anxious', 'easygoing', 'creative', 'athletic'];
@@ -211,7 +211,7 @@ export function sanitizePlan(s: GameState, plan: Plan, keepIntent = true): Plan 
   }
   const children: Plan['children'] = {};
   for (const k of kids) children[k.id] = { ...defaultChildPlan(), ...plan.children[k.id] };
-  return { alloc, children, jobIntents: intents, eduIntent };
+  return { alloc, children, jobIntents: intents, eduIntent, lifestyle: plan.lifestyle };
 }
 
 /** Night-school intents must make sense for the person's situation. */
