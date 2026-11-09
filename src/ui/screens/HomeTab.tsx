@@ -20,7 +20,7 @@ export function HomeTab({ g }: { g: GameState }) {
         <Avatar person={me} year={g.year} size={96} />
         <div>
           <h2>{me.firstName} {me.lastName}</h2>
-          <div className="muted">Age {ageOf(me, g.year)} · {ageOf(me, g.year) < 18 && !me.partJobId ? '🎒 In school' : `${job?.icon ?? '🧭'} ${jobTitle(me)}`}</div>
+          <div className="muted">Age {ageOf(me, g.year)} · {ageOf(me, g.year) < 18 && !me.partJobId ? '🎒 In school' : !me.flags.came_of_age && !me.jobId ? '🎓 Just finished high school' : `${job?.icon ?? '🧭'} ${jobTitle(me)}`}</div>
           <div className="traits">{me.traits.map((t) => <span key={t} className="chip">{t}</span>)}</div>
         </div>
       </section>
@@ -51,7 +51,7 @@ export function HomeTab({ g }: { g: GameState }) {
         </div>
         {hh.assets.map((a) => (
           <div key={a.id} className="row">
-            <span>🏠 {a.name}</span>
+            <span>{a.kind === 'car' ? '🚗' : '🏠'} {a.name}</span>
             <span className="muted">worth {money(a.value)}{a.mortgage ? ` · owe ${money(a.mortgage)}` : ''}</span>
           </div>
         ))}

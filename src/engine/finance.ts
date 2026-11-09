@@ -9,6 +9,7 @@ import {
 } from '../content/finance';
 import type { Asset, GameState, Household } from './types';
 import { retirePerson } from './retirement';
+import { unlockedTabs } from './tutorial';
 import { sanitizePlan } from './generate';
 import { EARLY_RETIREMENT_AGE } from '../content/retirement';
 import { active, ageOf, alive, journal, kidsAtHome, membersOf, money, newId, stat } from './util';
@@ -46,6 +47,7 @@ export function financeBlocker(s: GameState, a: FinanceAction): string | null {
   if (s.phase !== 'PLANNING') return 'Money decisions are made while planning.';
   const me = active(s);
   if (ageOf(me, s.year) < 18) return 'Your parents handle the money for now.';
+  if (!unlockedTabs(s).includes('money')) return 'The Money tab opens at 24.';
   const hh = s.households[me.householdId];
   const home = homeOf(hh);
   switch (a.kind) {

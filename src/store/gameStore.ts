@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { GameState, Plan } from '../engine/types';
-import { newGame, type StartNames } from '../engine/generate';
+import { newGame, type StartKind, type StartNames } from '../engine/generate';
+import { markSeen, skipTutorial } from '../engine/tutorial';
 import { financeAction, type FinanceAction } from '../engine/finance';
 import { dismissActivity, performActivity } from '../engine/activities';
 import {
@@ -38,7 +39,9 @@ interface Store {
   confirmEnd: boolean;
   showDev: boolean;
   init(): Promise<void>;
-  startNew(start?: "adult" | "child", names?: StartNames): void;
+  startNew(start?: StartKind, names?: StartNames): void;
+  markTip(id: string): void;
+  skipGuide(): void;
   continueGame(): void;
   toTitle(): void;
   setTab(t: Tab): void;
@@ -145,6 +148,8 @@ export const useGame = create<Store>((set, get) => {
     finance: (a) => withGame((g) => financeAction(g, a)),
     activity: (id, people) => withGame((g) => performActivity(g, id, people)),
     dismissActivity: () => withGame(dismissActivity),
+    markTip: (id) => withGame((g) => markSeen(g, id)),
+    skipGuide: () => withGame(skipTutorial),
     askEndYear: (open) => set({ confirmEnd: open }),
     endYear() {
       set({ confirmEnd: false });

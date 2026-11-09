@@ -36,6 +36,8 @@ const STEPS: Record<number, Step> = {
   // v7 → v8: retirement — optional career/pension/savings fields on people and a plan
   // contribution rate. Existing retirees keep their recorded pension.
   7: (s) => s,
+  // v8 → v9: optional guided-playthrough state. Nothing to rewrite.
+  8: (s) => s,
 };
 
 /** Upgrade a loaded save to the current schema, or return undefined if it can't be. */

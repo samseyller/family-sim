@@ -75,3 +75,15 @@ games (its own IndexedDB table, schema version, and previous-copy recovery).
 
 Starting a family (adult or child) opens a dialog to name your character and the family (🎲 or blank
 for random). When your baby is born, a naming event offers suggestions or lets you type your own.
+
+## Activities, retirement, and the guided first life
+
+- **🎯 Activities** (key 6): one-off things to do while planning, outside the 12 time blocks. Each costs
+  energy (100 a year, less when unhealthy or stressed, never below 50) and usually money.
+- **🏖️ Retirement** (Money tab): early retirement from 55, full at 65. Pension jobs pay 1.5% of best
+  salary per year of service (after 10 years); state pension from 65; retirement savings with an employer
+  match on non-pension jobs. The card shows whether you could afford to retire at 55, 60 and 65.
+- **🌱 Guided first life**: a fixed family starting at 18. Tabs unlock with age (Home and Plan at 18,
+  Family and Journal at 20, Money at 24, Activities at 30) with a tip for each. Guardrails: money can't
+  fall below a small cushion before 24, a child is guaranteed between 24 and 30, no severe events before
+  35, and no death before 65. A 25-playthrough test checks all of this (`src/engine/tutorial.test.ts`).

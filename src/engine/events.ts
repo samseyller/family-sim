@@ -4,6 +4,7 @@ import { FEMALE_NAMES, MALE_NAMES } from '../content/names';
 import { annuityPayment, HOMES, MORTGAGE_RATE, MORTGAGE_YEARS } from '../content/finance';
 import { carsOf, homeUpfront } from './finance';
 import { readiness } from './retirement';
+import { guidedPerson, scriptedPhase, severeGuard } from './tutorial';
 import { FULL_RETIREMENT_AGE } from '../content/retirement';
 import { CAREERS, CAREER_BY_ID, LEVEL_TITLES, PROGRAMS, qualifies, requiredBlocks, salaryOf } from '../content/careers';
 import { assignJob, makeAdultStranger, makePerson, pickCareer } from './generate';
@@ -46,6 +47,8 @@ export interface EventDef {
   resolve: (c: Ctx, choice: string, sub?: Person, text?: string) => string;
   /** Who can get this event: adults (default), children (under 18), or anyone. */
   stage?: 'adult' | 'child' | 'any';
+  /** Harsh events, held back early in the guided first playthrough. */
+  severe?: boolean;
 }
 
 const wallet = (c: Ctx) => c.s.households[c.me.householdId];
@@ -121,6 +124,7 @@ const EVENTS: EventDef[] = [
   },
   {
     id: 'burnout',
+    severe: true,
     major: true,
     cooldown: 4,
     candidates: (c) => one(c.me.stats.stress >= 80, 5, true),
@@ -155,6 +159,7 @@ const EVENTS: EventDef[] = [
   },
   {
     id: 'health_scare',
+    severe: true,
     major: true,
     cooldown: 3,
     candidates: (c) => one(age(c, c.me) > 45 && c.me.stats.health < 35, 5, true),
@@ -180,6 +185,7 @@ const EVENTS: EventDef[] = [
   },
   {
     id: 'layoff',
+    severe: true,
     major: true,
     cooldown: 5,
     candidates: (c) => one(!!c.me.jobId, c.me.workPerf < 35 ? 3 : 0.4),
@@ -464,6 +470,7 @@ const EVENTS: EventDef[] = [
   },
   {
     id: 'drifting_apart',
+    severe: true,
     major: true,
     cooldown: 3,
     candidates: (c) => {
@@ -504,6 +511,7 @@ const EVENTS: EventDef[] = [
   },
   {
     id: 'partner_job_offer',
+    severe: true,
     major: true,
     cooldown: 6,
     candidates: (c) => {
@@ -607,7 +615,8 @@ const EVENTS: EventDef[] = [
         return `You and ${p!.firstName} parted ways.`;
       }
       const b = getBond(c.s, c.me.id, p!.id);
-      if (c.rng.chance(0.3 + (b.affinity + b.trust) / 200)) {
+      // In the guided first playthrough, the answer is always yes.
+      if (guidedPerson(c.s)?.id === c.me.id || c.rng.chance(0.3 + (b.affinity + b.trust) / 200)) {
         marry(c.s, c.me, p!);
         stat(c.me, 'happiness', 12);
         journal(c.s, `You married ${fullName(p!)}.`, 'major');
@@ -620,6 +629,7 @@ const EVENTS: EventDef[] = [
   },
   {
     id: 'dating_rocky',
+    severe: true,
     major: true,
     cooldown: 2,
     candidates: (c) => {
@@ -646,6 +656,7 @@ const EVENTS: EventDef[] = [
   },
   {
     id: 'divorce_or_reconcile',
+    severe: true,
     major: true,
     cooldown: 2,
     candidates: (c) => {
@@ -726,7 +737,7 @@ const EVENTS: EventDef[] = [
         journal(c.s, `You adopted ${kid.firstName}, age ${ageOf(kid, c.s.year)}.`, 'birth');
         return `${kid.firstName} came home with one small suitcase. Trust will take time to build.`;
       }
-      if (c.rng.chance(0.8)) {
+      if (guidedPerson(c.s)?.id === c.me.id || c.rng.chance(0.8)) {
         wallet(c).pendingBirth = { year: c.s.year + 1, parents: [c.me.id, p!.id] };
         adjustBond(c.s, c.me.id, p!.id, 6, 3);
         return 'Good news: a baby is on the way, due next year.';
@@ -1050,7 +1061,54 @@ const NAME_BABY: EventDef = {
   },
 };
 
-const ALL_EVENTS: EventDef[] = [...EVENTS, ...CHILD_EVENTS, NAME_BABY];
+/** Guided playthrough safety net: a child arrives before 30 no matter how things went. */
+const GUIDED_KID: EventDef = {
+  id: 'guided_kid',
+  stage: 'any',
+  major: true,
+  cooldown: 0,
+  candidates: (c) => {
+    if (guidedPerson(c.s)?.id !== c.me.id) return [];
+    const a = ageOf(c.me, c.s.year);
+    const hasKid = childrenOf(c.s, c.me.id).length > 0 || !!c.s.households[c.me.householdId].pendingBirth;
+    return a >= 27 && a <= 29 && !hasKid ? [{ weight: 100, urgent: true, subject: partnerInHome(c.s, c.me) }] : [];
+  },
+  build: (c, partner) =>
+    partner
+      ? {
+          title: 'A surprise',
+          text: `${partner.firstName} sits you down with a grin and a pregnancy test. You're going to be a parent!`,
+          choices: [
+            { id: 'joy', label: 'This is wonderful!' },
+            { id: 'nervous', label: 'Ready or not…', hint: 'Nervous, but in' },
+          ],
+        }
+      : {
+          title: 'A child who needs a home',
+          text: `Your cousin can no longer care for her toddler. The family is asking whether you could take ${c.me.sex === 'F' ? 'him' : 'her'} in and raise ${c.me.sex === 'F' ? 'him' : 'her'} as your own.`,
+          choices: [{ id: 'adopt', label: 'Of course. Bring them home.' }],
+        },
+  resolve: (c, ch, partner) => {
+    if (ch === 'adopt' || !partner) {
+      const kid = makePerson(c.s, c.rng, {
+        birthYear: c.s.year - c.rng.int(2, 3),
+        lastName: c.me.lastName,
+        householdId: c.me.householdId,
+        generation: c.me.generation + 1,
+      });
+      kid.adoptiveParents = [c.me.id];
+      kid.stats.smarts = c.rng.int(30, 45);
+      adjustBond(c.s, c.me.id, kid.id, 35, 20);
+      journal(c.s, `You welcomed ${kid.firstName} into your home.`, 'birth');
+      return `${kid.firstName} clutched a stuffed rabbit and, after a week, started calling your place home.`;
+    }
+    c.s.households[c.me.householdId].pendingBirth = { year: c.s.year + 1, parents: [c.me.id, partner.id] };
+    adjustBond(c.s, c.me.id, partner.id, 8, 4);
+    return ch === 'joy' ? 'You both cried a little. The good kind.' : 'Deep breaths. You are going to be great at this.';
+  },
+};
+
+const ALL_EVENTS: EventDef[] = [...EVENTS, ...CHILD_EVENTS, NAME_BABY, GUIDED_KID];
 
 export const EVENT_BY_ID: Record<string, EventDef> = Object.fromEntries(ALL_EVENTS.map((e) => [e.id, e]));
 
@@ -1084,9 +1142,17 @@ export function generateEvents(s: GameState, rng: Rng) {
   const due = s.scheduled.filter((x) => x.dueYear <= s.year);
   s.scheduled = s.scheduled.filter((x) => x.dueYear > s.year);
   for (const sch of due) {
-    const sub = sch.subjectId ? s.people[sch.subjectId] : undefined;
+    const def = EVENT_BY_ID[sch.eventId];
+    let sub = sch.subjectId ? s.people[sch.subjectId] : undefined;
     if (sub && (!alive(sub) || (sch.eventId === 'health_scare' && sub.id !== s.activeId))) continue;
-    pushPending(c, EVENT_BY_ID[sch.eventId], sub);
+    if (def.severe && severeGuard(s)) continue; // held back early in the guided playthrough
+    // Scripted beats only happen if they still make sense (e.g. a proposal needs someone to propose to).
+    if (def.candidates && !sch.subjectId) {
+      const cands = def.candidates(c).filter((x) => x.weight > 0);
+      if (!cands.length) continue;
+      sub = cands[0].subject;
+    }
+    pushPending(c, def, sub);
   }
 
   const eligible: { def: EventDef; cand: Candidate }[] = [];
@@ -1096,6 +1162,7 @@ export function generateEvents(s: GameState, rng: Rng) {
     // Children only get childhood events; adults never do. "any" events check age themselves.
     const stage = def.stage ?? 'adult';
     if (stage !== 'any' && (stage === 'child') !== childActive) continue;
+    if (def.severe && severeGuard(s)) continue;
     const last = s.lastFired[def.id];
     if (last !== undefined && s.year - last < Math.max(1, def.cooldown)) continue;
     for (const cand of def.candidates(c)) if (cand.weight > 0) eligible.push({ def, cand });
@@ -1104,7 +1171,8 @@ export function generateEvents(s: GameState, rng: Rng) {
   if (!s.pending.some((p) => p.major)) {
     const urgent = eligible.filter((e) => e.def.major && e.cand.urgent);
     let pick = rng.weighted(urgent.map((e) => [e, e.cand.weight] as const));
-    if (!pick) {
+    // Random majors wait until the guided playthrough opens up; scripted and life-stage beats still happen.
+    if (!pick && !scriptedPhase(s)) {
       const since = s.year - s.lastMajorYear;
       const chance = since < 3 ? 0 : Math.min(0.9, (since - 2) * 0.3);
       if (rng.chance(chance)) {

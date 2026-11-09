@@ -74,6 +74,7 @@ export const CHILD_EVENTS: EventDef[] = [
   },
   {
     id: 'playground_bully',
+    severe: true,
     stage: 'child',
     major: true,
     cooldown: 6,
@@ -159,6 +160,7 @@ export const CHILD_EVENTS: EventDef[] = [
   },
   {
     id: 'parents_argue',
+    severe: true,
     stage: 'child',
     major: true,
     cooldown: 5,

@@ -5,6 +5,7 @@ import { assignJob, canWorkFullTime, homeParents, makeAdultStranger, makeBaby, p
 import { fullTimePay, householdBudget, partTimePay } from './budget';
 import { capacityOf, loanPayment } from './finance';
 import { accrueWorkingYear, contributionFor, drawdown } from './retirement';
+import { deathGuard, financeGuard } from './tutorial';
 import { SAVINGS_RETURN, SAVINGS_VOLATILITY } from '../content/retirement';
 import { INVEST_RETURN, INVEST_VOLATILITY } from '../content/finance';
 import { autoComeOfAge, die, isCloseKin, marry, moveOut, receptiveness, retire } from './family';
@@ -58,7 +59,7 @@ export function applyPlan(s: GameState, rng: Rng): number {
     me.workPerf = Math.round(clamp(me.workPerf + (work - req) * 12 + (work >= req ? 4 : -8) + rng.int(-5, 5), 0, 100));
     stat(me, 'stress', (c.stress * work) / req + Math.max(0, work - req) * 4);
     me.jobYears++;
-    if (me.workPerf < 10) {
+    if (me.workPerf < 10 && !financeGuard(s)) {
       journal(s, `You were let go from your job as a ${c.name}.`, 'bad');
       me.jobId = undefined;
       pay *= 0.5;
@@ -456,7 +457,7 @@ export function runHealth(s: GameState, rng: Rng) {
     if (a > 35) stat(p, 'fitness', -1.5);
     // A recent doctor check-up catches problems early.
     const checked = p.flags.checkup_year !== undefined && s.year - p.flags.checkup_year <= 1;
-    if (rng.chance(deathChance(a, p.stats.health) * (checked ? 0.75 : 1))) {
+    if (!deathGuard(s, p) && rng.chance(deathChance(a, p.stats.health) * (checked ? 0.75 : 1))) {
       die(s, p, a >= 75 ? 'old age' : p.stats.health < 40 ? 'illness' : 'a sudden accident');
     }
   }

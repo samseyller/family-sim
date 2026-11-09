@@ -29,6 +29,9 @@ test('a full year with only a controller', async ({ page }, info) => {
   await page.goto('/');
   await page.evaluate(() => indexedDB.deleteDatabase('family-sim'));
   await page.reload();
+  // First-ever game: the guided life is offered first; move down to a regular new family.
+  await expect(page.getByRole('button', { name: /guided first life/i })).toBeFocused();
+  await tap(page, DOWN);
   await expect(page.getByRole('button', { name: /start a new family/i })).toBeFocused();
 
   await tap(page, A); // start a new family → naming dialog

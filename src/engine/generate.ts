@@ -5,11 +5,12 @@ import { makeRng, type Rng } from './rng';
 import { inheritLooks, randomLooks } from './genome';
 import { CARS } from '../content/finance';
 import { CONTRIBUTION_OPTIONS } from '../content/retirement';
+import { TUTORIAL_SEED, TUTORIAL_START_AGE, scheduleScript } from './tutorial';
 import type { GameState, Household, Looks, Person, Plan, Trait } from './types';
 import { adjustBond, ageOf, alive, cleanName, kidsAtHome, newId, parentsOf, partnerOf, active } from './util';
 
-export const SCHEMA_VERSION = 8;
-export const RULES_VERSION = '0.7.0';
+export const SCHEMA_VERSION = 9;
+export const RULES_VERSION = '0.8.0';
 export const START_YEAR = 2026;
 
 const TRAITS: Trait[] = ['ambitious', 'kind', 'stubborn', 'curious', 'anxious', 'easygoing', 'creative', 'athletic'];
@@ -248,11 +249,14 @@ export interface StartNames {
 }
 
 /** Start a new family, optionally with a player-chosen first name and family name. */
-export function newGame(seed: number, start: "adult" | "child" = "adult", names?: StartNames): GameState {
+export type StartKind = "adult" | "child" | "guided";
+
+export function newGame(seed: number, start: StartKind = "adult", names?: StartNames): GameState {
   return applyNames(generateGame(seed, start), names);
 }
 
-function generateGame(seed: number, start: "adult" | "child"): GameState {
+function generateGame(seed: number, start: StartKind): GameState {
+  if (start === "guided") return newGuidedGame();
   if (start === "child") return newChildGame(seed);
   const s: GameState = {
     schemaVersion: SCHEMA_VERSION,
@@ -467,3 +471,24 @@ export function seedWorkHistory(p: Person, year: number) {
 }
 
 const salaryOfLevel = (c: Career, level: number) => Math.round(c.salary * (1 + 0.3 * (level - 1)));
+
+/**
+ * The guided first playthrough: always the same family. You're 18, just out of high school,
+ * living with your working parents (and a sibling). Scripted beats and guardrails live in tutorial.ts.
+ */
+export function newGuidedGame(): GameState {
+  const s = newChildGame(TUTORIAL_SEED);
+  const AGE_UP = TUTORIAL_START_AGE - 6;
+  for (const p of Object.values(s.people)) p.birthYear -= AGE_UP;
+  for (const ps of s.partnerships) ps.startYear -= AGE_UP;
+  const me = active(s);
+  me.stats.smarts = 58;
+  me.stats.health = 85;
+  me.fund = 4000;
+  for (const p of Object.values(s.people)) seedWorkHistory(p, s.year);
+  s.journal = [{ year: s.year, text: `Your story begins as ${me.firstName} ${me.lastName}, age ${TUTORIAL_START_AGE}, fresh out of high school.`, kind: 'major', who: me.id }];
+  s.tutorial = { personId: me.id, seen: [] };
+  scheduleScript(s, me);
+  s.plan = defaultPlan(s);
+  return s;
+}

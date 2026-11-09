@@ -13,6 +13,7 @@ import { defaultPlan, sanitizePlan } from './generate';
 import { applyPlan, driftBonds, runEconomy, runHealth, runPeople } from './systems';
 import { generateEvents, resolveEvent } from './events';
 import { strategyPlan } from './strategies';
+import { applyCushion } from './tutorial';
 import { autoComeOfAge, die, settleEstates } from './family';
 import { active, ageOf, alive, childrenOf, fullName, journal, partnerOf } from './util';
 
@@ -60,6 +61,7 @@ export function resolveYear(state: GameState): GameState {
 
   const pay = applyPlan(s, rng); // 1. planned actions + job intents
   runEconomy(s, pay, rng); //       2. income, expenses, wallets, investments
+  applyCushion(s); //                  (guided playthrough: no ruin before 24)
   runPeople(s, rng); //             3. births, kids, NPC decisions
   driftBonds(s); //                 4. relationship drift
   runHealth(s, rng); //             6. aging effects, deaths at year end

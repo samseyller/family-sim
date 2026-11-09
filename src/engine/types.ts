@@ -226,6 +226,8 @@ export interface GameState {
   activityLog?: { year: number; id: string }[];
   /** Result of the most recent activity, shown on its outcome card. */
   lastActivity?: ActivityResult;
+  /** Guided first playthrough: who is being guided, and which tips have been seen. */
+  tutorial?: { personId: string; seen: string[] };
 }
 
 export interface ActivityResult {

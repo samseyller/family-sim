@@ -10,6 +10,7 @@ import {
   parentsOf, partnerOf, stat,
 } from './util';
 import { homeParents } from './generate';
+import { unlockedTabs } from './tutorial';
 
 // ── Energy ───────────────────────────────────────────────────────────
 
@@ -427,6 +428,7 @@ export function activityBlocker(s: GameState, id: string, ids: string[] = []): s
   const def = ACTIVITY_BY_ID[id];
   if (!def) return 'Unknown activity.';
   if (s.phase !== 'PLANNING') return 'Activities happen while planning.';
+  if (!unlockedTabs(s).includes('activities')) return 'Activities open at 30.';
   const me = active(s);
   const age = ageOf(me, s.year);
   const [lo, hi] = def.ages ?? [18, 120];

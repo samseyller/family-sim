@@ -2,20 +2,21 @@ import { useState } from 'react';
 import { FEMALE_NAMES, LAST_NAMES, MALE_NAMES } from '../../content/names';
 import { NAME_MAX } from '../../engine/util';
 import { useGame } from '../../store/gameStore';
+import type { StartKind } from '../../engine/generate';
 import { Modal } from '../components';
 
 const pick = <T,>(arr: readonly T[]) => arr[Math.floor(Math.random() * arr.length)];
 
 /** Name your character and family before starting (or leave blank for random names). */
-export function NewFamilyDialog({ start, onClose }: { start: 'adult' | 'child'; onClose: () => void }) {
+export function NewFamilyDialog({ start, onClose }: { start: StartKind; onClose: () => void }) {
   const startNew = useGame((s) => s.startNew);
   const [first, setFirst] = useState('');
   const [last, setLast] = useState('');
   return (
     <Modal label="Start a new family" onClose={onClose}>
-      <h2>{start === 'child' ? '🧒 Start as a child' : '🎲 Start a new family'}</h2>
+      <h2>{start === 'guided' ? '🌱 Guided first life' : start === 'child' ? '🧒 Start as a child' : '🎲 Start a new family'}</h2>
       <p className="muted">
-        {start === 'child' ? 'Begin at 6, living with your parents.' : 'Begin in your mid-thirties with a partner and kids.'} Leave a
+        {start === 'guided' ? 'Begin at 18, fresh out of high school. The game opens up as you grow, and the worst surprises stay away while you learn.' : start === 'child' ? 'Begin at 6, living with your parents.' : 'Begin in your mid-thirties with a partner and kids.'} Leave a
         name blank for a random one.
       </p>
       <form

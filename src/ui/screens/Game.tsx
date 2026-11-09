@@ -10,6 +10,9 @@ import { ActivitiesTab } from './ActivitiesTab';
 import { ConfirmEndYear, DevPanel, EventModal, MemorialScreen, RecapModal, SuccessionScreen } from './Overlays';
 import { GameMenu, SavesPanel } from './SavesPanel';
 import { isTyping } from '../input';
+import { unlockedTabs } from '../../engine/tutorial';
+import { CoachMark, tabsWithNews } from '../CoachMark';
+import type React from 'react';
 import { AchievementsPanel, SettingsPanel } from './ProfilePanels';
 
 const TABS: { id: Tab; label: string; icon: string }[] = [
@@ -32,12 +35,14 @@ export function Game() {
       const st = useGame.getState();
       const modalOpen = !!document.querySelector('.backdrop');
       if (modalOpen) return;
+      // Number keys jump to a tab; [ and ] (controller LB/RB) cycle. Locked tabs are skipped.
+      const open = st.game ? unlockedTabs(st.game) : [];
+      const visible = TABS.filter((x) => open.includes(x.id));
       const n = Number(e.key);
-      if (n >= 1 && n <= TABS.length) setTab(TABS[n - 1].id);
-      // [ and ] (controller LB/RB) cycle tabs; m (Select) opens the menu.
-      const i = TABS.findIndex((x) => x.id === st.tab);
-      if (e.key === '[') setTab(TABS[(i + TABS.length - 1) % TABS.length].id);
-      if (e.key === ']') setTab(TABS[(i + 1) % TABS.length].id);
+      if (n >= 1 && n <= TABS.length && open.includes(TABS[n - 1].id)) setTab(TABS[n - 1].id);
+      const i = Math.max(0, visible.findIndex((x) => x.id === st.tab));
+      if (e.key === '[' && visible.length) setTab(visible[(i + visible.length - 1) % visible.length].id);
+      if (e.key === ']' && visible.length) setTab(visible[(i + 1) % visible.length].id);
       if (e.key === 'm' || e.key === 'M') setPanel('menu');
       if ((e.key === 'e' || e.key === 'E') && st.game?.phase === 'PLANNING') askEndYear(true);
     };
@@ -49,6 +54,9 @@ export function Game() {
   if (g.phase === 'GAME_OVER') return <MemorialScreen g={g} />;
   const me = active(g);
   const hh = g.households[me.householdId];
+  const open = unlockedTabs(g);
+  const shown: Tab = open.includes(tab) ? tab : 'home';
+  const news = tabsWithNews(g);
 
   return (
     <div className="app">
@@ -62,19 +70,21 @@ export function Game() {
       </header>
 
       <main className="content">
-        {tab === 'home' && <HomeTab g={g} />}
-        {tab === 'plan' && (g.phase === 'PLANNING' ? <PlanTab g={g} /> : <p className="muted center">The year is resolving…</p>)}
-        {tab === 'family' && <FamilyTab g={g} />}
-        {tab === 'journal' && <JournalTab g={g} />}
-        {tab === 'money' && <MoneyTab g={g} />}
-        {tab === 'activities' && <ActivitiesTab g={g} />}
+        <CoachMark g={g} tab={shown} />
+        {shown === 'home' && <HomeTab g={g} />}
+        {shown === 'plan' && (g.phase === 'PLANNING' ? <PlanTab g={g} /> : <p className="muted center">The year is resolving…</p>)}
+        {shown === 'family' && <FamilyTab g={g} />}
+        {shown === 'journal' && <JournalTab g={g} />}
+        {shown === 'money' && <MoneyTab g={g} />}
+        {shown === 'activities' && <ActivitiesTab g={g} />}
       </main>
 
-      <nav className="tabbar" aria-label="Sections">
-        {TABS.map((t, i) => (
-          <button key={t.id} className={tab === t.id ? 'on' : ''} aria-current={tab === t.id ? 'page' : undefined} onClick={() => setTab(t.id)}>
+      <nav className="tabbar" aria-label="Sections" style={{ '--tabs': open.length } as React.CSSProperties}>
+        {TABS.map((t, i) => open.includes(t.id) && (
+          <button key={t.id} className={shown === t.id ? 'on' : ''} aria-current={shown === t.id ? 'page' : undefined} onClick={() => setTab(t.id)}>
             <span aria-hidden>{t.icon}</span>
             <span>{t.label}</span>
+            {news.includes(t.id) && <span className="new-dot" aria-label="new" />}
             <kbd className="kbd-hint">{i + 1}</kbd>
           </button>
         ))}
