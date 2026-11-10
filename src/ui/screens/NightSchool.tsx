@@ -1,4 +1,4 @@
-import { PROGRAMS } from '../../content/careers';
+import { PROGRAMS, programBlocker } from '../../content/careers';
 import { TIME_BUDGET } from '../../content/actions';
 import type { GameState, Plan, Program } from '../../engine/types';
 import { active, ageOf, money } from '../../engine/util';
@@ -48,6 +48,7 @@ export function NightSchool({ g, left }: { g: GameState; left: number }) {
   }
 
   const enrolling = intent?.kind === 'enroll' ? intent.program : undefined;
+  const age = ageOf(me, g.year);
   const options = (Object.values(PROGRAMS)).filter((p) => !me.flags[p.id]);
   if (!options.length) return null;
   return (
@@ -55,13 +56,14 @@ export function NightSchool({ g, left }: { g: GameState; left: number }) {
       <summary>{enrolling ? `Enrolling: ${PROGRAMS[enrolling].short}` : '🎓 Night school'}</summary>
       <div className="job-list">
         {options.map((p) => {
-          const ok = me.stats.smarts >= p.minSmarts;
+          const why = programBlocker(me, p, age);
+          const ok = !why;
           const on = enrolling === p.id;
           return (
             <button key={p.id} className={on ? 'job on' : 'job'} disabled={!ok} aria-pressed={on}
               onClick={() => set((pl) => { pl.eduIntent = on ? undefined : { kind: 'enroll', program: p.id as Program }; })}>
               <span>{p.icon} {p.short}</span>
-              <span className="hint">{ok ? `${p.required} blocks total · ${money(p.tuition)}/yr` : `needs smarts ${p.minSmarts}+`}</span>
+              <span className="hint">{ok ? `${p.desc} · ${p.required} blocks total · ${money(p.tuition)}/yr` : why}</span>
             </button>
           );
         })}
@@ -70,7 +72,7 @@ export function NightSchool({ g, left }: { g: GameState; left: number }) {
         <Stepper label="Night school" icon="🎓" value={study} max={TIME_BUDGET} disabledPlus={left <= 0} onChange={setStudy}
           hint={`Blocks this year toward ${PROGRAMS[enrolling].required}`} />
       )}
-      <p className="hint">Study while you work. Unlocks careers that need a degree or trade certificate.</p>
+      <p className="hint">Study while you work. Degrees, trade certificates, and licenses (pilot, captain) open new careers.</p>
     </details>
   );
 }

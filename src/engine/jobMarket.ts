@@ -11,6 +11,7 @@
 import { CAREERS, type Career, type JobSlot } from '../content/careers';
 import { CITIES, type CityId } from '../content/cities';
 import { cityOf } from './location';
+import { isCoastal } from './hobbies';
 import { makeRng } from './rng';
 import type { GameState, Person } from './types';
 import { active } from './util';
@@ -56,7 +57,8 @@ function sample<T>(rng: ReturnType<typeof makeRng>, items: T[], weight: (t: T) =
 export function listings(seed: number, city: CityId, year: number, slot: JobSlot): Career[] {
   const cycle = cycleOf(year);
   const rng = makeRng(hash(`${seed}:${city}:${cycle}:${slot}`));
-  const all = CAREERS.filter((c) => c.hours === slot);
+  // Some careers only hire in coastal cities (charter fishing).
+  const all = CAREERS.filter((c) => c.hours === slot && (!c.coastal || isCoastal(city)));
   let open = sample(rng, all, (c) => demand(city, c), OPENINGS[slot]);
   if (!open.some(isEntry)) open.push(sample(rng, all.filter(isEntry), (c) => demand(city, c), 1)[0]);
   // Later in the cycle, some openings are filled (never the last entry-level one).

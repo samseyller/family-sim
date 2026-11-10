@@ -93,7 +93,7 @@ export function annuityPayment(principal: number, rate: number, years: number) {
 export const COLLEGE_FUND_CAP = 500_000;
 
 /** Luxury upgrades for a home you own. Costs scale with the city's living index. */
-export type UpgradeId = 'pool' | 'hot_tub' | 'home_gym' | 'theater' | 'workshop' | 'security' | 'expansion';
+export type UpgradeId = 'pool' | 'hot_tub' | 'home_gym' | 'theater' | 'workshop' | 'security' | 'studio' | 'chef_kitchen' | 'greenhouse' | 'garage_lift' | 'expansion';
 export interface UpgradeDef {
   label: string;
   icon: string;
@@ -111,7 +111,11 @@ export const HOME_UPGRADES: Record<UpgradeId, UpgradeDef> = {
   hot_tub: { label: 'Hot tub', icon: '♨️', cost: 12000, upkeep: 900, value: 4000, max: 1, desc: 'Less stress for the adults' },
   home_gym: { label: 'Home gym', icon: '🏋️', cost: 9000, upkeep: 300, value: 2000, max: 1, desc: 'Fitness for everyone at home, every year' },
   theater: { label: 'Home theater', icon: '🍿', cost: 28000, upkeep: 400, value: 8000, max: 1, desc: 'Movie nights: happiness and family bonds' },
-  workshop: { label: 'Workshop', icon: '🧰', cost: 15000, upkeep: 300, value: 6000, max: 1, desc: 'A place to build things; less stress' },
+  workshop: { label: 'Workshop', icon: '🧰', cost: 15000, upkeep: 300, value: 6000, max: 1, desc: 'Woodworking practice twice as fast; less stress' },
+  studio: { label: 'Home studio', icon: '🎙️', cost: 25000, upkeep: 400, value: 5000, max: 1, desc: 'Music practice 50% faster' },
+  chef_kitchen: { label: "Chef's kitchen", icon: '🍳', cost: 40000, upkeep: 600, value: 25000, max: 1, desc: 'Cooking practice 50% faster; great dinner parties' },
+  greenhouse: { label: 'Greenhouse', icon: '🌿', cost: 15000, upkeep: 400, value: 6000, max: 1, desc: 'Gardening practice 50% faster, year round' },
+  garage_lift: { label: 'Garage lift and tools', icon: '🛠️', cost: 12000, upkeep: 200, value: 3000, max: 1, desc: 'Mechanics practice 50% faster (needs a garage)' },
   security: { label: 'Security system', icon: '🔒', cost: 3000, upkeep: 400, value: 0, max: 1, desc: 'Break-ins become much less likely' },
   expansion: { label: 'Home addition', icon: '🧱', cost: 80000, upkeep: 1200, value: 60000, max: 3, desc: 'One more bedroom: +1 person fits' },
 };

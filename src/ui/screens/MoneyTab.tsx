@@ -11,6 +11,7 @@ import { Section } from '../components';
 import { LifestylePicker } from './LifestylePicker';
 import { RetirementCard } from './RetirementCard';
 import { CarsSection } from './CarsSection';
+import { GearSection } from './GearSection';
 import { garageOf, parkingSpots } from '../../engine/cars';
 import { HouseholdCard } from './HouseholdCard';
 import { CitySection } from './CitySection';
@@ -174,6 +175,8 @@ export function MoneyTab({ g }: { g: GameState }) {
       </Section>
 
       <CarsSection g={g} Act={Act} />
+
+      <GearSection g={g} Act={Act} />
 
       <RetirementCard g={g} Act={Act} />
 

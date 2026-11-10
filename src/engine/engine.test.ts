@@ -178,9 +178,9 @@ describe('part-time jobs', () => {
     expect(meA.stats.stress).toBeGreaterThan(b.people[b.activeId].stats.stress);
   });
 
-  it('part-time jobs have no degree or trade-cert requirements', async () => {
+  it('part-time jobs need no degree or trade certificate (a pilot license is fine for instructors)', async () => {
     const { CAREERS } = await import('../content/careers');
-    for (const c of CAREERS.filter((x) => x.hours === 'part')) expect(c.requires).toBeUndefined();
+    for (const c of CAREERS.filter((x) => x.hours === 'part')) expect(['degree', 'trade_cert', 'top_degree']).not.toContain(c.requires);
   });
 
   it('one intent per job slot; apply for part-time while keeping full-time', () => {

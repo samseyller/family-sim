@@ -1,6 +1,6 @@
 # Plan: hobby → training → gear → career paths
 
-Status: plan agreed in principle; not built yet. Goal: let a passion grow into a lifestyle, and
+Status: **built** (framework and all paths; see README → Hobby career paths). Balance pass still to do. Goal: let a passion grow into a lifestyle, and
 into a **real alternative to university**: challenging, with real costs along the way, but a
 genuine way to make a living.
 

@@ -6,7 +6,9 @@ import { canWorkFullTime, homeParents } from '../../engine/generate';
 import { NightSchool } from './NightSchool';
 import { active, activePartnership, ageOf, kidsAtHome, membersOf, money, partnerOf } from '../../engine/util';
 import { ACTION_BY_ID, COSTS, FUND_OPTIONS, HOBBIES, HOBBY_BY_ID, TIME_BUDGET, defaultChildPlan } from '../../content/actions';
-import { CAREERS, CAREER_BY_ID, PART_TIME_MAX, qualifies, requiredBlocks, salaryOf, type JobSlot } from '../../content/careers';
+import { CAREERS, CAREER_BY_ID, PART_TIME_MAX, qualifies, requiredBlocks, salaryOf, titleOf, type JobSlot } from '../../content/careers';
+import { GEAR } from '../../content/gear';
+import { HobbyPicker, practiceHint } from './HobbyPicker';
 import { receptiveness, receptivenessLabel } from '../../engine/family';
 import { useGame } from '../../store/gameStore';
 import { Avatar } from '../Avatar';
@@ -86,7 +88,7 @@ export function PlanTab({ g }: { g: GameState }) {
         <div className="label">Full-time</div>
         {canWork ? (
           <>
-            <Stepper label={`${job!.name} · ${money(salaryOf(job!, me.jobLevel))}/yr`} icon={job!.icon} hint={workHint} value={work} max={TIME_BUDGET} disabledPlus={left <= 0} onChange={(n) => setAlloc('work', n)} />
+            <Stepper label={`${titleOf(job!, me.jobLevel)} · ${money(salaryOf(job!, me.jobLevel))}/yr`} icon={job!.icon} hint={workHint} value={work} max={TIME_BUDGET} disabledPlus={left <= 0} onChange={(n) => setAlloc('work', n)} />
             <div className="row">
               <span className="muted">Career: {me.workPerf}/100</span>
               <button className={quitting('full') ? 'small danger on' : 'small'} aria-pressed={quitting('full')}
@@ -161,7 +163,8 @@ export function PlanTab({ g }: { g: GameState }) {
         {step('exercise', ACTION_BY_ID.exercise.label, ACTION_BY_ID.exercise.icon, me.flags.health_vow ? 'Extra effective since your health scare' : 'Fitness, health; less stress')}
         {step('relax', ACTION_BY_ID.relax.label, ACTION_BY_ID.relax.icon, 'Less stress, more happiness')}
         {step('learn', isMinor ? 'Study' : ACTION_BY_ID.learn.label, isMinor ? '🎒' : ACTION_BY_ID.learn.icon, isMinor ? `Better grades; smarts up${gpaOf(me) !== undefined ? ` · GPA ${gpaOf(me)!.toFixed(2)}` : ''}` : 'Smarts: opens better careers')}
-        {me.hobby && step('practice', `Practice ${HOBBY_BY_ID[me.hobby].label.toLowerCase()}`, HOBBY_BY_ID[me.hobby].icon, 'Skill up; it can become a career')}
+        {me.hobby && step('practice', `Practice ${HOBBY_BY_ID[me.hobby].label.toLowerCase()} (skill ${me.skills[me.hobby] ?? 0})`, HOBBY_BY_ID[me.hobby].icon, practiceHint(g))}
+        <HobbyPicker g={g} />
         {step('socialize', isMinor ? 'Friends' : ACTION_BY_ID.socialize.label, isMinor ? '🛝' : ACTION_BY_ID.socialize.icon, isMinor ? 'Make friends; happiness up' : partner ? 'Happiness up, less stress' : 'Happiness up; more likely to meet someone')}
         <p className="hint">Each extra block on the same thing is worth a bit less.</p>
         <NightSchool g={g} left={left} />
@@ -274,8 +277,11 @@ export function PlanTab({ g }: { g: GameState }) {
 
 function requirement(c: (typeof CAREERS)[number]) {
   const parts: string[] = [];
-  if (c.requires) parts.push(c.requires === 'degree' ? 'needs a degree' : 'needs a trade cert');
+  const CRED: Record<string, string> = { degree: 'a degree', trade_cert: 'a trade cert', top_degree: 'a top-university degree', ppl: 'a pilot license', cpl: 'a commercial pilot license', captains_license: "a captain's license" };
+  if (c.requires) parts.push(`needs ${CRED[c.requires]}`);
   if (c.minSmarts) parts.push(`smarts ${c.minSmarts}+`);
   if (c.skill) parts.push(`${c.skill} skill ${c.minSkill}+`);
+  if (c.needsGear) parts.push(`your own ${GEAR[c.needsGear].label.toLowerCase()}`);
+  if (c.startup) parts.push(`${money(c.startup)} to start`);
   return parts.join(', ');
 }

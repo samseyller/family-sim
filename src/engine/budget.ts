@@ -12,6 +12,7 @@ import { commuters, fundRoom, homeOf, loanPayment, rentIn, rentTierOf } from './
 import { streetParkingCost, workingCars } from './cars';
 import { petCosts } from './dogs';
 import { tuitionFor } from './school';
+import { practiceCostPerBlock } from './hobbies';
 import { cityDef, cityOfHousehold } from './location';
 import { TRANSIT_BY_CITY } from '../content/cities';
 import { CAREER_BY_ID, PART_TIME_MAX, PROGRAMS, requiredBlocks, salaryOf, type Career } from '../content/careers';
@@ -136,13 +137,14 @@ export function householdBudget(s: GameState, householdId: string, activePay: nu
   const surcharge = householdId === me.householdId && s.year - (me.flags.car_claim_year ?? -99) < 3 ? 1.3 : 1;
   add(exp, 'Car insurance', Math.round(workingCars(hh).length * living(CAR_INSURANCE) * surcharge));
   for (const a of hh.assets) {
-    add(exp, a.kind === 'house' ? 'Home upkeep' : 'Car upkeep', a.upkeep);
+    add(exp, a.kind === 'house' ? 'Home upkeep' : a.kind === 'gear' ? 'Gear upkeep' : 'Car upkeep', a.upkeep);
     if (a.mortgage > 0) add(exp, a.kind === 'house' ? 'Mortgage' : 'Car loan', loanPayment(a));
   }
 
   const isActiveHome = householdId === me.householdId;
   if (isActiveHome) {
     add(exp, 'Family outings', (s.plan.alloc.family_outing ?? 0) * 1500);
+    add(exp, 'Hobby costs', (s.plan.alloc.practice ?? 0) * practiceCostPerBlock(s, me));
     for (const kid of kidsAtHome(s, me)) {
       const cp = s.plan.children[kid.id];
       if (cp?.tutoring) add(exp, "Kids' tutoring & lessons", COSTS.tutoring);

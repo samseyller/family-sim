@@ -1,6 +1,7 @@
 import { HOBBY_BY_ID, TIME_BUDGET } from '../content/actions';
 import { CHILD_EVENTS } from './childhood';
 import { LIFE_EVENTS, setEnqueue } from './lifeEvents';
+import { HOBBY_EVENTS } from './hobbyEvents';
 import { FEMALE_NAMES, MALE_NAMES } from '../content/names';
 import { annuityPayment, HOMES, MORTGAGE_RATE, MORTGAGE_YEARS, SCRAP_VALUE } from '../content/finance';
 import { breakdownChance, carAge, conditionOf, garagedIds, repairCost, shakiestCar } from './cars';
@@ -29,7 +30,8 @@ const bigRepair = (car: Asset) => repairCost(car) * 3;
 import { readiness } from './retirement';
 import { guidedPerson, scriptedPhase, severeGuard } from './tutorial';
 import { FULL_RETIREMENT_AGE } from '../content/retirement';
-import { CAREERS, CAREER_BY_ID, LEVEL_TITLES, PROGRAMS, qualifies, requiredBlocks, salaryOf } from '../content/careers';
+import { CAREERS, CAREER_BY_ID, LEVEL_TITLES, PROGRAMS, qualifies, requiredBlocks, salaryOf, titleOf } from '../content/careers';
+import { hasLadder, promoSkillFor } from './hobbies';
 import { assignJob, makeAdultStranger, makePerson, pickCareer } from './generate';
 import {
   breakUp, divorce, homeEquityShare, marry, mergeHouseholds, moveOut, partnerInHome, preferredPath, receptiveness,
@@ -94,13 +96,14 @@ const EVENTS: EventDef[] = [
     id: 'promotion_offer',
     major: true,
     cooldown: 3,
-    candidates: (c) => one(!!c.me.jobId && c.me.jobLevel < 3 && c.me.workPerf >= 65 && c.me.jobYears >= 2, 4),
+    // Hobby-based careers also need enough skill for the next rank; flat-pay businesses don't promote.
+    candidates: (c) => one(!!c.me.jobId && c.me.jobLevel < 3 && c.me.workPerf >= 65 && c.me.jobYears >= 2 && canPromote(c.me), 4),
     build: (c) => {
       const job = CAREER_BY_ID[c.me.jobId!];
       const lvl = c.me.jobLevel + 1;
       return {
         title: 'A promotion on the table',
-        text: `Your manager offers you the ${LEVEL_TITLES[lvl]} ${job.name} role. Pay rises to ${money(salaryOf(job, lvl))}, but it expects ${requiredBlocks(job, lvl)} blocks of your time each year instead of ${requiredBlocks(job, c.me.jobLevel)}.`,
+        text: `You're offered the ${titleOf(job, lvl)} role. Pay rises to ${money(salaryOf(job, lvl))}, but it expects ${requiredBlocks(job, lvl)} blocks of your time each year instead of ${requiredBlocks(job, c.me.jobLevel)}.`,
         choices: [
           { id: 'accept', label: 'Accept the promotion', hint: 'More money, less time for everything else' },
           { id: 'decline', label: 'Decline politely', hint: 'Keep your current balance' },
@@ -1454,7 +1457,7 @@ const GUIDED_KID: EventDef = {
   },
 };
 
-const ALL_EVENTS: EventDef[] = [...EVENTS, ...CHILD_EVENTS, ...LIFE_EVENTS, NAME_BABY, GUIDED_KID];
+const ALL_EVENTS: EventDef[] = [...EVENTS, ...CHILD_EVENTS, ...LIFE_EVENTS, ...HOBBY_EVENTS, NAME_BABY, GUIDED_KID];
 
 export const EVENT_BY_ID: Record<string, EventDef> = Object.fromEntries(ALL_EVENTS.map((e) => [e.id, e]));
 
@@ -1555,3 +1558,11 @@ export function resolveEvent(s: GameState, rng: Rng, pe: PendingEvent, choiceId:
 }
 
 setEnqueue(enqueue);
+
+/** Ready for the next rank: the career has one, and any hobby skill it needs is there. */
+function canPromote(p: Person) {
+  const job = p.jobId ? CAREER_BY_ID[p.jobId] : undefined;
+  if (!job || !hasLadder(job)) return false;
+  const need = promoSkillFor(job, p.jobLevel);
+  return !need || (job.skill ? p.skills[job.skill] ?? 0 : 0) >= need;
+}

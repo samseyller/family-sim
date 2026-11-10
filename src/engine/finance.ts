@@ -9,10 +9,12 @@ import {
   RENOVATION, RENTALS, SELL_COSTS, type CarKind, type HomeTier, type RentTier,
 } from '../content/finance';
 import type { Asset, GameState, Household, Person } from './types';
-import { financeable, garageOf, makeCar, parkingSpots } from './cars';
+import { financeable, garageOf, makeCar, parkingFree, parkingSpots } from './cars';
 import { cityName, cityOfHousehold, homePriceIn, homeUpkeepIn, rentIn } from './location';
 import { CITIES, RELOCATION, type CityId } from '../content/cities';
 import { runsHousehold } from './household';
+import { gearBlocker, makeGear } from './hobbies';
+import type { GearId } from '../content/gear';
 import { retirePerson } from './retirement';
 import { unlockedTabs } from './tutorial';
 import { sanitizePlan } from './generate';
@@ -27,6 +29,8 @@ export type FinanceAction =
   | { kind: 'buildGarage' }
   | { kind: 'upgradeHome'; upgrade: UpgradeId }
   | { kind: 'floodInsurance'; on: boolean }
+  | { kind: 'buyGear'; gear: GearId }
+  | { kind: 'sellGear'; assetId: string }
   | { kind: 'payLoan'; assetId: string; amount: number }
   | { kind: 'buyCar'; car: CarKind; financed: boolean }
   | { kind: 'sellCar'; assetId: string }
@@ -93,8 +97,13 @@ export function financeBlocker(s: GameState, a: FinanceAction): string | null {
       const u = HOME_UPGRADES[a.upgrade];
       if (!u) return 'Unknown upgrade.';
       if (upgradeCount(home, a.upgrade) >= u.max) return u.max === 1 ? 'You already have one.' : `At most ${u.max}.`;
+      if (a.upgrade === 'garage_lift' && garageOf(home) < 1) return 'Needs a garage (add a garage space first).';
       return hh.wallet < upgradeCost(a.upgrade, cityOfHousehold(hh)) ? `Costs ${money(upgradeCost(a.upgrade, cityOfHousehold(hh)))}.` : null;
     }
+    case 'buyGear':
+      return gearBlocker(s, a.gear, parkingFree(hh));
+    case 'sellGear':
+      return hh.assets.some((x) => x.id === a.assetId && x.kind === 'gear') ? null : 'No such gear.';
     case 'floodInsurance':
       if (!home) return 'Flood insurance is for a home you own.';
       return !!hh.floodInsurance === a.on ? (a.on ? 'Already insured.' : 'Not insured.') : null;
@@ -112,7 +121,7 @@ export function financeBlocker(s: GameState, a: FinanceAction): string | null {
     }
     case 'buyCar':
       if (!CARS[a.car]) return 'No such car.';
-      if (carsOf(hh).length >= parkingSpots(hh)) return `No parking left (${parkingSpots(hh)} spots). Sell a car or add a garage.`;
+      if (parkingFree(hh) <= 0) return `No parking left (${parkingSpots(hh)} spots). Sell a car or add a garage.`;
       if (a.financed && !financeable(a.car)) return 'Loans are only for new cars.';
       return !a.financed && hh.wallet < CARS[a.car].price ? `You need ${money(CARS[a.car].price)}.`
         : a.financed && hh.wallet < CARS[a.car].price * 0.1 ? `A loan needs ${money(CARS[a.car].price * 0.1)} down.` : null;
@@ -182,6 +191,21 @@ export function financeAction(state: GameState, a: FinanceAction): GameState {
       home!.value += Math.round(u.value * CITIES[cityOfHousehold(hh)].housing);
       for (const m of membersOf(s, hh.id)) stat(m, 'happiness', 5);
       journal(s, `You added ${u.label.toLowerCase() === 'home addition' ? 'an addition to the house' : `a ${u.label.toLowerCase()}`} (${money(cost)}).`, 'good');
+      break;
+    }
+    case 'buyGear': {
+      const item = makeGear(s, a.gear);
+      hh.wallet -= item.value;
+      hh.assets.push(item);
+      stat(me, 'happiness', 6);
+      journal(s, `You bought a ${item.name.toLowerCase()} (${money(item.value)}).`, 'good');
+      break;
+    }
+    case 'sellGear': {
+      const item = hh.assets.find((x) => x.id === a.assetId)!;
+      hh.wallet += item.value;
+      hh.assets = hh.assets.filter((x) => x !== item);
+      journal(s, `You sold the ${item.name.toLowerCase()} for ${money(item.value)}.`, 'info');
       break;
     }
     case 'floodInsurance':

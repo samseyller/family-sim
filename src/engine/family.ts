@@ -3,6 +3,7 @@ import { ESTATE_EXEMPTION, ESTATE_TAX_RATE } from '../content/economy';
 import { makeHousehold } from './generate';
 import { headOf, moverGroup, shareOf, splitOff } from './household';
 import { otherCity } from './location';
+import { passDownGear } from './hobbies';
 import { admissionGpa, enroll } from './school';
 import type { Rng } from './rng';
 import type { GameState, Person } from './types';
@@ -252,9 +253,11 @@ export function settleEstates(s: GameState) {
     if (hh.settled) continue;
     const everyone = Object.values(s.people).filter((p) => p.householdId === hh.id);
     if (!everyone.length || everyone.some(alive)) continue;
-    const estate = hh.wallet + (hh.investments ?? 0) + hh.assets.reduce((sum, a) => sum + a.value - a.mortgage, 0);
+    const estate = hh.wallet + (hh.investments ?? 0) + hh.assets.filter((a) => a.kind !== 'gear' || !hasHeir(s, everyone, hh.id)).reduce((sum, a) => sum + a.value - a.mortgage, 0);
     const heirs = new Map<string, Person>();
     for (const d of everyone) for (const c of childrenOf(s, d.id)) if (alive(c) && c.householdId !== hh.id) heirs.set(c.id, c);
+    // Hobby gear (the family boat, plane, project car) passes down to one heir rather than being sold.
+    passDownGear(s, hh, [...heirs.values()]);
     hh.settled = true;
     hh.wallet = 0;
     hh.investments = 0;
@@ -325,3 +328,8 @@ export const householdSize = (s: GameState, p: Person) => membersOf(s, p.househo
 
 /** Tax on the part of an estate above the exemption. */
 export const estateTax = (estate: number) => Math.round(Math.max(0, estate - ESTATE_EXEMPTION) * ESTATE_TAX_RATE);
+
+/** Does anyone in this (emptied) household have a living child elsewhere to inherit? */
+function hasHeir(s: GameState, everyone: Person[], householdId: string) {
+  return everyone.some((d) => childrenOf(s, d.id).some((c) => alive(c) && c.householdId !== householdId));
+}

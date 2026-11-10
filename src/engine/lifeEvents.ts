@@ -12,7 +12,7 @@
  */
 import { CITIES } from '../content/cities';
 import { DEDUCTIBLE } from '../content/economy';
-import { allCars, makeCar, parkingSpots, workingCars } from './cars';
+import { makeCar, parkingFree, workingCars } from './cars';
 import type { Ctx, EventDef } from './events';
 /** Queue a follow-up decision this year; registered by events.ts (avoids a circular import). */
 let enqueue: (c: Ctx, id: string, subject?: Person) => void = () => {};
@@ -152,7 +152,7 @@ export const LIFE_EVENTS: EventDef[] = [
     cooldown: 0,
     candidates: (c) => kidsAtHome(c.s, c.me).filter((k) => isMine(c.me, k) && age(c, k) >= 16 && !k.flags.car_talk).slice(0, 1).map((k) => ({ subject: k, weight: 4, urgent: false })),
     build: (c, k) => {
-      const room = allCars(wallet(c)).length < parkingSpots(wallet(c));
+      const room = parkingFree(wallet(c)) > 0;
       const why = room ? undefined : 'No parking spot left';
       return {
         title: `${k!.firstName} got their license!`,

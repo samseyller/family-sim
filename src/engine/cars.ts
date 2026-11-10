@@ -7,6 +7,7 @@
 import {
   BASE_PARKING, CAR_LOAN_RATE, CAR_LOAN_YEARS, CARS, HOMES, SCRAP_VALUE, STREET_PARKING_COST, annuityPayment, type CarKind,
 } from '../content/finance';
+import { GEAR } from '../content/gear';
 import type { Rng } from './rng';
 import type { Asset, GameState, Household } from './types';
 import { journal, money, newId } from './util';
@@ -53,7 +54,10 @@ export function garagedIds(hh: Household): Set<string> {
   return new Set([...workingCars(hh)].sort((a, b) => b.value - a.value).slice(0, n).map((a) => a.id));
 }
 /** Yearly cost of parking the cars that don't fit. */
-export const streetParkingCost = (hh: Household) => Math.max(0, allCars(hh).length - parkingSpots(hh)) * STREET_PARKING_COST;
+/** Spots in use: every car, plus trailered boats and project cars. */
+export const parkedCount = (hh: Household) => allCars(hh).length + hh.assets.filter((a) => a.kind === 'gear' && a.gear && GEAR[a.gear].parks).length;
+export const parkingFree = (hh: Household) => parkingSpots(hh) - parkedCount(hh);
+export const streetParkingCost = (hh: Household) => Math.max(0, parkedCount(hh) - parkingSpots(hh)) * STREET_PARKING_COST;
 
 // ── Wear and tear ────────────────────────────────────────────────────
 

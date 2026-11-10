@@ -1,4 +1,4 @@
-import type { Hobby, Person } from '../engine/types';
+import type { Hobby, Person, Program } from '../engine/types';
 
 export type JobSlot = 'full' | 'part';
 
@@ -19,7 +19,21 @@ export interface Career {
   blocks: number;
   stress: number;
   minSmarts: number;
-  requires?: 'degree' | 'trade_cert' | 'top_degree';
+  requires?: 'degree' | 'trade_cert' | 'top_degree' | 'ppl' | 'cpl' | 'captains_license';
+  /** Rank titles for levels 1–3 (instead of Junior/Senior/Lead). */
+  titles?: [string, string, string];
+  /** Pay at levels 1–3 (instead of +30% per level). */
+  levelPay?: [number, number, number];
+  /** Hobby skill needed to be promoted to levels 2 and 3. */
+  promoSkill?: [number, number];
+  /** Own business: cash needed to start it, and how much yearly income swings (0.5 = ±50%). */
+  startup?: number;
+  variance?: number;
+  /** Only hires in coastal cities, and/or needs a piece of gear you own. */
+  coastal?: boolean;
+  needsGear?: import('./gear').GearId;
+  /** Long stretches on the road at level 2+ (strains family bonds). */
+  touring?: boolean;
   skill?: Hobby;
   /** Employer pension (defined benefit) for years of service. */
   pension?: boolean;
@@ -43,15 +57,18 @@ export const CAREERS: Career[] = [
   // ── Trades (trade certificate) ──
   { id: 'electrician', name: 'Electrician', icon: '🔌', hours: 'full', sector: 'trades', salary: 58000, blocks: 4, stress: 5, minSmarts: 30, requires: 'trade_cert', pension: true },
   { id: 'plumber', name: 'Plumber', icon: '🪠', hours: 'full', sector: 'trades', salary: 62000, blocks: 4, stress: 5, minSmarts: 30, requires: 'trade_cert', pension: true },
-  { id: 'carpenter', name: 'Carpenter', icon: '🪚', hours: 'full', sector: 'trades', salary: 54000, blocks: 4, stress: 5, minSmarts: 25, requires: 'trade_cert' },
-  { id: 'mechanic', name: 'Mechanic', icon: '🔧', hours: 'full', sector: 'trades', salary: 50000, blocks: 4, stress: 4, minSmarts: 25, requires: 'trade_cert' },
-  { id: 'chef', name: 'Chef', icon: '👩‍🍳', hours: 'full', sector: 'hospitality', salary: 44000, blocks: 5, stress: 7, minSmarts: 0, requires: 'trade_cert' },
+  { id: 'carpenter', name: 'Carpenter', icon: '🪚', hours: 'full', sector: 'trades', salary: 46000, blocks: 4, stress: 5, minSmarts: 20, requires: 'trade_cert', skill: 'woodworking', minSkill: 15, titles: ['Apprentice Carpenter', 'Journeyman Carpenter', 'Master Carpenter'], levelPay: [46000, 64000, 88000], promoSkill: [40, 70] },
+  { id: 'contractor', name: 'Contractor (own business)', icon: '🏗️', hours: 'full', sector: 'trades', salary: 125000, blocks: 6, stress: 8, minSmarts: 35, requires: 'trade_cert', skill: 'woodworking', minSkill: 75, startup: 40000, variance: 0.5, titles: ['Contractor', 'Contractor', 'Contractor'], levelPay: [125000, 125000, 125000] },
+  { id: 'mechanic', name: 'Mechanic', icon: '🔧', hours: 'full', sector: 'trades', salary: 38000, blocks: 4, stress: 4, minSmarts: 20, requires: 'trade_cert', skill: 'mechanics', minSkill: 15, titles: ['Lube Tech', 'Mechanic', 'Master Technician'], levelPay: [38000, 56000, 82000], promoSkill: [35, 65] },
+  { id: 'shop_owner', name: 'Auto Shop Owner', icon: '🏪', hours: 'full', sector: 'trades', salary: 115000, blocks: 6, stress: 8, minSmarts: 35, requires: 'trade_cert', skill: 'mechanics', minSkill: 75, startup: 60000, variance: 0.5, titles: ['Shop Owner', 'Shop Owner', 'Shop Owner'], levelPay: [115000, 115000, 115000] },
+  { id: 'chef', name: 'Chef', icon: '👩‍🍳', hours: 'full', sector: 'hospitality', salary: 36000, blocks: 5, stress: 7, minSmarts: 0, skill: 'cooking', minSkill: 15, titles: ['Line Cook', 'Sous Chef', 'Head Chef'], levelPay: [36000, 54000, 85000], promoSkill: [40, 65] },
+  { id: 'restaurant_owner', name: 'Restaurant Owner', icon: '🍽️', hours: 'full', sector: 'hospitality', salary: 140000, blocks: 6, stress: 9, minSmarts: 30, skill: 'cooking', minSkill: 70, startup: 250000, variance: 0.7, titles: ['Restaurant Owner', 'Restaurant Owner', 'Restaurant Owner'], levelPay: [140000, 140000, 140000] },
   { id: 'truck_driver', name: 'Truck Driver', icon: '🚛', hours: 'full', sector: 'transport', salary: 54000, blocks: 5, stress: 6, minSmarts: 0, requires: 'trade_cert' },
   { id: 'dental_hygienist', name: 'Dental Hygienist', icon: '🦷', hours: 'full', sector: 'health', salary: 74000, blocks: 4, stress: 4, minSmarts: 45, requires: 'trade_cert' },
   { id: 'police', name: 'Police Officer', icon: '👮', hours: 'full', sector: 'government', salary: 64000, blocks: 5, stress: 8, minSmarts: 35, requires: 'trade_cert', pension: true },
   { id: 'firefighter', name: 'Firefighter', icon: '🚒', hours: 'full', sector: 'government', salary: 58000, blocks: 5, stress: 8, minSmarts: 30, requires: 'trade_cert', pension: true },
   { id: 'oil_rig', name: 'Oilfield Technician', icon: '🛢️', hours: 'full', sector: 'energy', salary: 72000, blocks: 5, stress: 7, minSmarts: 30, requires: 'trade_cert' },
-  { id: 'pilot', name: 'Airline Pilot', icon: '✈️', hours: 'full', sector: 'transport', salary: 96000, blocks: 6, stress: 7, minSmarts: 65, requires: 'trade_cert', pension: true },
+  { id: 'pilot', name: 'Pilot', icon: '✈️', hours: 'full', sector: 'transport', salary: 78000, blocks: 5, stress: 7, minSmarts: 50, requires: 'cpl', skill: 'flying', minSkill: 55, pension: true, titles: ['Commercial Pilot', 'First Officer', 'Airline Captain'], levelPay: [78000, 125000, 210000], promoSkill: [70, 85] },
   // ── University degree ──
   { id: 'nurse', name: 'Nurse', icon: '🩺', hours: 'full', sector: 'health', salary: 66000, blocks: 5, stress: 8, minSmarts: 50, requires: 'degree', pension: true },
   { id: 'teacher', name: 'Teacher', icon: '🍎', hours: 'full', sector: 'education', salary: 52000, blocks: 4, stress: 6, minSmarts: 45, requires: 'degree', pension: true },
@@ -71,7 +88,9 @@ export const CAREERS: Career[] = [
   { id: 'engineer', name: 'Engineer', icon: '🏗️', hours: 'full', sector: 'tech', salary: 112000, blocks: 5, stress: 6, minSmarts: 70, requires: 'top_degree' },
   { id: 'petroleum_engineer', name: 'Petroleum Engineer', icon: '⛽', hours: 'full', sector: 'energy', salary: 125000, blocks: 6, stress: 7, minSmarts: 72, requires: 'top_degree' },
   // ── Talent (hobby skill) ──
-  { id: 'musician', name: 'Musician', icon: '🎸', hours: 'full', sector: 'entertainment', salary: 34000, blocks: 4, stress: 3, minSmarts: 0, skill: 'music', minSkill: 55 },
+  { id: 'musician', name: 'Musician', icon: '🎸', hours: 'full', sector: 'entertainment', salary: 40000, blocks: 4, stress: 4, minSmarts: 0, skill: 'music', minSkill: 55, titles: ['Session Musician', 'Touring Musician', 'Headliner'], levelPay: [40000, 78000, 320000], promoSkill: [72, 90], touring: true },
+  { id: 'music_director', name: 'School Music Director', icon: '🎼', hours: 'full', sector: 'education', salary: 60000, blocks: 4, stress: 5, minSmarts: 45, requires: 'degree', skill: 'music', minSkill: 50, pension: true },
+  { id: 'charter_captain', name: 'Charter Captain', icon: '⛵', hours: 'full', sector: 'hospitality', salary: 90000, blocks: 5, stress: 6, minSmarts: 20, requires: 'captains_license', skill: 'fishing', minSkill: 60, needsGear: 'offshore_boat', coastal: true, variance: 0.6, titles: ['Charter Captain', 'Charter Captain', 'Charter Captain'], levelPay: [90000, 90000, 90000] },
   { id: 'coach', name: 'Sports Coach', icon: '🏅', hours: 'full', sector: 'education', salary: 47000, blocks: 4, stress: 4, minSmarts: 0, skill: 'sports', minSkill: 55, pension: true },
   { id: 'designer', name: 'Graphic Designer', icon: '🎨', hours: 'full', sector: 'creative', salary: 61000, blocks: 4, stress: 5, minSmarts: 35, skill: 'art', minSkill: 50 },
   { id: 'film_editor', name: 'Film Editor', icon: '🎬', hours: 'full', sector: 'entertainment', salary: 70000, blocks: 5, stress: 6, minSmarts: 40, skill: 'art', minSkill: 55 },
@@ -92,6 +111,10 @@ export const CAREERS: Career[] = [
   { id: 'tutor', name: 'Tutor', icon: '📝', hours: 'part', sector: 'education', salary: 21000, blocks: 2, stress: 2, minSmarts: 55 },
   { id: 'lifeguard', name: 'Lifeguard', icon: '🛟', hours: 'part', sector: 'service', salary: 14000, blocks: 2, stress: 2, minSmarts: 0, skill: 'sports', minSkill: 20 },
   { id: 'music_teacher', name: 'Music Teacher', icon: '🎹', hours: 'part', sector: 'education', salary: 19000, blocks: 2, stress: 2, minSmarts: 0, skill: 'music', minSkill: 35 },
+  { id: 'gigging', name: 'Local Gigs', icon: '🎤', hours: 'part', sector: 'entertainment', salary: 14000, blocks: 2, stress: 2, minSmarts: 0, skill: 'music', minSkill: 30 },
+  { id: 'flight_instructor', name: 'Flight Instructor', icon: '🛩️', hours: 'part', sector: 'education', salary: 26000, blocks: 2, stress: 3, minSmarts: 40, requires: 'cpl', skill: 'flying', minSkill: 55 },
+  { id: 'fishing_guide', name: 'Fishing Guide', icon: '🎣', hours: 'part', sector: 'hospitality', salary: 17000, blocks: 2, stress: 1, minSmarts: 0, skill: 'fishing', minSkill: 40 },
+  { id: 'line_cook_pt', name: 'Prep Cook', icon: '🔪', hours: 'part', sector: 'hospitality', salary: 15000, blocks: 2, stress: 3, minSmarts: 0, skill: 'cooking', minSkill: 5 },
   { id: 'referee', name: 'Youth Referee', icon: '🏟️', hours: 'part', sector: 'education', salary: 16000, blocks: 2, stress: 3, minSmarts: 0, skill: 'sports', minSkill: 30 },
   { id: 'illustrator', name: 'Freelance Illustrator', icon: '🖍️', hours: 'part', sector: 'creative', salary: 20000, blocks: 2, stress: 2, minSmarts: 0, skill: 'art', minSkill: 35 },
   { id: 'photographer', name: 'Event Photographer', icon: '📷', hours: 'part', sector: 'creative', salary: 21000, blocks: 2, stress: 2, minSmarts: 0, skill: 'art', minSkill: 30 },
@@ -114,7 +137,11 @@ export function qualifies(p: Person, c: Career) {
 }
 
 export const salaryOf = (c: Career, level: number) =>
-  c.hours === 'part' ? c.salary : Math.round(c.salary * (1 + 0.3 * (level - 1)));
+  c.hours === 'part' ? c.salary : c.levelPay ? c.levelPay[Math.min(3, Math.max(1, level)) - 1] : Math.round(c.salary * (1 + 0.3 * (level - 1)));
+
+/** The title for a career at a level ("Senior Nurse", "Journeyman Carpenter", "Airline Captain"). */
+export const titleOf = (c: Career, level: number) =>
+  c.titles ? c.titles[Math.min(3, Math.max(1, level)) - 1] : `${level > 1 ? LEVEL_TITLES[level] + ' ' : ''}${c.name}`;
 
 /** Higher full-time levels pay more but demand more time. Part-time always expects 2. */
 export const requiredBlocks = (c: Career, level: number) => (c.hours === 'part' ? c.blocks : c.blocks + (level - 1));
@@ -127,13 +154,54 @@ export function jobTitle(p: Person) {
   else if (p.studyingUntil) main = p.studyKind === 'university' ? 'University student' : 'Trade school student';
   else if (p.jobId) {
     const c = CAREER_BY_ID[p.jobId];
-    main = `${p.jobLevel > 1 ? LEVEL_TITLES[p.jobLevel] + ' ' : ''}${c.name}`;
+    main = titleOf(c, p.jobLevel);
   } else main = part ? '' : 'Unemployed';
   return [main, partTxt].filter(Boolean).join(' + ');
 }
 
 /** Night-school programs. Each "study" block adds 1 progress; tuition is charged each year enrolled. */
-export const PROGRAMS = {
-  degree: { id: 'degree' as const, name: 'University degree (night school)', short: 'Degree', icon: '🎓', required: 12, tuition: 6000, minSmarts: 45 },
-  trade_cert: { id: 'trade_cert' as const, name: 'Trade certificate (night school)', short: 'Trade certificate', icon: '🛠️', required: 6, tuition: 3000, minSmarts: 0 },
+
+export interface ProgramDef {
+  id: Program;
+  name: string;
+  short: string;
+  icon: string;
+  /** Study blocks needed in total. */
+  required: number;
+  /** Tuition per year while enrolled. */
+  tuition: number;
+  minSmarts: number;
+  /** Hobby skill needed to start. */
+  skill?: Hobby;
+  minSkill?: number;
+  /** An earlier credential that's needed first. */
+  needs?: Program;
+  minAge?: number;
+  /** Also counts as a general trade certificate. */
+  grantsTrade?: boolean;
+  /** Skill gained on finishing. */
+  skillBonus?: number;
+  desc: string;
+}
+
+/** Credentials earned at night school (or a flight school/academy): each study block adds 1 progress. */
+export const PROGRAMS: Record<Program, ProgramDef> = {
+  degree: { id: 'degree', name: 'University degree (night school)', short: 'Degree', icon: '🎓', required: 12, tuition: 6000, minSmarts: 45, desc: 'Opens degree careers' },
+  trade_cert: { id: 'trade_cert', name: 'Trade certificate (night school)', short: 'Trade certificate', icon: '🛠️', required: 6, tuition: 3000, minSmarts: 0, desc: 'Opens skilled trades' },
+  carpentry_cert: { id: 'carpentry_cert', name: 'Carpentry certificate', short: 'Carpentry certificate', icon: '🪚', required: 6, tuition: 3000, minSmarts: 0, skill: 'woodworking', minSkill: 15, grantsTrade: true, skillBonus: 15, desc: 'Apprentice carpenter and up' },
+  auto_cert: { id: 'auto_cert', name: 'Automotive technician certificate', short: 'Automotive certificate', icon: '🔧', required: 6, tuition: 3000, minSmarts: 0, skill: 'mechanics', minSkill: 15, grantsTrade: true, skillBonus: 15, desc: 'Lube tech to master technician' },
+  culinary_cert: { id: 'culinary_cert', name: 'Culinary school', short: 'Culinary diploma', icon: '🍳', required: 6, tuition: 6000, minSmarts: 0, skill: 'cooking', minSkill: 15, grantsTrade: true, skillBonus: 20, desc: 'A big jump in cooking skill' },
+  ppl: { id: 'ppl', name: 'Private Pilot License', short: 'Pilot license', icon: '🛩️', required: 4, tuition: 12000, minSmarts: 35, skill: 'flying', minSkill: 20, minAge: 17, skillBonus: 10, desc: 'Fly yourself and passengers' },
+  cpl: { id: 'cpl', name: 'Commercial Pilot License', short: 'Commercial license', icon: '✈️', required: 8, tuition: 30000, minSmarts: 50, skill: 'flying', minSkill: 50, needs: 'ppl', minAge: 18, skillBonus: 10, desc: 'Fly for pay: instructor and airline jobs' },
+  captains_license: { id: 'captains_license', name: "Captain's license", short: "Captain's license", icon: '⚓', required: 3, tuition: 2500, minSmarts: 20, skill: 'fishing', minSkill: 40, minAge: 18, desc: 'Take paying passengers out to sea' },
 };
+
+/** Why `p` can't start a program, or null. */
+export function programBlocker(p: Person, prog: ProgramDef, age: number): string | null {
+  if (p.flags[prog.id]) return 'Already earned.';
+  if (prog.minAge && age < prog.minAge) return `From age ${prog.minAge}.`;
+  if (p.stats.smarts < prog.minSmarts) return `Needs smarts ${prog.minSmarts}+`;
+  if (prog.needs && !p.flags[prog.needs]) return `Needs your ${PROGRAMS[prog.needs].short.toLowerCase()} first`;
+  if (prog.skill && (p.skills[prog.skill] ?? 0) < (prog.minSkill ?? 0)) return `Needs ${prog.skill} skill ${prog.minSkill}+`;
+  return null;
+}

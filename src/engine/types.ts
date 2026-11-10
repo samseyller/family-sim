@@ -11,10 +11,10 @@ export type Trait =
   | 'creative'
   | 'athletic';
 
-export type Hobby = 'music' | 'sports' | 'art';
+export type Hobby = 'music' | 'sports' | 'art' | 'flying' | 'woodworking' | 'fishing' | 'cooking' | 'mechanics' | 'gardening';
 
 /** Credentials earned through adult education; the id doubles as the person flag. */
-export type Program = 'degree' | 'trade_cert';
+export type Program = 'degree' | 'trade_cert' | 'ppl' | 'cpl' | 'carpentry_cert' | 'auto_cert' | 'culinary_cert' | 'captains_license';
 
 /** Genome for the SVG avatar. Children inherit each gene from a parent. */
 export interface Looks {
@@ -98,7 +98,10 @@ export interface Bond {
 
 export interface Asset {
   id: string;
-  kind: 'house' | 'car';
+  kind: 'house' | 'car' | 'gear';
+  /** Gear: which item (plane, boat, project car), and restoration progress 0–100 for project cars. */
+  gear?: import('../content/gear').GearId;
+  restore?: number;
   name: string;
   value: number;
   upkeep: number;

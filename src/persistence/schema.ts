@@ -13,7 +13,8 @@ const int = z.number().int();
 const id = z.string().min(1);
 
 const Stats = z.object({ health: num, happiness: num, smarts: num, fitness: num, stress: num });
-const Hobby = z.enum(['music', 'sports', 'art']);
+const Hobby = z.enum(['music', 'sports', 'art', 'flying', 'woodworking', 'fishing', 'cooking', 'mechanics', 'gardening']);
+const ProgramId = z.enum(['degree', 'trade_cert', 'ppl', 'cpl', 'carpentry_cert', 'auto_cert', 'culinary_cert', 'captains_license']);
 const Trait = z.enum(['ambitious', 'kind', 'stubborn', 'curious', 'anxious', 'easygoing', 'creative', 'athletic']);
 
 const Person = z.object({
@@ -43,7 +44,7 @@ const Person = z.object({
   studyKind: z.enum(['university', 'trade', 'top']).optional(),
   grades: z.record(z.string(), num).optional(),
   fund: num,
-  education: z.object({ program: z.enum(['degree', 'trade_cert']), progress: num, required: num, startYear: int }).optional(),
+  education: z.object({ program: ProgramId, progress: num, required: num, startYear: int }).optional(),
   careerYears: int.optional(),
   pensionYears: int.optional(),
   pensionSalary: num.optional(),
@@ -67,7 +68,9 @@ const Partnership = z.object({
 
 const Asset = z.object({
   id,
-  kind: z.enum(['house', 'car']),
+  kind: z.enum(['house', 'car', 'gear']),
+  gear: z.enum(['plane', 'small_boat', 'bass_boat', 'offshore_boat', 'project_car']).optional(),
+  restore: num.optional(),
   name: z.string(),
   value: num,
   upkeep: num,
@@ -76,7 +79,7 @@ const Asset = z.object({
   rate: num.optional(),
   capacity: int.optional(),
   garage: int.optional(),
-  upgrades: z.array(z.enum(['pool', 'hot_tub', 'home_gym', 'theater', 'workshop', 'security', 'expansion'])).optional(),
+  upgrades: z.array(z.enum(['pool', 'hot_tub', 'home_gym', 'theater', 'workshop', 'security', 'studio', 'chef_kitchen', 'greenhouse', 'garage_lift', 'expansion'])).optional(),
   model: z.enum(Object.keys(CARS) as [CarKind, ...CarKind[]]).optional(),
   age: int.optional(),
   broken: z.boolean().optional(),
@@ -126,7 +129,7 @@ const JobIntent = z.union([
 const Plan = z.object({
   alloc: z.record(z.string(), int.nonnegative()),
   jobIntents: z.array(JobIntent),
-  eduIntent: z.union([z.object({ kind: z.literal('enroll'), program: z.enum(['degree', 'trade_cert']) }), z.object({ kind: z.literal('drop') })]).optional(),
+  eduIntent: z.union([z.object({ kind: z.literal('enroll'), program: ProgramId }), z.object({ kind: z.literal('drop') })]).optional(),
   lifestyle: z.enum(['frugal', 'comfortable', 'lavish']).optional(),
   retireContribution: num.optional(),
   children: z.record(z.string(), ChildPlan),

@@ -29,10 +29,29 @@ export const ACTIONS: ActionDef[] = [
 
 export const ACTION_BY_ID: Record<string, ActionDef> = Object.fromEntries(ACTIONS.map((a) => [a.id, a]));
 
-export const HOBBIES: { id: Hobby; label: string; icon: string; event: string }[] = [
-  { id: 'music', label: 'Music', icon: '🎵', event: 'recital' },
-  { id: 'sports', label: 'Sports', icon: '⚽', event: 'big game' },
-  { id: 'art', label: 'Art', icon: '🖌️', event: 'art show' },
+export interface HobbyDef {
+  id: Hobby;
+  label: string;
+  icon: string;
+  /** What parents miss when they skip it (recital, big game...). */
+  event: string;
+  /** Cost per practice block (lessons, parts, ingredients, flight hours). */
+  cost: number;
+  /** Youngest age to take it up. */
+  minAge: number;
+  desc: string;
+}
+
+export const HOBBIES: HobbyDef[] = [
+  { id: 'music', label: 'Music', icon: '🎵', event: 'recital', cost: 0, minAge: 5, desc: 'Gigs, session work, touring, or teaching' },
+  { id: 'sports', label: 'Sports', icon: '⚽', event: 'big game', cost: 0, minAge: 5, desc: 'Fitness and coaching' },
+  { id: 'art', label: 'Art', icon: '🖌️', event: 'art show', cost: 0, minAge: 5, desc: 'Design, illustration, film and acting' },
+  { id: 'cooking', label: 'Cooking', icon: '🍳', event: 'cook-off', cost: 60, minAge: 10, desc: 'Line cook to head chef, or your own restaurant' },
+  { id: 'woodworking', label: 'Woodworking', icon: '🪚', event: 'craft fair', cost: 120, minAge: 12, desc: 'Apprentice to master carpenter, or contractor' },
+  { id: 'mechanics', label: 'Auto mechanics', icon: '🔧', event: 'car show', cost: 150, minAge: 14, desc: 'Fix cars, restore classics, run a shop' },
+  { id: 'fishing', label: 'Fishing', icon: '🎣', event: 'fishing derby', cost: 30, minAge: 6, desc: 'Relaxing; guides and charter captains' },
+  { id: 'gardening', label: 'Gardening', icon: '🌱', event: 'county fair', cost: 25, minAge: 6, desc: 'Stress relief and homegrown food' },
+  { id: 'flying', label: 'Flying', icon: '✈️', event: 'air show', cost: 400, minAge: 16, desc: 'Expensive lessons; a path to the cockpit' },
 ];
 
 export const HOBBY_BY_ID = Object.fromEntries(HOBBIES.map((h) => [h.id, h])) as Record<Hobby, (typeof HOBBIES)[number]>;

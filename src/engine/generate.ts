@@ -1,4 +1,4 @@
-import { CAREERS, PART_TIME_MAX, PROGRAMS, qualifies, requiredBlocks, CAREER_BY_ID, type Career, type JobSlot } from '../content/careers';
+import { CAREERS, PART_TIME_MAX, PROGRAMS, programBlocker, qualifies, requiredBlocks, CAREER_BY_ID, type Career, type JobSlot } from '../content/careers';
 import { FEMALE_NAMES, LAST_NAMES, MALE_NAMES } from '../content/names';
 import { TIME_BUDGET, defaultChildPlan } from '../content/actions';
 import { makeRng, type Rng } from './rng';
@@ -11,8 +11,8 @@ import { TUTORIAL_SEED, TUTORIAL_START_AGE, scheduleScript } from './tutorial';
 import type { GameState, Household, Looks, Person, Plan, Trait } from './types';
 import { adjustBond, ageOf, alive, cleanName, kidsAtHome, newId, parentsOf, partnerOf, active } from './util';
 
-export const SCHEMA_VERSION = 15;
-export const RULES_VERSION = '0.14.0';
+export const SCHEMA_VERSION = 16;
+export const RULES_VERSION = '0.15.0';
 export const START_YEAR = 2026;
 
 const TRAITS: Trait[] = ['ambitious', 'kind', 'stubborn', 'curious', 'anxious', 'easygoing', 'creative', 'athletic'];
@@ -213,7 +213,7 @@ export function sanitizePlan(s: GameState, plan: Plan, keepIntent = true): Plan 
   const applying = (slot: JobSlot) => intents.some((i) => i.kind === 'apply' && CAREER_BY_ID[i.careerId].hours === slot);
   const canWork = canWorkFullTime(me) || applying('full');
   const canPart = canWorkPartTime(me) || applying('part');
-  const eduIntent = keepIntent ? sanitizeEduIntent(me, plan.eduIntent) : undefined;
+  const eduIntent = keepIntent ? sanitizeEduIntent(s, me, plan.eduIntent) : undefined;
   const canStudy = (!!me.education && eduIntent?.kind !== 'drop') || eduIntent?.kind === 'enroll';
   const alloc: Record<string, number> = {};
   let total = 0;
@@ -245,11 +245,11 @@ export function sanitizePlan(s: GameState, plan: Plan, keepIntent = true): Plan 
 }
 
 /** Night-school intents must make sense for the person's situation. */
-function sanitizeEduIntent(me: Person, it: Plan['eduIntent']): Plan['eduIntent'] {
+function sanitizeEduIntent(s: GameState, me: Person, it: Plan['eduIntent']): Plan['eduIntent'] {
   if (!it) return undefined;
   if (it.kind === 'drop') return me.education ? it : undefined;
   if (me.education || me.studyingUntil || me.flags[it.program]) return undefined;
-  return me.stats.smarts >= PROGRAMS[it.program].minSmarts ? it : undefined;
+  return programBlocker(me, PROGRAMS[it.program], ageOf(me, s.year)) ? undefined : it;
 }
 
 export interface StartNames {

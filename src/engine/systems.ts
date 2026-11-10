@@ -14,6 +14,7 @@ import { STAKE_KEEP, seedStakes } from './household';
 import { ageCars } from './cars';
 import { schoolYear } from './school';
 import { isHiring } from './jobMarket';
+import { ageGear, hobbyCareerYear, jobExtraBlocker, practiceGain } from './hobbies';
 import { cityDef, cityName, cityOfHousehold, otherCity } from './location';
 import type { Rng } from './rng';
 import type { GameState, Hobby, Person } from './types';
@@ -46,12 +47,18 @@ export function applyPlan(s: GameState, rng: Rng): number {
       continue;
     }
     const c = CAREER_BY_ID[it.careerId];
+    const extra = c ? jobExtraBlocker(s, me, c) : null;
     if (c && !isHiring(s, c.id, me)) {
       journal(s, `The ${c.name} opening was filled before you heard back.`, 'bad');
-    } else if (c && qualifies(me, c) && rng.chance(c.hours === 'part' ? 0.9 : 0.75)) {
+    } else if (c && extra) {
+      journal(s, `You couldn't start as a ${c.name}: ${extra.toLowerCase()}.`, 'bad');
+    } else if (c && qualifies(me, c) && rng.chance(c.startup ? 1 : c.hours === 'part' ? 0.9 : 0.75)) {
       assignJob(me, c);
       if (c.hours === 'full') me.retired = false;
-      journal(s, `You were hired as a ${c.name}${c.hours === 'part' ? ' (part-time)' : ''}!`, 'good');
+      if (c.startup) {
+        s.households[me.householdId].wallet -= c.startup;
+        journal(s, `You opened your own business: ${c.name} (${money(c.startup)} to get started).`, 'major');
+      } else journal(s, `You were hired as a ${c.name}${c.hours === 'part' ? ' (part-time)' : ''}!`, 'good');
     } else if (c) {
       journal(s, `Your application for ${c.name} was turned down.`, 'bad');
     }
@@ -108,7 +115,9 @@ export function applyPlan(s: GameState, rng: Rng): number {
   // Hobby practice (kids and adults alike).
   const pr = g('practice');
   if (pr && me.hobby) {
-    me.skills[me.hobby] = Math.round(clamp((me.skills[me.hobby] ?? 0) + 4 * dim(pr), 0, 100));
+    // Gear and a home setup (workshop, studio, plane, boat...) speed up practice.
+    me.skills[me.hobby] = Math.round(clamp((me.skills[me.hobby] ?? 0) + practiceGain(s, me) * dim(pr), 0, 100));
+    if (me.hobby === 'fishing' || me.hobby === 'gardening') stat(me, 'stress', -3 * dim(pr));
     stat(me, 'happiness', 2 * dim(pr));
   }
 
@@ -146,6 +155,8 @@ export function applyPlan(s: GameState, rng: Rng): number {
     if (me.education.progress >= me.education.required) {
       const prog = PROGRAMS[me.education.program];
       me.flags[prog.id] = 1;
+      if (prog.grantsTrade) me.flags.trade_cert = 1;
+      if (prog.skill && prog.skillBonus) me.skills[prog.skill] = Math.min(100, (me.skills[prog.skill] ?? 0) + prog.skillBonus);
       me.flags.fresh_credential = s.year;
       stat(me, 'smarts', prog.id === 'degree' ? 6 : 3);
       stat(me, 'happiness', 8);
@@ -262,6 +273,8 @@ export function runEconomy(s: GameState, activePay: number, rng?: Rng) {
     hh.wallet += budget.net;
     // Cars age (value, upkeep, repairs, and eventually dying for good).
     ageCars(s, hh, rng, hh.id === me.householdId);
+    ageGear(hh);
+    if (rng) hobbyCareerYear(s, hh, rng);
     // Each adult's claim on the shared savings grows with what they bring in; recent years
     // count most (older pay was mostly spent on living, not saved).
     seedStakes(s, hh.id);

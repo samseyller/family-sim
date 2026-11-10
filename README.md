@@ -142,6 +142,32 @@ for random). When your baby is born, a naming event offers suggestions or lets y
   wealth now levels off by the third generation instead of compounding.
 - Next: hobby → training → gear → career paths (`docs/plans/hobby-career-paths.md`).
 
+## Hobby career paths
+
+- **Nine hobbies** (Plan → Yourself → Take up a hobby): music, sports, art, cooking, woodworking, auto mechanics,
+  fishing, gardening, flying. You practice one at a time and keep skill in old ones. Some cost money per practice
+  block (flying $400, $120 with your own plane). Gear and home setups speed up practice: the workshop doubles
+  woodworking; a studio, chef's kitchen, greenhouse or garage lift adds 50%; boats and the plane also help.
+- **Credentials** (night school): carpentry, automotive and culinary certificates (each also counts as a trade
+  certificate and adds skill), a Private then Commercial Pilot License, and a Captain's license. They need skill,
+  an age, and sometimes an earlier credential.
+- **Career ladders** with their own ranks, pay, and skill gates for promotion:
+  - Apprentice → Journeyman → Master Carpenter, or run your own contracting business
+  - Lube Tech → Mechanic → Master Technician, or open an auto shop
+  - Line Cook → Sous Chef → Head Chef, or open a restaurant ($250k startup)
+  - Session → Touring Musician → Headliner (touring strains family bonds), or School Music Director
+  - Commercial Pilot → First Officer → Airline Captain, plus flight instructing
+  - Fishing Guide, or Charter Captain (coastal cities, your own offshore boat)
+
+  Businesses cost money to start, and their income swings with skill and luck.
+- **Gear** (Money → Hobby gear): a plane, three boats (trailered boats take a parking spot; offshore needs a
+  coastal city), and a project car you restore in Activities (worth $45k when finished). Gear has upkeep and
+  passes down to an heir in the family estate.
+- **Side gigs** (Activities → Hobbies & side gigs): sell furniture, play gigs, cater, fix cars, the farmers
+  market, tournaments, car shows, plus fishing trips, family flights, garden days, and dinner parties.
+- **Moments:** first solo flight, engine trouble, workshop injuries, a food critic, a song going viral, the big
+  catch, a storm at sea, the county fair. Nine achievements.
+
 ## Jobs and the job market
 
 - **Config:** every job lives in `src/content/careers.ts` (`CAREERS`): id, name, full- or part-time, industry
