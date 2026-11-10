@@ -5,17 +5,18 @@
  * running a deficit, dropping it again once money is comfortable.
  */
 import { TIME_BUDGET } from '../content/actions';
-import { CAREERS, CAREER_BY_ID, qualifies, requiredBlocks, salaryOf, type Career, type JobSlot } from '../content/careers';
+import { CAREER_BY_ID, qualifies, requiredBlocks, salaryOf, type Career, type JobSlot } from '../content/careers';
 import { estimateYear } from './budget';
 import { defaultPlan, sanitizePlan } from './generate';
 import type { GameState, JobIntent, Plan } from './types';
 import { active, ageOf, kidsAtHome, partnerOf } from './util';
+import { openingsFor } from './jobMarket';
 
 export type Strategy = 'career' | 'family' | 'balanced';
 
 const bestJob = (s: GameState, slot: JobSlot): Career | undefined => {
   const me = active(s);
-  return CAREERS.filter((c) => c.hours === slot && qualifies(me, c)).sort((a, b) => b.salary - a.salary)[0];
+  return openingsFor(s, slot).filter((c) => qualifies(me, c)).sort((a, b) => b.salary - a.salary)[0];
 };
 
 /** Job moves a sensible player would make this year. */

@@ -1,3 +1,5 @@
+import { nextListingYear, openingsFor } from '../../engine/jobMarket';
+import { cityName, cityOf } from '../../engine/location';
 import { gpaOf } from '../../engine/school';
 import type { ChildFocus, GameState, Hobby, JobIntent, Plan } from '../../engine/types';
 import { canWorkFullTime, homeParents } from '../../engine/generate';
@@ -127,8 +129,12 @@ export function PlanTab({ g }: { g: GameState }) {
           return (
             <details key={slot} className="jobs">
               <summary>{target ? `Applying (${slot === 'full' ? 'full-time' : 'part-time'}): ${target.name}` : `Look for a ${slot === 'full' ? 'full-time' : 'part-time'} job`}</summary>
+              <p className="hint">
+                {openingsFor(g, slot).length} openings in {cityName(cityOf(g, me))} right now · new listings in {nextListingYear(g.year)}.
+                {' '}Some get filled before then.
+              </p>
               <div className="job-list">
-                {CAREERS.filter((c) => c.hours === slot && c.id !== current).map((c) => {
+                {openingsFor(g, slot).filter((c) => c.id !== current).map((c) => {
                   const ok = qualifies(me, c);
                   const on = target?.id === c.id;
                   return (

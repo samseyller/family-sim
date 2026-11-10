@@ -26,7 +26,7 @@ describe('scripted players', () => {
     s.households[me.householdId].wallet = -20000;
     const tight = strategyPlan(s, 'balanced');
     const part = tight.jobIntents.find((i) => i.kind === 'apply' && CAREER_BY_ID[i.careerId].hours === 'part');
-    expect(part && part.kind === 'apply' ? part.careerId : '').toMatch(/barista|delivery|tutor|music_teacher|referee|illustrator/);
+    expect(part && part.kind === 'apply' ? CAREER_BY_ID[part.careerId]?.hours : '').toBe('part');
     expect(tight.alloc.parttime).toBe(2);
 
     me.partJobId = 'barista';

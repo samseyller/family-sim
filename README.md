@@ -118,6 +118,21 @@ for random). When your baby is born, a naming event offers suggestions or lets y
   pregnancy. The partner's wishes are shown, and going against them strains the relationship.
 - Achievements: Butterflies, Playing the Field (5 people), Second Spark, Hopeless Romantic (10 dates), Surprise!
 
+## Jobs and the job market
+
+- **Config:** every job lives in `src/content/careers.ts` (`CAREERS`): id, name, full- or part-time, industry
+  (`sector`), base pay (before the city's pay index), expected time blocks, stress, minimum smarts, and any
+  requirement (`degree`, `trade_cert`, `top_degree`, or a hobby skill). Salary rises 30% per level
+  (`salaryOf`), and higher levels expect an extra block (`requiredBlocks`). City industry strengths are
+  `industries` in `src/content/cities.ts`. How openings are chosen is in `src/engine/jobMarket.ts`.
+- 38 full-time careers (no-qualification, trades, university, top-university and talent jobs) and 18 part-time jobs.
+- **Listings:** each city posts about 10 full-time and 6 part-time openings every 2 years, picked at random
+  but weighted toward its industries (Seattle and Austin: tech; Houston: energy; Los Angeles: entertainment;
+  New York: finance and law; Boston: healthcare, science and education...). In the second year some openings
+  get filled. There's always an entry-level opening. You can only apply for what's open in your city; the Plan
+  tab shows the openings and when new ones are posted. Listings come from the game seed, city and cycle, so
+  they don't change on reload.
+
 ## School and college
 
 - **GPA** (0.0–4.0): every school year from 6 to 17 earns a grade from smarts *relative to age* (nobody is

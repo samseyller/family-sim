@@ -13,6 +13,7 @@ import { autoComeOfAge, die, isCloseKin, marry, moveOut, receptiveness, retire }
 import { STAKE_KEEP, seedStakes } from './household';
 import { ageCars } from './cars';
 import { schoolYear } from './school';
+import { isHiring } from './jobMarket';
 import { cityDef, cityName, cityOfHousehold, otherCity } from './location';
 import type { Rng } from './rng';
 import type { GameState, Hobby, Person } from './types';
@@ -45,7 +46,9 @@ export function applyPlan(s: GameState, rng: Rng): number {
       continue;
     }
     const c = CAREER_BY_ID[it.careerId];
-    if (c && qualifies(me, c) && rng.chance(c.hours === 'part' ? 0.9 : 0.75)) {
+    if (c && !isHiring(s, c.id, me)) {
+      journal(s, `The ${c.name} opening was filled before you heard back.`, 'bad');
+    } else if (c && qualifies(me, c) && rng.chance(c.hours === 'part' ? 0.9 : 0.75)) {
       assignJob(me, c);
       if (c.hours === 'full') me.retired = false;
       journal(s, `You were hired as a ${c.name}${c.hours === 'part' ? ' (part-time)' : ''}!`, 'good');
