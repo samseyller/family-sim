@@ -55,6 +55,7 @@ export function retirePerson(p: Person, year: number) {
   p.jobId = undefined;
   p.partJobId = undefined;
   p.retired = true;
+  p.flags.retired_year = year;
 }
 
 export interface Readiness {

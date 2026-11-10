@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
-import { COLLEGE_FUND_CAP, GARAGE_BUILD, HOMES, INVEST_RETURN, MORTGAGE_RATE, MORTGAGE_YEARS, RENOVATION, RENTALS, SELL_COSTS, annuityPayment, type HomeTier, type RentTier } from '../../content/finance';
+import { COLLEGE_FUND_CAP, GARAGE_BUILD, HOME_UPGRADES, type UpgradeId, HOMES, INVEST_RETURN, MORTGAGE_RATE, MORTGAGE_YEARS, RENOVATION, RENTALS, SELL_COSTS, annuityPayment, type HomeTier, type RentTier } from '../../content/finance';
 import { estimateYear } from '../../engine/budget';
-import { capacityOf, carsOf, financeBlocker, homeOf, homeUpfront, netWorth, rentTierOf, type FinanceAction } from '../../engine/finance';
+import { capacityOf, carsOf, financeBlocker, homeOf, homeUpfront, netWorth, rentTierOf, upgradeCost, upgradeCount, type FinanceAction } from '../../engine/finance';
+import { CITIES } from '../../content/cities';
+import { FLOOD_INSURANCE } from '../../content/economy';
 import type { GameState } from '../../engine/types';
 import { active, ageOf, kidsAtHome, membersOf, money } from '../../engine/util';
 import { useGame } from '../../store/gameStore';
@@ -111,6 +113,30 @@ export function MoneyTab({ g }: { g: GameState }) {
               {home.mortgage > 0 && <Act g={g} action={{ kind: 'payLoan', assetId: home.id, amount: home.mortgage }} label={`Pay off the mortgage (${money(home.mortgage)})`} hint="Own it outright" confirm={`Confirm payoff: ${money(home.mortgage)}`} />}
               <Act g={g} action={{ kind: 'renovate' }} label={`Renovate (${money(RENOVATION.cost)})`} hint={`Adds ~${money(RENOVATION.valueGain)} of value; everyone +${RENOVATION.happiness} happiness`} />
               <Act g={g} action={{ kind: 'buildGarage' }} label={`Add a garage space (${money(GARAGE_BUILD.cost)})`} hint={`Room for one more car, and garaged cars break down less. Adds ~${money(GARAGE_BUILD.valueGain)} of value`} />
+            </div>
+            <div className="label">Upgrades</div>
+            {(home.upgrades ?? []).length > 0 && (
+              <p className="hint">
+                You have: {[...new Set(home.upgrades)].map((u) => `${HOME_UPGRADES[u as UpgradeId].icon} ${HOME_UPGRADES[u as UpgradeId].label}${upgradeCount(home, u as UpgradeId) > 1 ? ` ×${upgradeCount(home, u as UpgradeId)}` : ''}`).join(' · ')}
+              </p>
+            )}
+            <div className="choices">
+              {(Object.keys(HOME_UPGRADES) as UpgradeId[]).filter((u) => upgradeCount(home, u) < HOME_UPGRADES[u].max).map((u) => (
+                <Act key={u} g={g} action={{ kind: 'upgradeHome', upgrade: u }}
+                  label={`${HOME_UPGRADES[u].icon} ${u === 'expansion' ? 'Build an addition' : `Add a ${HOME_UPGRADES[u].label.toLowerCase()}`} (${money(upgradeCost(u, city))})`}
+                  hint={`${HOME_UPGRADES[u].desc} · upkeep ${money(HOME_UPGRADES[u].upkeep)}/yr`} confirm={`Confirm: ${money(upgradeCost(u, city))}`} />
+              ))}
+            </div>
+            <div className="label">Flood insurance</div>
+            <p className="hint">
+              {Math.round(CITIES[city].flood * 1000) / 10}% chance of a serious flood each year in {CITIES[city].name}. Home insurance doesn’t cover floods.
+            </p>
+            <div className="choices">
+              {hh.floodInsurance
+                ? <Act g={g} action={{ kind: 'floodInsurance', on: false }} label="Drop flood insurance" hint={`Saves ${money(FLOOD_INSURANCE)}/yr`} />
+                : <Act g={g} action={{ kind: 'floodInsurance', on: true }} label={`Buy flood insurance (${money(FLOOD_INSURANCE)}/yr)`} hint="Floods cost you only the deductible" />}
+            </div>
+            <div className="choices">
               <Act g={g} action={{ kind: 'sellHome' }} label={`Sell (about ${money(home.value * (1 - SELL_COSTS) - home.mortgage)} after fees and mortgage)`} hint="You go back to renting" confirm="Confirm: sell the home" />
             </div>
           </>

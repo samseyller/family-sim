@@ -76,6 +76,7 @@ const Asset = z.object({
   rate: num.optional(),
   capacity: int.optional(),
   garage: int.optional(),
+  upgrades: z.array(z.enum(['pool', 'hot_tub', 'home_gym', 'theater', 'workshop', 'security', 'expansion'])).optional(),
   model: z.enum(Object.keys(CARS) as [CarKind, ...CarKind[]]).optional(),
   age: int.optional(),
   broken: z.boolean().optional(),
@@ -105,6 +106,7 @@ const Household = z.object({
   rentTier: z.enum(['small', 'apartment', 'house']).optional(),
   headId: id.optional(),
   dogs: z.array(Dog).optional(),
+  floodInsurance: z.boolean().optional(),
   city: z.enum(CITY_IDS as [CityId, ...CityId[]]).optional(),
 });
 

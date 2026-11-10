@@ -13,6 +13,7 @@ import { defaultPlan, sanitizePlan } from './generate';
 import { applyPlan, driftBonds, runEconomy, runHealth, runPeople } from './systems';
 import { dogYear } from './dogs';
 import { friendsYear } from './friends';
+import { homeLife, rollMisfortunes } from './lifeEvents';
 import { generateEvents, resolveEvent } from './events';
 import { strategyPlan } from './strategies';
 import { applyCushion } from './tutorial';
@@ -71,6 +72,8 @@ export function resolveYear(state: GameState): GameState {
   friendsYear(s, rng); //              friendships fade, drift apart, move away
   runHealth(s, rng); //             6. aging effects, deaths at year end
   settleEstates(s);
+  homeLife(s); //                       perks of pools, gyms and the like
+  rollMisfortunes(s, rng); //           accidents, fires, floods, bills, family in need
   if (alive(active(s))) generateEvents(s, rng); // 5 + 7. due consequences and events
 
   if (s.pending.length) s.phase = 'DECISIONS';

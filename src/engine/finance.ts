@@ -4,7 +4,8 @@
  * pure (state, …) → state transition, validated here so the UI can't cheat.
  */
 import {
-  annuityPayment, BUY_COSTS, CARS, COLLEGE_FUND_CAP, GARAGE_BUILD, HOMES, MORTGAGE_RATE, MORTGAGE_YEARS, MOVING_COST,
+  annuityPayment, BUY_COSTS, CARS, COLLEGE_FUND_CAP, GARAGE_BUILD, HOME_UPGRADES, HOMES, MORTGAGE_RATE, MORTGAGE_YEARS, MOVING_COST,
+  type UpgradeId,
   RENOVATION, RENTALS, SELL_COSTS, type CarKind, type HomeTier, type RentTier,
 } from '../content/finance';
 import type { Asset, GameState, Household, Person } from './types';
@@ -24,6 +25,8 @@ export type FinanceAction =
   | { kind: 'sellHome' }
   | { kind: 'renovate' }
   | { kind: 'buildGarage' }
+  | { kind: 'upgradeHome'; upgrade: UpgradeId }
+  | { kind: 'floodInsurance'; on: boolean }
   | { kind: 'payLoan'; assetId: string; amount: number }
   | { kind: 'buyCar'; car: CarKind; financed: boolean }
   | { kind: 'sellCar'; assetId: string }
@@ -36,7 +39,13 @@ export type FinanceAction =
 export const homeOf = (hh: Household) => hh.assets.find((a) => a.kind === 'house');
 export const carsOf = (hh: Household) => hh.assets.filter((a) => a.kind === 'car');
 export const rentTierOf = (hh: Household): RentTier => hh.rentTier ?? 'apartment';
-export const capacityOf = (hh: Household) => homeOf(hh)?.capacity ?? (homeOf(hh) ? 5 : RENTALS[rentTierOf(hh)].capacity);
+export const capacityOf = (hh: Household) => {
+  const home = homeOf(hh);
+  return home ? (home.capacity ?? 5) + upgradeCount(home, 'expansion') : RENTALS[rentTierOf(hh)].capacity;
+};
+export const upgradeCount = (home: Asset, id: UpgradeId) => (home.upgrades ?? []).filter((u) => u === id).length;
+/** An upgrade's price in a city. */
+export const upgradeCost = (id: UpgradeId, city: CityId) => Math.round((HOME_UPGRADES[id].cost * CITIES[city].living) / 500) * 500;
 
 /** Everything the household owns minus what it owes (college funds belong to the kids). */
 export function netWorth(s: GameState, householdId: string) {
@@ -79,6 +88,16 @@ export function financeBlocker(s: GameState, a: FinanceAction): string | null {
       return hh.wallet < homeUpfront(a.tier, a.downPct, cityOfHousehold(hh)) ? `You need ${money(homeUpfront(a.tier, a.downPct, cityOfHousehold(hh)))} up front.` : null;
     case 'sellHome':
       return home ? null : 'You do not own a home.';
+    case 'upgradeHome': {
+      if (!home) return 'Upgrades are for a home you own.';
+      const u = HOME_UPGRADES[a.upgrade];
+      if (!u) return 'Unknown upgrade.';
+      if (upgradeCount(home, a.upgrade) >= u.max) return u.max === 1 ? 'You already have one.' : `At most ${u.max}.`;
+      return hh.wallet < upgradeCost(a.upgrade, cityOfHousehold(hh)) ? `Costs ${money(upgradeCost(a.upgrade, cityOfHousehold(hh)))}.` : null;
+    }
+    case 'floodInsurance':
+      if (!home) return 'Flood insurance is for a home you own.';
+      return !!hh.floodInsurance === a.on ? (a.on ? 'Already insured.' : 'Not insured.') : null;
     case 'buildGarage':
       if (!home) return 'You do not own a home.';
       if (garageOf(home) >= GARAGE_BUILD.max) return 'There is no room on the lot for more garage.';
@@ -150,9 +169,25 @@ export function financeAction(state: GameState, a: FinanceAction): GameState {
       hh.wallet += proceeds;
       hh.assets = hh.assets.filter((x) => x !== home);
       hh.rentTier = membersOf(s, hh.id).length > 4 ? 'house' : 'apartment';
+      hh.floodInsurance = undefined;
       journal(s, `You sold the house${proceeds >= 0 ? ` and cleared ${money(proceeds)}` : `, still owing ${money(-proceeds)}`}. Back to renting.`, 'major');
       break;
     }
+    case 'upgradeHome': {
+      const u = HOME_UPGRADES[a.upgrade];
+      const cost = upgradeCost(a.upgrade, cityOfHousehold(hh));
+      hh.wallet -= cost;
+      home!.upgrades = [...(home!.upgrades ?? []), a.upgrade];
+      home!.upkeep += u.upkeep;
+      home!.value += Math.round(u.value * CITIES[cityOfHousehold(hh)].housing);
+      for (const m of membersOf(s, hh.id)) stat(m, 'happiness', 5);
+      journal(s, `You added ${u.label.toLowerCase() === 'home addition' ? 'an addition to the house' : `a ${u.label.toLowerCase()}`} (${money(cost)}).`, 'good');
+      break;
+    }
+    case 'floodInsurance':
+      hh.floodInsurance = a.on;
+      journal(s, a.on ? 'You bought flood insurance for the house.' : 'You dropped the flood insurance.', 'info');
+      break;
     case 'buildGarage': {
       hh.wallet -= GARAGE_BUILD.cost;
       home!.garage = garageOf(home) + 1;
@@ -248,6 +283,7 @@ export function relocate(s: GameState, hh: Household, city: CityId, keepJob?: Pe
   const people = membersOf(s, hh.id);
   hh.rentTier = people.length > 4 ? 'house' : people.length > 2 ? 'apartment' : 'small';
   hh.city = city;
+  hh.floodInsurance = undefined;
   let jobs = 0;
   for (const p of people) {
     if (p === keepJob || ageOf(p, s.year) < 16 || p.retired) continue;

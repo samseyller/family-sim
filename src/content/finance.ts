@@ -80,7 +80,7 @@ export const CAR_LOAN_YEARS = 5;
 export const TRANSIT_COST = 1500;
 
 /** Investment account: average return with year-to-year swings. */
-export const INVEST_RETURN = 0.055;
+export const INVEST_RETURN = 0.05;
 export const INVEST_VOLATILITY = 0.14;
 
 /** Fixed yearly payment that pays off `principal` over `years` at `rate`. */
@@ -91,3 +91,27 @@ export function annuityPayment(principal: number, rate: number, years: number) {
 
 /** College funds top out here (deposits, yearly contributions and growth all stop at the cap). */
 export const COLLEGE_FUND_CAP = 500_000;
+
+/** Luxury upgrades for a home you own. Costs scale with the city's living index. */
+export type UpgradeId = 'pool' | 'hot_tub' | 'home_gym' | 'theater' | 'workshop' | 'security' | 'expansion';
+export interface UpgradeDef {
+  label: string;
+  icon: string;
+  cost: number;
+  /** Extra yearly upkeep. */
+  upkeep: number;
+  /** Resale value added. */
+  value: number;
+  desc: string;
+  /** How many times it can be added (expansions stack). */
+  max: number;
+}
+export const HOME_UPGRADES: Record<UpgradeId, UpgradeDef> = {
+  pool: { label: 'Swimming pool', icon: '🏊', cost: 55000, upkeep: 3000, value: 25000, max: 1, desc: 'Summer happiness for everyone; kids love it' },
+  hot_tub: { label: 'Hot tub', icon: '♨️', cost: 12000, upkeep: 900, value: 4000, max: 1, desc: 'Less stress for the adults' },
+  home_gym: { label: 'Home gym', icon: '🏋️', cost: 9000, upkeep: 300, value: 2000, max: 1, desc: 'Fitness for everyone at home, every year' },
+  theater: { label: 'Home theater', icon: '🍿', cost: 28000, upkeep: 400, value: 8000, max: 1, desc: 'Movie nights: happiness and family bonds' },
+  workshop: { label: 'Workshop', icon: '🧰', cost: 15000, upkeep: 300, value: 6000, max: 1, desc: 'A place to build things; less stress' },
+  security: { label: 'Security system', icon: '🔒', cost: 3000, upkeep: 400, value: 0, max: 1, desc: 'Break-ins become much less likely' },
+  expansion: { label: 'Home addition', icon: '🧱', cost: 80000, upkeep: 1200, value: 60000, max: 3, desc: 'One more bedroom: +1 person fits' },
+};

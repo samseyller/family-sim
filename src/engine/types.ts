@@ -108,6 +108,8 @@ export interface Asset {
   payment?: number;
   /** Loan interest rate. */
   rate?: number;
+  /** Homes: luxury upgrades (an addition can appear up to 3 times). */
+  upgrades?: string[];
   /** Homes: garage spaces (adds to the 2 parking spots every home has). */
   garage?: number;
   /** Cars: model id, years on the road, and whether it has died for good. */
@@ -132,6 +134,8 @@ export interface Household {
   rentTier?: 'small' | 'apartment' | 'house';
   /** Which city this household lives in. */
   city?: import('../content/cities').CityId;
+  /** Optional flood insurance on an owned home. */
+  floodInsurance?: boolean;
   /** Pet dogs (including ones that have passed away, for memory). */
   dogs?: Dog[];
   /** Who runs the household (owns the home, decides who lives here). Falls back by age when unset. */

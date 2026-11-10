@@ -118,6 +118,25 @@ for random). When your baby is born, a naming event offers suggestions or lets y
   pregnancy. The partner's wishes are shown, and going against them strains the relationship.
 - Achievements: Butterflies, Playing the Field (5 people), Second Spark, Hopeless Romantic (10 dates), Surprise!
 
+## Economy
+
+- `npm run econ [runs]` plays many lives per strategy and reports net worth at key ages (and what it's made of
+  at 65), savings rate, years in debt, inheritances, where the money goes, and how often events happen.
+- **Everyday costs:** progressive income tax plus payroll tax (7.65% of wages), health insurance by age,
+  late-life care from 80 (or when very unwell), daycare for under-5s when every adult works, home or renters
+  insurance, car insurance (30% higher for 3 years after a claim), optional flood insurance.
+- **Life's big moments** (each has a cheap option; skipping can cost in relationships): engagement rings, the
+  wedding (parents may chip in) and honeymoon, kids' birthday parties, a car for a new driver, graduation gifts,
+  a parent's retirement party, a parent's funeral.
+- **Misfortunes**, rolled yearly with realistic odds: car accidents (claim and pay more later, or pay yourself;
+  old cars get totaled), house fires, break-ins (a security system helps), floods (likely only in flood-prone
+  cities like Houston and Miami; covered only by flood insurance), surprise medical bills (pay, negotiate, or a
+  payment plan), an adult child in legal trouble, and relatives asking for money (give, lend, or refuse).
+- **Luxury upgrades** for owned homes: pool, hot tub, home gym, home theater, workshop, security system, and up
+  to three additions (+1 capacity each). Each has upkeep and ongoing perks.
+- Achievements: Cannonball!, Room to Grow, Dream Wedding, Glad We Had Insurance, The Bank of Mom and Dad.
+- Next: hobby → training → gear → career paths (`docs/plans/hobby-career-paths.md`).
+
 ## Jobs and the job market
 
 - **Config:** every job lives in `src/content/careers.ts` (`CAREERS`): id, name, full- or part-time, industry

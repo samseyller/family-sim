@@ -185,6 +185,11 @@ export function die(s: GameState, p: Person, cause: string) {
   if (isCloseKin(s, p)) {
     const who = p.id === s.activeId ? 'You' : fullName(p);
     journal(s, `${who} passed away at age ${ageOf(p, s.year)} (${cause}).`, 'death');
+    // A parent of the player: the family plans the funeral.
+    const me = s.people[s.activeId];
+    if (me && alive(me) && p.id !== me.id && (me.biologicalParents.includes(p.id) || me.adoptiveParents.includes(p.id))) {
+      s.scheduled.push({ dueYear: s.year, eventId: 'funeral' });
+    }
   } else if ((s.friends ?? []).some((f) => f.id === p.id && f.of === s.activeId)) {
     const me = s.people[s.activeId];
     journal(s, `Your friend ${fullName(p)} passed away at age ${ageOf(p, s.year)}.`, 'death');

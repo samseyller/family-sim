@@ -3,7 +3,10 @@
  * the End Year preview, so the estimate and the real result can't drift apart.
  */
 import { COSTS } from '../content/actions';
-import { LIFESTYLES, incomeTax, medicalCost } from '../content/economy';
+import {
+  CAR_INSURANCE, CHILDCARE, FLOOD_INSURANCE, HOME_INSURANCE_RATE, LIFESTYLES, RENTERS_INSURANCE, healthPremium, incomeTax, lateLifeCare, medicalCost,
+  payrollTax,
+} from '../content/economy';
 import { drawdown, statePension } from './retirement';
 import { commuters, fundRoom, homeOf, loanPayment, rentIn, rentTierOf } from './finance';
 import { streetParkingCost, workingCars } from './cars';
@@ -61,10 +64,16 @@ export function householdBudget(s: GameState, householdId: string, activePay: nu
   const local = (n: number) => Math.round(n * city.pay);
   const living = (n: number) => Math.round(n * city.living);
 
+  // Daycare is needed for little ones when every adult at home works full-time.
+  const adults = mem.filter((p) => ageOf(p, s.year) >= 18 && !p.studyingUntil);
+  const allWork = adults.length > 0 && adults.every((p) => (p.id === me.id ? activePay > 0 && !!p.jobId : !!p.jobId) && !p.retired);
+
   for (const p of mem) {
     const age = ageOf(p, s.year);
+    add(exp, 'Health insurance', healthPremium(age));
     if (age < 18) {
       add(exp, 'Children', living(COSTS.child));
+      if (age < 5 && allWork) add(exp, 'Childcare', living(CHILDCARE));
       continue;
     }
     const isMe = p.id === me.id;
@@ -77,7 +86,10 @@ export function householdBudget(s: GameState, householdId: string, activePay: nu
       const pay = local(isMe ? activePay || (p.partJobId ? 0 : COSTS.studentWage) : npcPart || COSTS.studentWage);
       add(inc, label, pay);
       credit(p.id, pay);
-      if (isMe ? activePay : npcPart) taxes += incomeTax(pay);
+      if (isMe ? activePay : npcPart) {
+        taxes += incomeTax(pay);
+        add(exp, 'Payroll tax', payrollTax(pay));
+      }
       continue;
     }
     add(exp, 'Living costs', living(COSTS.adult));
@@ -99,7 +111,9 @@ export function householdBudget(s: GameState, householdId: string, activePay: nu
     const contrib = isMe && earned > 0 ? Math.round(earned * (s.plan.retireContribution ?? 0)) : 0;
     add(exp, 'Retirement contributions', contrib);
     taxes += incomeTax(earned - contrib + (p.retired ? p.pension + statePension(p, age) : statePension(p, age)));
+    add(exp, 'Payroll tax', payrollTax(earned));
     add(exp, 'Medical', medicalCost(age));
+    add(exp, 'Late-life care', living(lateLifeCare(age, p.stats.health)));
     // Night school tuition (for the active character the caller may predict enrollment).
     const enrolled = isMe && activeEnrolled !== undefined ? activeEnrolled : p.education?.program;
     if (enrolled) add(exp, 'Night school', PROGRAMS[enrolled].tuition);
@@ -114,6 +128,13 @@ export function householdBudget(s: GameState, householdId: string, activePay: nu
   if (!workingCars(hh).length && commuters(s, householdId)) add(exp, 'Transit', TRANSIT_BY_CITY[city.transit]);
   add(exp, 'Street parking', streetParkingCost(hh));
   add(exp, 'Pet care', petCosts(s, hh));
+  // Insurance: the home (or renters'), optional flood cover, and every working car.
+  const house = homeOf(hh);
+  add(exp, 'Home insurance', house ? Math.round(house.value * HOME_INSURANCE_RATE) : mem.length && mem.some((p) => ageOf(p, s.year) >= 18) ? RENTERS_INSURANCE : 0);
+  if (house && hh.floodInsurance) add(exp, 'Flood insurance', FLOOD_INSURANCE);
+  // After an at-fault claim, premiums are 30% higher for 3 years.
+  const surcharge = householdId === me.householdId && s.year - (me.flags.car_claim_year ?? -99) < 3 ? 1.3 : 1;
+  add(exp, 'Car insurance', Math.round(workingCars(hh).length * living(CAR_INSURANCE) * surcharge));
   for (const a of hh.assets) {
     add(exp, a.kind === 'house' ? 'Home upkeep' : 'Car upkeep', a.upkeep);
     if (a.mortgage > 0) add(exp, a.kind === 'house' ? 'Mortgage' : 'Car loan', loanPayment(a));

@@ -351,6 +351,7 @@ function childYear(s: GameState, rng: Rng, c: Person) {
 function education(s: GameState, p: Person) {
   if (p.studyingUntil && s.year >= p.studyingUntil) {
     p.flags[p.studyKind === 'trade' ? 'trade_cert' : 'degree'] = 1;
+    p.flags.graduated = s.year;
     if (p.studyKind === 'top') p.flags.top_degree = 1;
     delete p.flags.scholarship;
     stat(p, 'smarts', p.studyKind === 'top' ? 10 : p.studyKind === 'university' ? 8 : 3);

@@ -1,5 +1,6 @@
 import { HOBBY_BY_ID, TIME_BUDGET } from '../content/actions';
 import { CHILD_EVENTS } from './childhood';
+import { LIFE_EVENTS, setEnqueue } from './lifeEvents';
 import { FEMALE_NAMES, MALE_NAMES } from '../content/names';
 import { annuityPayment, HOMES, MORTGAGE_RATE, MORTGAGE_YEARS, SCRAP_VALUE } from '../content/finance';
 import { breakdownChance, carAge, conditionOf, garagedIds, repairCost, shakiestCar } from './cars';
@@ -79,6 +80,13 @@ const one = (cond: boolean, weight: number, urgent = false, subject?: Person): C
   cond ? [{ weight, urgent, subject }] : [];
 const childBlocks = (c: Ctx, k: Person) =>
   (c.s.plan.alloc[`child_time:${k.id}`] ?? 0) + (c.s.plan.alloc[`homework:${k.id}`] ?? 0);
+
+/** Engagement rings: a better ring helps a little and is remembered fondly. */
+const RINGS = [
+  { id: 'ring_modest', label: 'a simple ring', cost: 2000, boost: 0.03, hint: 'Sweet and sensible', reaction: 'They love the ring.' },
+  { id: 'ring_nice', label: 'a beautiful ring', cost: 6000, boost: 0.06, hint: 'A real sparkle', reaction: 'They keep staring at the ring.' },
+  { id: 'ring_stunning', label: 'a stunning ring', cost: 15000, boost: 0.1, hint: 'Their friends will gasp', reaction: 'Their friends gasped at the ring.' },
+];
 
 const EVENTS: EventDef[] = [
   // ── Arc: work vs. life ─────────────────────────────────────────────
@@ -434,6 +442,7 @@ const EVENTS: EventDef[] = [
       }
       const label = startPath(c.s, kid, path, c.rng);
       journal(c.s, `${kid.firstName} set off toward ${label}.`, 'major');
+      enqueue(c, 'graduation_gift', kid);
       enqueue(c, 'leaving_home', kid);
       return `${text}: ${label}.`;
     },
@@ -624,7 +633,8 @@ const EVENTS: EventDef[] = [
         title: `Forever with ${p!.firstName}?`,
         text: `You've been dating ${p!.firstName} for ${c.s.year - activePartnership(c.s, c.me.id)!.startYear} year(s). ${odds} Marrying means moving in together and combining finances (${p!.firstName} has ${money(savings)}).`,
         choices: [
-          { id: 'propose', label: 'Propose', hint: 'They might say no if the bond is weak' },
+          { id: 'propose', label: 'Propose (no ring, just the words)', hint: 'They might say no if the bond is weak' },
+          ...RINGS.map((r) => ({ id: r.id, label: `Propose with ${r.label} (${money(r.cost)})`, hint: r.hint, disabled: wallet(c).wallet < r.cost })),
           { id: 'wait', label: 'Not yet', hint: 'Keep dating' },
           { id: 'end', label: 'End it', hint: 'This is not the one' },
         ],
@@ -638,12 +648,16 @@ const EVENTS: EventDef[] = [
         return `You and ${p!.firstName} parted ways.`;
       }
       const b = getBond(c.s, c.me.id, p!.id);
+      const ring = RINGS.find((r) => r.id === ch);
+      if (ring) wallet(c).wallet -= ring.cost; // the ring is bought either way
       // In the guided first playthrough, the answer is always yes.
-      if (guidedPerson(c.s)?.id === c.me.id || c.rng.chance(0.3 + (b.affinity + b.trust) / 200)) {
+      if (guidedPerson(c.s)?.id === c.me.id || c.rng.chance(0.3 + (b.affinity + b.trust) / 200 + (ring?.boost ?? 0))) {
         marry(c.s, c.me, p!);
         stat(c.me, 'happiness', 12);
+        if (ring) adjustBond(c.s, c.me.id, p!.id, ring.boost * 40, 0);
         journal(c.s, `You married ${fullName(p!)}.`, 'major');
-        return `${p!.firstName} said yes! A small wedding, a big party, and one shared address.`;
+        enqueue(c, 'wedding', p!);
+        return `${p!.firstName} said yes!${ring ? ` ${ring.reaction}` : ''} Time to plan a wedding.`;
       }
       adjustBond(c.s, c.me.id, p!.id, -10, -5);
       stat(c.me, 'happiness', -8);
@@ -1440,7 +1454,7 @@ const GUIDED_KID: EventDef = {
   },
 };
 
-const ALL_EVENTS: EventDef[] = [...EVENTS, ...CHILD_EVENTS, NAME_BABY, GUIDED_KID];
+const ALL_EVENTS: EventDef[] = [...EVENTS, ...CHILD_EVENTS, ...LIFE_EVENTS, NAME_BABY, GUIDED_KID];
 
 export const EVENT_BY_ID: Record<string, EventDef> = Object.fromEntries(ALL_EVENTS.map((e) => [e.id, e]));
 
@@ -1539,3 +1553,5 @@ export function resolveEvent(s: GameState, rng: Rng, pe: PendingEvent, choiceId:
   journal(s, `${pe.title}: ${outcome}`, pe.major && !headlined ? 'major' : 'info');
   return outcome;
 }
+
+setEnqueue(enqueue);
