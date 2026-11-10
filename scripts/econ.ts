@@ -27,6 +27,8 @@ for (const strat of strategies) {
   let debtYears = 0;
   const inherit: number[] = [];
   const parts = { cash: [] as number[], invest: [] as number[], retire: [] as number[], home: [] as number[] };
+  const byGen: Record<number, number[]> = {};
+  const inheritByGen: Record<number, number[]> = {};
   const events: Record<string, { n: number; spent: number }> = {};
   for (let i = 0; i < RUNS; i++) {
     const r = makeRng(i * 31 + 7);
@@ -43,6 +45,7 @@ for (const strat of strategies) {
       const age = ageOf(me, s.year);
       const hh = s.households[me.householdId];
       if (AGES.includes(age)) atAge[age].push(netWorth(s, hh.id));
+      if (age === 65) (byGen[Math.min(4, me.generation)] ??= []).push(netWorth(s, hh.id));
       if (age === 65) {
         parts.cash.push(hh.wallet);
         parts.invest.push(hh.investments ?? 0);
@@ -69,7 +72,10 @@ for (const strat of strategies) {
       });
       for (const j of s.journal.slice(journalLen)) {
         const m = /inherited \$([\d,]+)/.exec(j.text);
-        if (m && j.text.startsWith('You')) inherit.push(Number(m[1].replace(/,/g, '')));
+        if (m && j.text.startsWith('You')) {
+          inherit.push(Number(m[1].replace(/,/g, '')));
+          (inheritByGen[Math.min(4, active(s).generation)] ??= []).push(Number(m[1].replace(/,/g, '')));
+        }
       }
       void before;
     }
@@ -78,6 +84,8 @@ for (const strat of strategies) {
   console.log('median net worth at age: ' + AGES.map((a) => `${a}: ${k(median(atAge[a]))}`).join(' · '));
   console.log(`avg yearly income ${k(income / years)} · expenses ${k(expenses / years)} · savings rate ${Math.round((1 - expenses / income) * 100)}% · years in debt ${Math.round((debtYears / years) * 100)}%`);
   console.log(`at 65 (median): cash ${k(median(parts.cash))} · investments ${k(median(parts.invest))} · retirement savings ${k(median(parts.retire))} · home equity ${k(median(parts.home))}`);
+  console.log('net worth at 65 by generation: ' + Object.keys(byGen).map((g2) => `gen ${g2}${g2 === '4' ? '+' : ''}: ${k(median(byGen[+g2]))} (${byGen[+g2].length})`).join(' · '));
+  console.log('inheritance by generation: ' + Object.keys(inheritByGen).map((g2) => `gen ${g2}${g2 === '4' ? '+' : ''}: ${k(median(inheritByGen[+g2]))} (${inheritByGen[+g2].length})`).join(' · '));
   console.log(`inheritances: ${inherit.length} · median ${k(median(inherit))}`);
   const top = Object.entries(lines).sort((a, b) => b[1] - a[1]).slice(0, 14);
   console.log('where the money goes: ' + top.map(([l, v]) => `${l} ${Math.round((v / expenses) * 100)}%`).join(', '));

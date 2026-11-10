@@ -1,7 +1,7 @@
 import { retirePerson } from './retirement';
 import { ESTATE_EXEMPTION, ESTATE_TAX_RATE } from '../content/economy';
 import { makeHousehold } from './generate';
-import { headOf, moverGroup, splitOff } from './household';
+import { headOf, moverGroup, shareOf, splitOff } from './household';
 import { otherCity } from './location';
 import { admissionGpa, enroll } from './school';
 import type { Rng } from './rng';
@@ -16,6 +16,8 @@ export function isCloseKin(s: GameState, p: Person) {
   const me = active(s);
   if (p.id === me.id || p.householdId === me.householdId) return true;
   if (p.biologicalParents.includes(me.id) || me.biologicalParents.includes(p.id)) return true;
+  // Brothers and sisters (sharing a parent) live full lives: they marry and have kids.
+  if (p.biologicalParents.some((id) => me.biologicalParents.includes(id))) return true;
   return childrenOf(s, me.id).some((c) => p.biologicalParents.includes(c.id));
 }
 
@@ -162,8 +164,10 @@ export function retire(p: Person, year: number) {
 
 export function die(s: GameState, p: Person, cause: string) {
   if (!alive(p)) return;
+  const estate = probateShare(s, p);
   p.deathYear = s.year;
   p.deathCause = cause;
+  if (estate) distributeEstate(s, p, estate);
   // Their claim on the household savings passes to whoever carries the household on.
   if ((p.stake ?? 0) > 0) {
     const pt = partnerOf(s, p.id);
@@ -194,6 +198,48 @@ export function die(s: GameState, p: Person, cause: string) {
     const me = s.people[s.activeId];
     journal(s, `Your friend ${fullName(p)} passed away at age ${ageOf(p, s.year)}.`, 'death');
     if (me && alive(me)) stat(me, 'happiness', getBond(s, me.id, p.id).affinity >= 40 ? -10 : -4);
+  }
+}
+
+/**
+ * Probate while the household carries on: when someone dies with no spouse left at home and
+ * some of their children live elsewhere, their share of the household's savings (by stake,
+ * including their retirement savings) is split between all their living children. Children
+ * still at home keep their part in the household; the others are paid out. (When the whole
+ * household is gone, settleEstates handles it instead.)
+ */
+function probateShare(s: GameState, p: Person): { cash: number; invest: number; kids: Person[] } | undefined {
+  const hh = s.households[p.householdId];
+  const others = membersOf(s, hh.id).filter((m) => m.id !== p.id);
+  if (!others.length) return undefined;
+  const pt = partnerOf(s, p.id);
+  if (pt && pt.householdId === hh.id) return undefined; // the spouse keeps it all
+  const kids = childrenOf(s, p.id).filter(alive);
+  if (!kids.some((k) => k.householdId !== hh.id)) return undefined;
+  const f = shareOf(s, hh.id, [p]);
+  const cash = Math.round(Math.max(0, hh.wallet) * f) + (p.retirementSavings ?? 0);
+  const invest = Math.round(Math.max(0, hh.investments ?? 0) * f);
+  return cash + invest > 0 ? { cash, invest, kids } : undefined;
+}
+
+function distributeEstate(s: GameState, p: Person, e: { cash: number; invest: number; kids: Person[] }) {
+  const hh = s.households[p.householdId];
+  // Retirement savings join the household first, then the estate is divided.
+  hh.wallet += p.retirementSavings ?? 0;
+  p.retirementSavings = 0;
+  const total = e.cash + e.invest;
+  const tax = estateTax(total);
+  const share = (total - tax) / e.kids.length;
+  const away = e.kids.filter((k) => k.householdId !== hh.id);
+  // Paid out of cash first, then investments.
+  let owed = Math.round(share * away.length + tax); // the whole estate tax is paid now
+  const fromCash = Math.min(owed, Math.max(0, hh.wallet));
+  hh.wallet -= fromCash;
+  owed -= fromCash;
+  hh.investments = Math.max(0, (hh.investments ?? 0) - owed);
+  for (const k of away) {
+    s.households[k.householdId].wallet += Math.round(share);
+    if (isCloseKin(s, k)) journal(s, `${k.id === s.activeId ? 'You' : fullName(k)} inherited ${money(Math.round(share))} from ${p.firstName}.`, 'good');
   }
 }
 

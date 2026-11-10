@@ -135,6 +135,11 @@ for random). When your baby is born, a naming event offers suggestions or lets y
 - **Luxury upgrades** for owned homes: pool, hot tub, home gym, home theater, workshop, security system, and up
   to three additions (+1 capacity each). Each has upkeep and ongoing perks.
 - Achievements: Cannonball!, Room to Grow, Dream Wedding, Glad We Had Insurance, The Bank of Mom and Dad.
+- **Siblings:** players are only children 25% of the time, with one sibling 40%, two 25%, three 10%. Grown siblings
+  have their own homes, jobs and families. When the last parent in a home dies, their share of the savings
+  (by stake) is split among all their children, even if the household carries on with an heir, so a
+  child who stayed home doesn't keep it all. The `econ` report shows net worth and inheritances by generation:
+  wealth now levels off by the third generation instead of compounding.
 - Next: hobby → training → gear → career paths (`docs/plans/hobby-career-paths.md`).
 
 ## Jobs and the job market

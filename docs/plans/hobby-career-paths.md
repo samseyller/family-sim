@@ -1,71 +1,103 @@
 # Plan: hobby → training → gear → career paths
 
-Status: proposal (not built yet). Goal: let a passion grow into a lifestyle and possibly a living,
-with real costs along the way. Three paths first: **flying**, **woodworking**, **fishing**.
+Status: plan agreed in principle; not built yet. Goal: let a passion grow into a lifestyle, and
+into a **real alternative to university**: challenging, with real costs along the way, but a
+genuine way to make a living.
+
+## Decisions so far
+- **Hobby careers:** challenging, but a real alternative path. They're not a long shot: top earners in each
+  path should land near university-career pay, but it takes skill, money, and time.
+- **Planes are a hobby and a career, not a travel discount.** Owning one is expensive enough on its own.
+- **Gear is inheritable:** the family boat, plane, workshop tools, project car or kitchen pass down with the
+  household and through estates.
+- **Paths:** flying, woodworking, fishing, cooking, music, auto mechanic. **Gardening** is a hobby only for now.
 
 ## The shared framework (built once, used by every path)
 
 | Piece | What it adds | Builds on |
 |---|---|---|
-| **Hobbies** | `flying`, `woodworking`, `fishing` join music/sports/art. Practice blocks raise skill; some hobbies cost money per block (flight hours are expensive, fishing is cheap). | `Hobby`, Plan → Practice |
-| **Licenses & certificates** | Generalize night-school `PROGRAMS` into credentials with prerequisites: a minimum skill, an earlier credential, an age, and a cost. Examples: Private Pilot License, Commercial Pilot License, Carpentry Certificate, Captain's License. | `PROGRAMS`, `qualifies()` |
-| **Gear** | New owned things that age like cars (value, upkeep, breakdowns): `plane`, `boat`. Each needs a place to keep it (hangar, marina slip, or driveway/garage for a trailered boat). Bigger gear means bigger yearly costs. | `cars.ts` aging, parking spots, the `workshop` home upgrade |
-| **Career ladders** | Careers get their own rank titles instead of Junior/Senior/Lead. Promotions can require skill and credentials as well as years. | `LEVEL_TITLES`, `jobLevel` |
-| **Side income** | Activities that earn by skill: charter flights, furniture commissions, fishing tournaments and charters. | Activities |
-| **Path achievements** | One for each milestone (first solo flight, first commission, the big catch...). | achievements |
+| **Hobbies** | New: flying, woodworking, fishing, cooking, mechanics, gardening; music already exists. Practice blocks raise skill; some cost money per block (flight hours, car parts). | `Hobby`, Plan → Practice |
+| **Credentials** | Generalize night-school `PROGRAMS` into licenses and certificates with prerequisites (minimum skill, earlier credential, age, cost). They can be earned in trade school at 18 or at night later. | `PROGRAMS`, `qualifies()` |
+| **Gear** | Owned things that age like cars (value, upkeep, breakdowns) and need storage: plane (hangar), boat (driveway/garage or marina), project car (garage space), tool kits, studio gear. Inheritable like any asset. | `cars.ts` aging, parking, Workshop upgrade |
+| **Career ladders** | Each career gets its own rank titles; promotions can require skill and credentials as well as years. Some top ranks are "your own business," with income that varies with skill and luck. | `LEVEL_TITLES`, `jobLevel`, job market |
+| **Side income** | Skill-based activities that earn money: commissions, gigs, charters, catering, tournaments, flips. | Activities |
+| **Achievements** | Milestones per path. | achievements |
+
+City job markets matter: each ladder's jobs appear in listings weighted by city industries.
 
 ## Flying ✈️
-- **Hobby:** discovery flight activity ($250). Lessons cost about $400 per practice block. Minimum age 16.
-- **Training:** Private Pilot License (skill 25, $12k) → Commercial License (PPL, skill 55, $60k, smarts 50).
-  Instrument and multi-engine ratings could come later.
-- **Gear:**
-  - Rent a plane per flight (about $400), or buy a used single-engine plane (about $90k; upkeep $9k plus hangar $4k a year; ages and breaks down like a car).
-  - Owning a plane makes visiting family and friends in other cities cheaper and faster, which ties in with cities.
-- **Career:** Flight Instructor (part-time) → Commercial Pilot → First Officer → Airline Captain.
-  - Replaces today's single "Airline Pilot".
-  - Captain is about $200k but needs years of skill and seniority.
-  - Hiring is strongest in transport-hub cities (Atlanta, Dallas, Chicago).
-- **Moments:** first solo, an engine scare (skill decides the outcome), flying the kids to see grandma.
+- **Hobby:** discovery flight ($250); lessons about $400 per practice block; from 16.
+- **Credentials:** Private Pilot License (skill 25, $12k) → Commercial License (PPL, skill 55, $60k, smarts 50).
+- **Gear:** rent per flight (about $400), or own a used single-engine plane (about $90k; $9k upkeep plus $4k hangar a year).
+- **Career:** Flight Instructor (part-time) → Commercial Pilot → First Officer → Airline Captain (about $200k). Replaces
+  today's single "Airline Pilot". Transport hubs (Atlanta, Dallas, Chicago) hire most.
+- **Moments:** first solo; an engine scare (skill decides the outcome); a scenic flight with the family (bonding, not travel savings).
 
 ## Woodworking 🪚
-- **Hobby:** practice at home, which costs materials. The existing **Workshop** home upgrade doubles practice gains.
-- **Training:** Carpentry Certificate (trade school, or night school while working).
-- **Gear:** tools tiers (basic $1k → pro $8k), which affect project quality.
-- **Career:** Apprentice → Journeyman Carpenter → Master Carpenter → Contractor.
-  - As a Contractor you run your own business: income varies year to year with skill and the housing market. Construction-heavy cities (Phoenix, Houston, Denver) pay more.
-- **Payoffs at home:**
-  - DIY renovations and additions cost less with high skill.
-  - Build a crib or a treehouse for the kids, for bonding.
-  - Sell furniture as a side hustle.
-- **Moments:** a commission from a neighbor, a shop injury (safety gear matters), passing the skill to a child.
+- **Hobby:** material costs; the existing **Workshop** upgrade doubles practice gains.
+- **Credentials:** Carpentry Certificate.
+- **Gear:** tool tiers (basic $1k → pro $8k) raise project quality.
+- **Career:** Apprentice → Journeyman → Master Carpenter → Contractor (own business; pay varies with skill and the
+  local housing market; best in Phoenix, Houston, Denver).
+- **Payoffs:** cheaper DIY renovations and additions, furniture commissions, a treehouse for the kids.
 
-## Fishing 🎣
-- **Hobby:** cheap and relaxing, with less stress and good one-on-one bonding with kids and friends. Gear tiers.
-- **Gear:**
-  - **Small boat:** $25k, trailered; needs a parking spot.
-  - **Bass boat:** $60k.
-  - **Offshore boat:** $250k; needs a marina slip, $6k a year in coastal cities.
-- **Where:** coastal cities (Miami, San Diego, Seattle, Boston) unlock offshore fishing and charters. Others are lakes and rivers.
-- **Career (harder):** Fishing Guide (part-time) → Charter Captain.
-  - Needs a Captain's License, an offshore boat, and skill.
-  - Income is seasonal and swings year to year.
-- **Moments:** tournaments with prize money by skill, the one that got away, a storm at sea.
+## Fishing 🎣 (a hobby first; the career is the hardest here)
+- **Hobby:** cheap, low-stress, great one-on-one time with kids and friends.
+- **Gear:** small trailered boat ($25k; needs a parking spot) → bass boat ($60k) → offshore boat ($250k; marina slip about
+  $6k a year, coastal cities only).
+- **Career:** Fishing Guide (part-time) → Charter Captain (Captain's License, an offshore boat, skill; seasonal, swingy income).
+  Strongest in Miami, San Diego, Seattle, Boston.
+- **Moments:** tournaments with prize money, the one that got away, a storm at sea.
+
+## Cooking 🍳
+- **Hobby:** cook at home (cheaper than eating out; a small happiness and family-bond boost), with ingredient costs.
+- **Credentials:** Culinary School certificate (trade path), or work your way up.
+- **Gear:** chef's kitchen home upgrade ($40k): faster practice and better dinner parties.
+- **Career:** Line Cook → Sous Chef → Head Chef → Restaurant Owner (own business: a large investment, about $250k
+  to open; high risk, high reward; hospitality cities like Miami and New York do best).
+  Replaces today's single "Chef".
+- **Side income:** catering gigs, a food truck (gear: about $80k).
+- **Moments:** a bad review, a food critic visits, Thanksgiving for 20.
+
+## Music 🎸 (extends the existing music hobby)
+- **Hobby:** practice; instrument tiers ($500 → $10k).
+- **Credentials:** a music degree (university path) *or* skill alone; both work.
+- **Gear:** home studio ($25k): better recordings and faster practice.
+- **Career, two tracks:**
+  - **Performer:** Local Gigs (part-time) → Session Musician → Touring Musician → Headliner (rare, huge pay,
+    long absences that strain family bonds). Entertainment cities (Los Angeles, Austin, Atlanta, New York) hire most.
+  - **Teacher:** Music Teacher (part-time, exists) → School Music Director (pension).
+- **Moments:** a big audition, a song going viral, life on the road vs. family time.
+
+## Auto mechanic 🔧 (extends Mechanic)
+- **Hobby:** tinkering with cars; parts cost money.
+- **Credentials:** Automotive Technician certificate → Master Technician certification.
+- **Gear:** home garage lift and tools ($12k; needs a garage space); project cars (buy a rusty classic for $8k, restore it over
+  years, sell or keep; a restored classic can be worth $40k+).
+- **Ties to cars:** high skill makes your own repairs cheaper and breakdowns less likely.
+- **Career:** Lube Tech → Mechanic → Master Technician → Shop Owner (own business).
+- **Moments:** a classic car show, a customer's impossible repair, restoring a car with your kid.
+
+## Gardening 🌱 (hobby only, for now)
+- Low cost, big stress relief, small health and happiness gains; better with a home that has a yard (not apartments).
+- Gear: greenhouse home upgrade ($15k).
+- Payoffs: lower grocery costs, county-fair ribbons, sharing produce with neighbors (friendship boosts).
+- A later career could be landscaping or nursery owner, if we want one.
 
 ## Suggested build order
 1. **Framework:**
    - new hobbies
    - credentials with prerequisites
    - per-career rank titles
-   - gear assets (reusing the car aging system), with storage costs
-2. **Woodworking:** smallest, and reuses the workshop upgrade. It proves the framework.
-3. **Fishing:** boats, coastal cities.
-4. **Flying:** the biggest; it touches travel and cities.
-5. **Balance pass with `npm run econ`:**
-   - gear and training are money sinks
-   - side income must not outpace careers
-
-## Questions for you
-1. Should a hobby career be *possible but hard* (the default here), or a real alternative to a university career?
-2. Should a plane really make family visits cheaper? It's fun, but it's a new rule for travel.
-3. Should gear be inheritable (the family boat or plane passing down a generation)?
-4. Any other paths for the shortlist? Some that fit the same framework: cooking (culinary school → restaurant owner), music (lessons → studio gear → touring), gardening/farming, auto restoration.
+   - gear assets with storage
+   - inheritable gear (it already passes with the household; make sure estates keep it)
+   - own-business income
+2. **Woodworking:** smallest, and reuses the workshop.
+3. **Auto mechanic:** reuses the car system.
+4. **Cooking:** a home upgrade plus restaurant ownership.
+5. **Music.**
+6. **Fishing:** boats, coastal cities.
+7. **Flying:** the biggest.
+8. **Gardening:** quick, any time.
+9. **Balance with `npm run econ`:** gear and training are money sinks; hobby-career pay should land near
+   university-career pay at the top, with more variance.

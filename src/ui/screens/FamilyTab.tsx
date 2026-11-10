@@ -53,6 +53,8 @@ function FamilyList({ g }: { g: GameState }) {
   for (const c of childrenOf(g, me.id)) add(c);
   for (const c of childrenOf(g, me.id)) for (const gc of childrenOf(g, c.id)) add(gc);
   for (const p of parentsOf(g, me)) add(p);
+  // Brothers and sisters (anyone sharing a parent), then the ex-partners below.
+  for (const par of parentsOf(g, me)) for (const sib of childrenOf(g, par.id)) add(sib);
   for (const p of g.partnerships) if (p.a === me.id || p.b === me.id) add(g.people[p.a === me.id ? p.b : p.a]);
   const living = list.filter(alive);
   const dead = list.filter((p) => !alive(p));
