@@ -118,6 +118,33 @@ for random). When your baby is born, a naming event offers suggestions or lets y
   pregnancy. The partner's wishes are shown, and going against them strains the relationship.
 - Achievements: Butterflies, Playing the Field (5 people), Second Spark, Hopeless Romantic (10 dates), Surprise!
 
+## Cities and friends
+
+- **15 cities** (`src/content/cities.ts`): New York, Los Angeles, Chicago, Houston, Phoenix, Philadelphia,
+  San Antonio, San Diego, Dallas, Austin, Seattle, Denver, Boston, Miami, Atlanta. Each has indexes for pay,
+  housing and living costs, and transit. Games start in a random city (the guided life in Philadelphia).
+  - Every household is in a city: home prices, rent and upkeep, living costs, pay and the cost of getting
+    around without a car follow it. The $15M mansion costs the same everywhere.
+  - Parents sometimes live in another city; grown kids sometimes move away for work; relatives and friends
+    show their city. Family visits to another city cost more energy and money.
+  - **Money → (your city) → Compare cities and move**: moving sells your home (you rent at first), ends the jobs
+    of everyone working in your household, and moves the kids to new schools. Pets, cars and savings come along.
+    A partner's job offer now names the city and moves the family there; the partner keeps their job.
+- **Friends** are named people with their own homes in a specific city (Family → Friends).
+  - You meet them at work, school, clubs, the gym, the dog park, volunteering, nights out, and as new neighbors
+    (much likelier right after a move). New games start with two friends. Up to 15 at a time.
+  - Friendship fades 10 a year without contact. At 0 a friend has "drifted apart" and may ignore invitations;
+    spending time together again can reconnect you. Best friend = your closest friend at 50+.
+  - Friends sometimes move away (best friends rarely, distant ones more often) or move to your city.
+  - Activities → Social: coffee, game day, hikes, helping them move and parties need you in the same city.
+    Calls and online games work anywhere. A trip to a friend in another city costs more energy and money.
+  - Events: lunch with a coworker, a new neighbor, a new kid at school, a friend in need, a friend's wedding.
+  - Achievements: Social Butterfly, Best Friends Forever, Like Old Times, Worth the Trip, Lifelong Friends,
+    Fresh Start, City Hopper.
+- **Names**: 500 female and 500 male first names from Social Security baby-name data (one year per decade,
+  1950–2020) and the 1,000 most common surnames from the 2010 Census, both public domain.
+  `scripts/build-names.mjs` regenerates `src/content/names.ts` from those files.
+
 ## Dogs
 
 - **Family → Dogs**: adopt a puppy (Labrador, Golden Retriever, German Shepherd, French Bulldog or Beagle,

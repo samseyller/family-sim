@@ -7,7 +7,7 @@
 import { COSTS } from '../content/actions';
 import { CAREER_BY_ID, salaryOf } from '../content/careers';
 import { incomeTax, medicalCost } from '../content/economy';
-import { RENTALS } from '../content/finance';
+import { cityOfHousehold, rentIn } from './location';
 import {
   DRAWDOWN_TO_AGE, EARLY_REDUCTION_PER_YEAR, EARLY_RETIREMENT_AGE, FULL_RETIREMENT_AGE, MATCH_CAP, MATCH_RATE,
   PENSION_ACCRUAL, PENSION_VESTING_YEARS, SAVINGS_RETURN, STATE_PENSION, STATE_PENSION_MIN_YEARS,
@@ -97,7 +97,7 @@ export function readiness(s: GameState, me: Person, atAge: number): Readiness {
   const adults = theirs ? 2 : 1;
   const home = hh.assets.find((a) => a.kind === 'house');
   const mortgageLeft = home && home.mortgage > 0 && (home.payment ?? 18000) * years < home.mortgage;
-  const housing = home ? home.upkeep + (mortgageLeft ? home.payment ?? 18000 : 0) : RENTALS[hh.rentTier ?? 'apartment'].rent;
+  const housing = home ? home.upkeep + (mortgageLeft ? home.payment ?? 18000 : 0) : rentIn(hh.rentTier ?? 'apartment', cityOfHousehold(hh));
   const medical = medicalCost(atAge) + (theirs ? medicalCost(theirs.age) : 0);
   const people = [mine, ...(theirs ? [theirs] : [])];
   const income = people.reduce((sum, x) => sum + x.pension + x.state + x.savingsIncome, 0);

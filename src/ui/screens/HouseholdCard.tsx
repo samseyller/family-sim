@@ -1,3 +1,4 @@
+import { cityOfHousehold } from '../../engine/location';
 import { useEffect, useState } from 'react';
 import { HOMES, RENTALS, type HomeTier } from '../../content/finance';
 import {
@@ -139,7 +140,7 @@ export function HouseholdCard({ g }: { g: GameState }) {
           <div className="label">Your parents here</div>
           <div className="choices">
             <HAct g={g} action={{ kind: 'parentsOut', buy: cheapestHome }}
-              label={`🏠 Buy them a ${HOMES[cheapestHome].label.toLowerCase()} (${money(homeUpfrontCash(cheapestHome))})`}
+              label={`🏠 Buy them a ${HOMES[cheapestHome].label.toLowerCase()} (${money(homeUpfrontCash(cheapestHome, cityOfHousehold(hh)))})`}
               hint="They move into a home of their own, paid in full, with their share of the savings" confirm="Confirm: buy them a home" />
             <HAct g={g} action={{ kind: 'parentsOut', buy: null }} label="🚪 Ask them to move out"
               hint="They rent a place with their share of the savings. They won’t take it well." confirm="Confirm: ask them to leave" />

@@ -5,6 +5,7 @@
 import { z } from 'zod';
 import { CARS, type CarKind } from '../content/finance';
 import { BREEDS, type DogBreed } from '../content/dogs';
+import { CITY_IDS, type CityId } from '../content/cities';
 import type { GameState } from '../engine/types';
 
 const num = z.number().finite();
@@ -103,6 +104,7 @@ const Household = z.object({
   rentTier: z.enum(['small', 'apartment', 'house']).optional(),
   headId: id.optional(),
   dogs: z.array(Dog).optional(),
+  city: z.enum(CITY_IDS as [CityId, ...CityId[]]).optional(),
 });
 
 const ChildPlan = z.object({
@@ -183,6 +185,7 @@ export const GameStateSchema = z.object({
   energy: z.object({ year: int, max: num, used: num }).optional(),
   activityLog: z.array(z.object({ year: int, id: z.string() })).optional(),
   lastActivity: z.object({ id: z.string(), title: z.string(), text: z.string(), tone: z.enum(['good', 'bad', 'neutral']), changes: z.array(z.string()) }).optional(),
+  friends: z.array(z.object({ id, of: id, since: int, lastSeen: int, distant: z.boolean().optional(), how: z.string().max(60).optional() })).optional(),
   tutorial: z.object({ personId: id, seen: z.array(z.string()) }).optional(),
 });
 

@@ -1,5 +1,6 @@
 import { SCHEMA_VERSION } from './generate';
 import { fillLooks } from './genome';
+import { CITY_IDS } from '../content/cities';
 import type { GameState } from './types';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -55,6 +56,33 @@ const STEPS: Record<number, Step> = {
   // ("New car" ≈ 3 years, "Used car" ≈ 8); homes get the garage of the matching home type.
   // v11 → v12: optional pet dogs on households. Nothing to rewrite.
   11: (s) => s,
+  // v12 → v13: cities and friends. Every household gets a city: the player's from the seed,
+  // and others either the same city or another one, matching the old "near/far" split.
+  12: (s) => {
+    const hash = (k: string) => [...k].reduce((a, ch) => (a * 31 + ch.charCodeAt(0)) >>> 0, 7);
+    const households = isObj(s.households) ? (Object.values(s.households).filter(isObj) as Record<string, any>[]) : [];
+    const me = isObj(s.people) && isObj(s.people[s.activeId]) ? s.people[s.activeId] : undefined;
+    const home = CITY_IDS[hash(String(s.seed ?? 0)) % CITY_IDS.length];
+    for (const hh of households) {
+      if (hh.city !== undefined) continue;
+      const id = String(hh.id ?? '');
+      const near = id === me?.householdId || hash(id) % 10 < 7;
+      const others = CITY_IDS.filter((c) => c !== home);
+      hh.city = near ? home : others[hash(id) % others.length];
+    }
+    // Who runs the player's home, if not recorded: the player when they live with their
+    // partner or their own children (an established household), otherwise left to the
+    // default (the oldest adult, e.g. the parents of a grown child still at home).
+    const myHome = me && isObj(s.households) ? s.households[me.householdId] : undefined;
+    if (me && isObj(myHome) && myHome.headId === undefined) {
+      const mates = peopleOf(s).filter((p) => p.householdId === me.householdId && p.deathYear === undefined && p.id !== me.id);
+      const isMine = (p: any) => (Array.isArray(p.biologicalParents) && p.biologicalParents.includes(me.id)) || (Array.isArray(p.adoptiveParents) && p.adoptiveParents.includes(me.id));
+      const partnered = Array.isArray(s.partnerships) && s.partnerships.some((x: any) => isObj(x) && (x.a === me.id || x.b === me.id) && x.status === 'married'
+        && mates.some((m) => m.id === (x.a === me.id ? x.b : x.a)));
+      if (partnered || mates.some(isMine)) myHome.headId = me.id;
+    }
+    return s;
+  },
   10: (s) => {
     const garages: Record<string, number> = { 'Starter home': 0, 'Family home': 2, 'Large home': 2 };
     for (const hh of isObj(s.households) ? Object.values(s.households).filter(isObj) : []) {

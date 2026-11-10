@@ -1,3 +1,5 @@
+import { CITIES } from '../../content/cities';
+import { cityOfHousehold } from '../../engine/location';
 import { useEffect } from 'react';
 import { useGame, type Tab } from '../../store/gameStore';
 import { active, ageOf, money } from '../../engine/util';
@@ -66,6 +68,7 @@ export function Game() {
         <div className="topbar-mid">
           <strong>{g.year}</strong>
           <span className="muted"> · {me.firstName}, {ageOf(me, g.year)}</span>
+          <span className="muted topbar-city"> · {CITIES[cityOfHousehold(hh)].icon} {CITIES[cityOfHousehold(hh)].name}</span>
         </div>
         <span className={hh.wallet < 0 ? 'neg' : 'money'}>{money(hh.wallet)}</span>
       </header>

@@ -462,3 +462,8 @@ kbd {
 .adopt { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
 .breed-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 8px; }
 .buy-home.breed { display: flex; gap: 8px; align-items: center; }
+
+/* friends */
+.person.distant { opacity: 0.7; }
+.chip.best { background: color-mix(in srgb, #e8c547 35%, var(--surface)); }
+@media (max-width: 420px) { .topbar-city { display: none; } }

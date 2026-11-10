@@ -11,10 +11,13 @@
  */
 import { BUY_COSTS, HOMES, MOVING_COST, RENTALS, SELL_COSTS, type HomeTier, type RentTier } from '../content/finance';
 import { makeHousehold } from './generate';
+import { makeHome } from './finance';
+import { cityOfHousehold, homePriceIn } from './location';
+import type { CityId } from '../content/cities';
 import { unlockedTabs } from './tutorial';
 import type { GameState, Household, Person } from './types';
 import {
-  active, adjustBond, ageOf, alive, childrenOf, fullName, getBond, journal, membersOf, money, newId, parentsOf, partnerOf, stat,
+  active, adjustBond, ageOf, alive, childrenOf, fullName, getBond, journal, membersOf, money, parentsOf, partnerOf, stat,
 } from './util';
 
 /** Parents at this age or older can be asked to let you take over, or to move. */
@@ -120,7 +123,7 @@ export function splitOff(s: GameState, group: Person[], cash: number, invest: nu
   from.investments = Math.max(0, (from.investments ?? 0) - invest);
   const adults = group.filter((p) => isAdultIn(s, p));
   const savings = adults.reduce((sum, p) => sum + Math.max(0, p.fund), 0);
-  const hh = makeHousehold(s, cash + savings);
+  const hh = makeHousehold(s, cash + savings, from.city); // a move within the same city
   hh.investments = invest;
   hh.headId = group[0].id;
   hh.rentTier = rentTierFor(group.length);
@@ -190,7 +193,8 @@ export function invitable(s: GameState): Person[] {
   return [...pool.values()].filter((p) => alive(p) && p.householdId !== me.householdId && isAdultIn(s, p) && p.id !== pt?.id);
 }
 
-export const homeUpfrontCash = (tier: HomeTier) => Math.round(HOMES[tier].price * (1 + BUY_COSTS));
+/** Cash to buy a home outright in a city (price plus closing costs). */
+export const homeUpfrontCash = (tier: HomeTier, city: CityId) => Math.round(homePriceIn(tier, city) * (1 + BUY_COSTS));
 
 /** What the household tab shows about your place in the household. */
 export function householdView(s: GameState) {
@@ -239,7 +243,7 @@ export function householdBlocker(s: GameState, a: HouseholdAction): string | nul
     case 'parentsOut': {
       if (!runs) return 'You need to run the household first.';
       if (!parentsHere(s).length) return 'No parents live with you.';
-      if (a.buy && hh.wallet < homeUpfrontCash(a.buy)) return `Needs ${money(homeUpfrontCash(a.buy))} in cash.`;
+      if (a.buy && hh.wallet < homeUpfrontCash(a.buy, cityOfHousehold(hh))) return `Needs ${money(homeUpfrontCash(a.buy, cityOfHousehold(hh)))} in cash.`;
       return null;
     }
     case 'askToLeave': {
@@ -299,13 +303,13 @@ export function householdAction(state: GameState, a: HouseholdAction): GameState
       const group = moverGroup(s, parents[0], parents.slice(1).map((p) => p.id));
       const take = shareAmounts(s, hh.id, group);
       if (a.buy) {
-        const cost = homeUpfrontCash(a.buy);
+        const cost = homeUpfrontCash(a.buy, cityOfHousehold(hh));
         hh.wallet -= cost;
       }
       const theirs = splitOff(s, group, take.cash, take.invest);
       if (a.buy) {
         const h = HOMES[a.buy];
-        theirs.assets.push({ id: newId(s, 'a'), kind: 'house', name: h.label, value: h.price, upkeep: h.upkeep, capacity: h.capacity, mortgage: 0, payment: 0 });
+        theirs.assets.push(makeHome(s, a.buy, cityOfHousehold(theirs), 1));
         theirs.rentTier = undefined;
         for (const p of group) {
           stat(p, 'happiness', 8);

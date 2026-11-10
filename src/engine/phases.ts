@@ -12,6 +12,7 @@ import type { GameState, Person, Plan, StatKey } from './types';
 import { defaultPlan, sanitizePlan } from './generate';
 import { applyPlan, driftBonds, runEconomy, runHealth, runPeople } from './systems';
 import { dogYear } from './dogs';
+import { friendsYear } from './friends';
 import { generateEvents, resolveEvent } from './events';
 import { strategyPlan } from './strategies';
 import { applyCushion } from './tutorial';
@@ -38,6 +39,7 @@ export function updatePlan(state: GameState, plan: Plan): GameState {
 const STATS: StatKey[] = ['health', 'happiness', 'smarts', 'fitness', 'stress'];
 
 export function finalizeRecap(s: GameState) {
+  applyCushion(s); // the guided life's money guardrail also covers decisions made this year
   const me = active(s);
   const snap = s.snapshot!;
   const statDeltas: Partial<Record<StatKey, number>> = {};
@@ -66,6 +68,7 @@ export function resolveYear(state: GameState): GameState {
   runPeople(s, rng); //             3. births, kids, NPC decisions
   driftBonds(s); //                 4. relationship drift
   dogYear(s, rng); //                  pets: mood, bonds, aging
+  friendsYear(s, rng); //              friendships fade, drift apart, move away
   runHealth(s, rng); //             6. aging effects, deaths at year end
   settleEstates(s);
   if (alive(active(s))) generateEvents(s, rng); // 5 + 7. due consequences and events

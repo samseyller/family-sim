@@ -8,6 +8,8 @@ import { Avatar } from '../Avatar';
 import { Section, Segmented } from '../components';
 import { FamilyTree } from '../tree/FamilyTree';
 import { DogsCard } from './DogsCard';
+import { FriendsCard } from './FriendsCard';
+import { cityName, cityOf } from '../../engine/location';
 
 function role(g: GameState, me: Person, p: Person): string {
   const ps = [...g.partnerships].reverse().find((x) => (x.a === me.id && x.b === p.id) || (x.b === me.id && x.a === p.id));
@@ -68,7 +70,7 @@ function FamilyList({ g }: { g: GameState }) {
           <div className="hint">
             {alive(p) ? `Age ${ageOf(p, g.year)}` : `${p.birthYear}–${p.deathYear}`}
             {ageOf(p, g.year) >= 18 ? ` · ${jobTitle(p)}` : p.hobby ? ` · ${HOBBY_BY_ID[p.hobby].icon} ${HOBBY_BY_ID[p.hobby].label}` : ''}
-            {p.householdId === me.householdId && alive(p) ? ' · lives with you' : ''}
+            {p.householdId === me.householdId && alive(p) ? ' · lives with you' : alive(p) ? ` · 📍 ${cityName(cityOf(g, p))}` : ''}
             {alive(p) && p.flags.care_home ? ' · in a care home' : ''}
           </div>
           <div className="traits">{p.traits.map((t) => <span key={t} className="chip subtle">{t}</span>)}</div>
@@ -87,6 +89,7 @@ function FamilyList({ g }: { g: GameState }) {
   return (
     <div className="stack">
       <Section title="Family">{living.length ? living.map(card) : <p className="muted">No living relatives yet.</p>}</Section>
+      <FriendsCard g={g} />
       <DogsCard g={g} />
       {dead.length > 0 && <Section title="In memory">{dead.map(card)}</Section>}
     </div>

@@ -11,6 +11,7 @@ import { INVEST_RETURN, INVEST_VOLATILITY } from '../content/finance';
 import { autoComeOfAge, die, isCloseKin, marry, moveOut, receptiveness, retire } from './family';
 import { STAKE_KEEP, seedStakes } from './household';
 import { ageCars } from './cars';
+import { cityDef, cityName, cityOfHousehold, otherCity } from './location';
 import type { Rng } from './rng';
 import type { GameState, Hobby, Person } from './types';
 import {
@@ -266,7 +267,7 @@ export function runEconomy(s: GameState, activePay: number, rng?: Rng) {
       if (age < 18) continue;
       accrueWorkingYear(p);
       if (p.id === me.id && !p.studyingUntil && activePay > 0) {
-        const { employee, match } = contributionFor(p, activePay, s.plan.retireContribution ?? 0);
+        const { employee, match } = contributionFor(p, Math.round(activePay * cityDef(cityOfHousehold(hh)).pay), s.plan.retireContribution ?? 0);
         p.retirementSavings = (p.retirementSavings ?? 0) + employee + match;
       }
       if (p.retired) p.retirementSavings = Math.max(0, (p.retirementSavings ?? 0) - drawdown(p.retirementSavings ?? 0, age));
@@ -384,7 +385,11 @@ function adultYear(s: GameState, rng: Rng, p: Person) {
   const myChild = p.biologicalParents.includes(me.id) || p.adoptiveParents.includes(me.id);
   if (myChild && p.householdId === me.householdId && a >= 23 && p.jobId && !p.studyingUntil && !p.flags.invited_home && rng.chance(0.2)) {
     moveOut(s, p, 0);
-    journal(s, `${p.firstName} found their own place and moved out.`, 'info');
+    if (rng.chance(0.25)) {
+      const to = otherCity(rng, s.households[p.householdId].city);
+      s.households[p.householdId].city = to;
+      journal(s, `${p.firstName} took a job in ${cityName(to)} and moved away.`, 'info');
+    } else journal(s, `${p.firstName} found their own place and moved out.`, 'info');
     return;
   }
 

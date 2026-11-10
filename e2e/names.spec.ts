@@ -18,7 +18,8 @@ test('name your character and family when starting', async ({ page }, info) => {
 
   // The whole family shares the name.
   await page.keyboard.press('3');
-  const surnames = await page.locator('.person strong').allInnerTexts();
+  const family = page.locator('section', { has: page.getByRole('heading', { name: 'Family', exact: true }) });
+  const surnames = await family.locator('.person strong').allInnerTexts();
   expect(surnames.length).toBeGreaterThan(0);
   for (const n of surnames) expect(n).toMatch(/Larkspur$/);
   expect(errors).toEqual([]);

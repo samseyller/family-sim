@@ -50,7 +50,7 @@ describe('starting as a child', () => {
           return firstChoice(pe);
         });
       }
-      for (const id of seenAsChild) expect(CHILD_IDS.has(id) || id === 'own_coming_of_age', `${id} fired for a child`).toBe(true);
+      for (const id of seenAsChild) expect(CHILD_IDS.has(id) || id === 'own_coming_of_age' || id === 'school_friend', `${id} fired for a child`).toBe(true);
       if (s.phase === 'PLANNING') {
         expect(chose).toBe(true);
         expect(active(s).flags.came_of_age).toBe(1);

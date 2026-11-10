@@ -13,6 +13,8 @@ import { homeParents } from './generate';
 import { breakUp, mergeHouseholds, startDating } from './family';
 import { shareAmounts, splitOff } from './household';
 import { dogsOf } from './dogs';
+import { cityName, cityOf, isNear } from './location';
+import { afterTogether, friendsOf, maybeMeetFriend, willJoin } from './friends';
 import { canConceive, conceive, exesOf, isSingle, jobBlurb, meetSomeone, pregnancyChance } from './romance';
 import { unlockedTabs } from './tutorial';
 
@@ -55,10 +57,9 @@ export function relativesOutside(s: GameState, me: Person): Person[] {
   return [...ids].map((id) => s.people[id]);
 }
 
-/** Households are "near" (same area) or "far"; stable per household. */
-export function distanceOf(householdId: string): 'near' | 'far' {
-  const h = [...householdId].reduce((a, ch) => (a * 31 + ch.charCodeAt(0)) >>> 0, 7);
-  return h % 10 < 7 ? 'near' : 'far';
+/** "near" when the person lives in the player's city, "far" otherwise. */
+export function distanceOf(s: GameState, p: Person): 'near' | 'far' {
+  return isNear(s, p) ? 'near' : 'far';
 }
 
 // ── Catalog ──────────────────────────────────────────────────────────
@@ -78,7 +79,7 @@ export const CATEGORIES: Record<Category, { label: string; icon: string }> = {
   kid: { label: 'Kid stuff', icon: '🧸' },
 };
 
-export type Who = 'solo' | 'household' | 'partner' | 'kids' | 'relative' | 'guests' | 'ex';
+export type Who = 'solo' | 'household' | 'partner' | 'kids' | 'relative' | 'guests' | 'ex' | 'friends';
 
 export interface ActivityCtx {
   s: GameState;
@@ -106,6 +107,8 @@ export interface ActivityDef {
   requires?: (s: GameState, me: Person) => string | null;
   /** Extra filter on who can come. */
   eligible?: (s: GameState, p: Person) => boolean;
+  /** Friends only: who can join, by where they live ("near" = your city, "far" = elsewhere). Default any. */
+  where?: 'near' | 'far' | 'any';
   /** Kids must ask: parents say yes based on trust; money only spent if they do. */
   kidAsk?: boolean;
   run: (c: ActivityCtx) => { text: string; tone: ActivityResult['tone'] };
@@ -121,6 +124,23 @@ const working = (_s: GameState, me: Person) => (me.jobId ? null : 'You need a jo
 const hasDog = (s: GameState, me: Person) => (dogsOf(s.households[me.householdId]).length ? null : 'You need a dog (adopt one in the Family tab).');
 const myDogs = (c: ActivityCtx) => dogsOf(c.s.households[c.me.householdId]);
 const dogNames = (dogs: { name: string }[]) => (dogs.length <= 2 ? dogs.map((d) => d.name).join(' and ') : `${dogs.slice(0, -1).map((d) => d.name).join(', ')} and ${dogs[dogs.length - 1].name}`);
+/**
+ * Time with friends: those who come get closer (distant friends may say no). Spending time
+ * together keeps the friendship from fading and can reconnect a friend who drifted away.
+ */
+function hangOut(c: ActivityCtx, aff: number, trust: number, text: (who: string) => string, decline: 'no-show' | 'no-answer' = 'no-show'): { text: string; tone: ActivityResult['tone'] } {
+  const came = c.people.filter((f) => willJoin(c.s, c.rng, c.me, f));
+  const skipped = c.people.filter((f) => !came.includes(f));
+  for (const f of came) {
+    adjustBond(c.s, c.me.id, f.id, aff, trust);
+    afterTogether(c.s, c.me, f);
+  }
+  for (const f of skipped) adjustBond(c.s, c.me.id, f.id, -1, -1);
+  const no = skipped.length ? ` ${names(skipped)} ${decline === 'no-answer' ? "didn't pick up" : 'never replied'}.` : '';
+  if (!came.length) return { text: `${names(skipped)} ${decline === 'no-answer' ? "didn't pick up" : 'never replied'}. Maybe they've moved on.`, tone: 'bad' };
+  stat(c.me, 'happiness', 2);
+  return { text: text(names(came)) + no, tone: skipped.length ? 'neutral' : 'good' };
+}
 const single = (s: GameState, me: Person) => (isSingle(s, me) ? null : 'You are already seeing someone.');
 /** Try to meet someone; on success you start dating them. */
 function tryToMeet(c: ActivityCtx, chance: number, how: string, misses: string[]): { text: string; tone: ActivityResult['tone'] } {
@@ -216,7 +236,12 @@ export const ACTIVITIES: ActivityDef[] = [
   {
     id: 'gym', category: 'health', icon: '🏋️', label: 'Gym membership', who: 'solo', perYear: 1, desc: 'A year of access; a big push to fitness.',
     energy: flat(20), cost: flat(600),
-    run: (c) => { stat(c.me, 'fitness', 8); stat(c.me, 'health', 3); return { text: 'Sore for a week, then hooked.', tone: 'good' }; },
+    run: (c) => {
+      stat(c.me, 'fitness', 8);
+      stat(c.me, 'health', 3);
+      const f = maybeMeetFriend(c.s, c.rng, c.me, 0.15, 'at the gym');
+      return { text: f ? `Sore for a week, then hooked. ${f.firstName} became your gym buddy.` : 'Sore for a week, then hooked.', tone: 'good' };
+    },
   },
   {
     id: 'yoga', category: 'health', icon: '🧘', label: 'Yoga class', who: 'solo', desc: 'Stretch, breathe, unclench.',
@@ -294,8 +319,8 @@ export const ACTIVITIES: ActivityDef[] = [
   // 🚗 Family visits
   {
     id: 'visit', category: 'visits', icon: '🚗', label: 'Visit a relative', who: 'relative', max: 1, desc: 'Drop by, or travel to see someone.',
-    energy: (_s, ppl) => (ppl[0] && distanceOf(ppl[0].householdId) === 'far' ? 35 : 10),
-    cost: (_s, ppl) => (ppl[0] && distanceOf(ppl[0].householdId) === 'far' ? 600 : 40),
+    energy: (s, ppl) => (ppl[0] && distanceOf(s, ppl[0]) === 'far' ? 35 : 10),
+    cost: (s, ppl) => (ppl[0] && distanceOf(s, ppl[0]) === 'far' ? 600 : 40),
     run: (c) => {
       const [p] = c.people;
       adjustBond(c.s, c.me.id, p.id, 8, 5);
@@ -357,7 +382,8 @@ export const ACTIVITIES: ActivityDef[] = [
         const sp = meetSomeone(c.s, c.rng, c.me, 'at the dog park');
         return { text: `${dogNames(dogs)} made friends with ${sp.firstName}'s dog, and you made friends with ${sp.firstName}. You're dating now.`, tone: 'good' };
       }
-      return { text: `${dogNames(dogs)} ran laps until they flopped down in the shade.`, tone: 'good' };
+      const f = maybeMeetFriend(c.s, c.rng, c.me, 0.15, 'at the dog park');
+      return { text: f ? `${dogNames(dogs)} made a best friend, and so did you: ${f.firstName}.` : `${dogNames(dogs)} ran laps until they flopped down in the shade.`, tone: 'good' };
     },
   },
   {
@@ -551,19 +577,86 @@ export const ACTIVITIES: ActivityDef[] = [
 
   // 🎉 Social
   {
-    id: 'night_out', category: 'social', icon: '🍻', label: 'Night out with friends', who: 'solo', desc: 'Catch up, laugh, stay out late.',
-    energy: flat(12), cost: flat(100),
+    id: 'night_out', category: 'social', icon: '🍻', label: 'Night out with friends', who: 'friends', min: 0, max: 4, where: 'near',
+    desc: 'Catch up, laugh, stay out late. Go alone and you might make a new friend.',
+    energy: flat(12), cost: (_s, ppl) => 60 + 40 * ppl.length,
     run: (c) => {
       stat(c.me, 'happiness', 6);
       stat(c.me, 'stress', -6);
       if (!partnerOf(c.s, c.me.id)) flag(c.me, 'met_people');
-      return { text: 'Your face hurts from laughing.', tone: 'good' };
+      if (!c.people.length) {
+        const f = maybeMeetFriend(c.s, c.rng, c.me, 0.35, 'on a night out');
+        return { text: f ? `You got talking with ${f.firstName}${jobBlurb(f)} at the bar. You swapped numbers.` : 'A fun night with the regulars.', tone: 'good' };
+      }
+      return hangOut(c, 6, 3, (who) => `You and ${who} closed the place down. Your face hurts from laughing.`);
     },
   },
   {
-    id: 'volunteer', category: 'social', icon: '🤝', label: 'Volunteer', who: 'household', min: 0, ages: [12, 120], desc: 'Give an afternoon to a good cause.',
+    id: 'volunteer', category: 'social', icon: '🤝', label: 'Volunteer', who: 'household', min: 0, ages: [12, 120], desc: 'Give an afternoon to a good cause. You might make a friend.',
     energy: flat(12), cost: flat(0),
-    run: (c) => { moodAll(c, 'happiness', 5); bondAll(c, 3, 3); flag(c.me, 'volunteer'); return { text: 'You helped at the food bank. It helped you too.', tone: 'good' }; },
+    run: (c) => {
+      moodAll(c, 'happiness', 5);
+      bondAll(c, 3, 3);
+      flag(c.me, 'volunteer');
+      const f = maybeMeetFriend(c.s, c.rng, c.me, 0.2, 'volunteering');
+      return { text: f ? `You helped at the food bank, and ${f.firstName} asked if you'd come again next week.` : 'You helped at the food bank. It helped you too.', tone: 'good' };
+    },
+  },
+  {
+    id: 'join_club', category: 'social', icon: '📚', label: 'Join a club', who: 'solo', perYear: 2, desc: 'A book club, rec league, or trivia team. A great way to make friends.',
+    energy: flat(10), cost: flat(120),
+    run: (c) => {
+      stat(c.me, 'happiness', 3);
+      const f = maybeMeetFriend(c.s, c.rng, c.me, 0.55, c.rng.pick(['at book club', 'in a rec league', 'on a trivia team']));
+      return { text: f ? `You and ${f.firstName} hit it off right away.` : 'Nice people, but no real connection yet.', tone: f ? 'good' : 'neutral' };
+    },
+  },
+
+  // 👋 Friends: in person (same city), from anywhere (calls, games), or a planned trip
+  {
+    id: 'coffee_friend', category: 'social', icon: '☕', label: 'Coffee with a friend', who: 'friends', max: 1, where: 'near', desc: 'An hour to catch up.',
+    energy: flat(4), cost: flat(12),
+    run: (c) => hangOut(c, 5, 3, (who) => `You and ${who} talked until the coffee went cold.`),
+  },
+  {
+    id: 'game_day', category: 'social', icon: '🏈', label: 'Watch the game together', who: 'friends', max: 5, where: 'near', desc: 'Snacks, yelling at the TV, high fives.',
+    energy: flat(6), cost: (_s, ppl) => 20 + 15 * ppl.length,
+    run: (c) => hangOut(c, 4, 2, (who) => `You and ${who} celebrated a last-second win.`),
+  },
+  {
+    id: 'hike_friends', category: 'social', icon: '🥾', label: 'Go hiking with friends', who: 'friends', max: 3, where: 'near', desc: 'Fresh air and long talks.',
+    energy: flat(12), cost: flat(15),
+    run: (c) => { stat(c.me, 'fitness', 3); return hangOut(c, 5, 4, (who) => `You and ${who} made it to the top and shared the view.`); },
+  },
+  {
+    id: 'help_friend_move', category: 'social', icon: '📦', label: 'Help a friend move', who: 'friends', max: 1, where: 'near', perYear: 2, desc: 'Lift boxes; earn eternal gratitude (and pizza).',
+    energy: flat(14), cost: flat(0),
+    run: (c) => { stat(c.me, 'stress', 2); return hangOut(c, 8, 7, (who) => `You carried ${who}'s couch up three flights. They owe you big.`); },
+  },
+  {
+    id: 'host_party', category: 'social', icon: '🎂', label: 'Throw a party', who: 'friends', min: 2, max: 10, where: 'near', perYear: 2, desc: 'Invite your friends over.',
+    energy: flat(15), cost: (_s, ppl) => 100 + 30 * ppl.length,
+    run: (c) => { stat(c.me, 'happiness', 6); return hangOut(c, 4, 2, (who) => `A great party. ${who} stayed to help clean up.`); },
+  },
+  {
+    id: 'call_friend', category: 'social', icon: '📞', label: 'Call a friend', who: 'friends', max: 1, where: 'any', desc: 'Works from anywhere.',
+    energy: flat(2), cost: flat(0),
+    run: (c) => hangOut(c, 3, 2, (who) => `An hour on the phone with ${who}. It felt like no time had passed.`, 'no-answer'),
+  },
+  {
+    id: 'video_games', category: 'social', icon: '🎮', label: 'Play video games online', who: 'friends', max: 3, where: 'any', desc: 'Headsets on, wherever you all live.',
+    energy: flat(4), cost: flat(0),
+    run: (c) => { stat(c.me, 'stress', -3); return hangOut(c, 3, 1, (who) => `You and ${who} finally beat the final boss at 2 a.m.`, 'no-answer'); },
+  },
+  {
+    id: 'visit_friend', category: 'social', icon: '✈️', label: 'Plan a trip to see a friend', who: 'friends', max: 1, where: 'far',
+    desc: 'They live in another city: flights and a hotel, but a big boost to the friendship.',
+    energy: flat(22), cost: flat(800),
+    run: (c) => {
+      stat(c.me, 'happiness', 6);
+      stat(c.me, 'stress', -4);
+      return hangOut(c, 12, 8, (who) => `A long weekend with ${who} in ${c.people[0] ? cityName(cityOf(c.s, c.people[0])) : 'their city'}. You didn't stop talking.`);
+    },
   },
 
   // 🎲 Money & luck
@@ -663,6 +756,7 @@ export function candidatesFor(s: GameState, def: ActivityDef): Person[] {
   else if (def.who === 'kids') list = kidsAtHome(s, me);
   else if (def.who === 'relative' || def.who === 'guests') list = relativesOutside(s, me);
   else if (def.who === 'ex') list = exesOf(s, me);
+  else if (def.who === 'friends') list = friendsOf(s, me).filter((f) => def.where === 'near' ? isNear(s, f) : def.where === 'far' ? !isNear(s, f) : true);
   return def.eligible ? list.filter((p) => def.eligible!(s, p)) : list;
 }
 
@@ -685,7 +779,7 @@ export function activityBlocker(s: GameState, id: string, ids: string[] = []): s
   const people = ids.map((x) => s.people[x]).filter(Boolean);
   if (def.who !== 'solo') {
     const min = def.min ?? 1;
-    if (pool.length === 0 && min > 0) return def.who === 'partner' ? 'You need a partner.' : def.who === 'ex' ? 'No exes to call.' : def.who === 'relative' || def.who === 'guests' ? 'No relatives live elsewhere.' : 'Nobody here can join.';
+    if (pool.length === 0 && min > 0) return def.who === 'partner' ? 'You need a partner.' : def.who === 'ex' ? 'No exes to call.' : def.who === 'friends' ? (def.where === 'far' ? 'No friends live in other cities.' : def.where === 'near' ? 'No friends live in your city.' : 'Make some friends first.') : def.who === 'relative' || def.who === 'guests' ? 'No relatives live elsewhere.' : 'Nobody here can join.';
     if (people.length < min) return min === 1 ? 'Choose who comes.' : `Choose at least ${min}.`;
     if (def.max !== undefined && people.length > def.max) return `At most ${def.max}.`;
     if (people.some((p) => !pool.includes(p))) return 'Someone chosen cannot come.';

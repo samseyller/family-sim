@@ -2,11 +2,12 @@ import { retirePerson } from './retirement';
 import { ESTATE_EXEMPTION, ESTATE_TAX_RATE } from '../content/economy';
 import { makeHousehold } from './generate';
 import { headOf, moverGroup, splitOff } from './household';
+import { otherCity } from './location';
 import type { Rng } from './rng';
 import type { GameState, Person } from './types';
 import {
   active, activePartnership, adjustBond, ageOf, alive, childrenOf, clamp, fullName, getBond,
-  journal, membersOf, money, newId, partnerOf,
+  journal, membersOf, money, newId, partnerOf, stat,
 } from './util';
 
 /** Is this person close enough to the player to show up in the journal? */
@@ -100,7 +101,7 @@ export function separate(s: GameState, a: Person, b: Person) {
   old.wallet -= half;
   const halfInv = Math.round((old.investments ?? 0) / 2);
   old.investments = (old.investments ?? 0) - halfInv;
-  const hh = makeHousehold(s, half);
+  const hh = makeHousehold(s, half, old.city);
   hh.investments = halfInv;
   hh.headId = b.id;
   b.householdId = hh.id;
@@ -183,6 +184,10 @@ export function die(s: GameState, p: Person, cause: string) {
   if (isCloseKin(s, p)) {
     const who = p.id === s.activeId ? 'You' : fullName(p);
     journal(s, `${who} passed away at age ${ageOf(p, s.year)} (${cause}).`, 'death');
+  } else if ((s.friends ?? []).some((f) => f.id === p.id && f.of === s.activeId)) {
+    const me = s.people[s.activeId];
+    journal(s, `Your friend ${fullName(p)} passed away at age ${ageOf(p, s.year)}.`, 'death');
+    if (me && alive(me)) stat(me, 'happiness', getBond(s, me.id, p.id).affinity >= 40 ? -10 : -4);
   }
 }
 
@@ -238,7 +243,11 @@ export function startPath(s: GameState, p: Person, path: LifePath) {
 /** Coming of age for children nobody is actively parenting (NPC branches). */
 export function autoComeOfAge(s: GameState, rng: Rng, p: Person, leaveHome: boolean) {
   startPath(s, p, preferredPath(p));
-  if (leaveHome) moveOut(s, p, rng.int(0, 3000));
+  if (leaveHome) {
+    moveOut(s, p, rng.int(0, 3000));
+    // Some young adults move away for school or work.
+    if (rng.chance(0.3)) s.households[p.householdId].city = otherCity(rng, s.households[p.householdId].city);
+  }
 }
 
 export function partnerInHome(s: GameState, p: Person) {

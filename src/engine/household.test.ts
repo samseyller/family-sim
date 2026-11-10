@@ -150,7 +150,10 @@ describe('grown children', () => {
   it('can be asked to leave (with or without money) and invited back when close', () => {
     let { s, kid } = parentWithGrownKid();
     const me = active(s);
+    s.households[me.householdId].wallet = Math.max(50_000, s.households[me.householdId].wallet); // enough for a gift in any city
     const cash = s.households[me.householdId].wallet;
+
+    expect(householdBlocker(s, { kind: 'askToLeave', personId: kid.id, gift: 5000 })).toBeNull();
     s = householdAction(s, { kind: 'askToLeave', personId: kid.id, gift: 5000 });
     expect(s.people[kid.id].householdId).not.toBe(me.householdId);
     expect(s.households[me.householdId].wallet).toBe(cash - 5000);

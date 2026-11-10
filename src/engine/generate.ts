@@ -4,13 +4,15 @@ import { TIME_BUDGET, defaultChildPlan } from '../content/actions';
 import { makeRng, type Rng } from './rng';
 import { inheritLooks, randomLooks } from './genome';
 import { makeCar } from './cars';
+import type { CityId } from '../content/cities';
+import { placeStart } from './start';
 import { CONTRIBUTION_OPTIONS } from '../content/retirement';
 import { TUTORIAL_SEED, TUTORIAL_START_AGE, scheduleScript } from './tutorial';
 import type { GameState, Household, Looks, Person, Plan, Trait } from './types';
 import { adjustBond, ageOf, alive, cleanName, kidsAtHome, newId, parentsOf, partnerOf, active } from './util';
 
-export const SCHEMA_VERSION = 12;
-export const RULES_VERSION = '0.11.0';
+export const SCHEMA_VERSION = 13;
+export const RULES_VERSION = '0.12.0';
 export const START_YEAR = 2026;
 
 const TRAITS: Trait[] = ['ambitious', 'kind', 'stubborn', 'curious', 'anxious', 'easygoing', 'creative', 'athletic'];
@@ -25,8 +27,11 @@ function pickTraits(rng: Rng): Trait[] {
 
 export { inheritLooks, randomLooks };
 
-export function makeHousehold(s: GameState, wallet: number): Household {
-  const h: Household = { id: newId(s, 'h'), wallet: Math.round(wallet), assets: [], settled: false };
+/** A new household; it's in `city`, or the player's city when not given. */
+export function makeHousehold(s: GameState, wallet: number, city?: CityId): Household {
+  const mine = s.people[s.activeId] ? s.households[s.people[s.activeId].householdId]?.city : undefined;
+  const h: Household = { id: newId(s, 'h'), wallet: Math.round(wallet), assets: [], settled: false, city: city ?? mine };
+  if (!h.city) delete h.city;
   s.households[h.id] = h;
   return h;
 }
@@ -108,7 +113,7 @@ export const canWorkPartTime = (p: Person) => !!p.partJobId;
 
 /** An adult who could become someone's partner, living in their own new household. */
 export function makeAdultStranger(s: GameState, rng: Rng, near: Person): Person {
-  const hh = makeHousehold(s, rng.int(3000, 20000));
+  const hh = makeHousehold(s, rng.int(3000, 20000), s.households[near.householdId]?.city);
   const sex = rng.chance(0.9) ? (near.sex === 'F' ? 'M' : 'F') : near.sex;
   const p = makePerson(s, rng, {
     sex,
@@ -252,7 +257,9 @@ export interface StartNames {
 export type StartKind = "adult" | "child" | "guided";
 
 export function newGame(seed: number, start: StartKind = "adult", names?: StartNames): GameState {
-  return applyNames(generateGame(seed, start), names);
+  const s = applyNames(generateGame(seed, start), names);
+  placeStart(s, s.seed); // the game's own seed (the guided life always uses the same one)
+  return s;
 }
 
 function generateGame(seed: number, start: StartKind): GameState {

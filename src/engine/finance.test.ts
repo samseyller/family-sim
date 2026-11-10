@@ -1,4 +1,5 @@
 /** Money tab rules: homes, rentals, cars, loans, investments, funds. */
+import { cityOfHousehold, homePriceIn, rentIn } from './location';
 import { describe, expect, it } from 'vitest';
 import { annuityPayment, HOMES, MORTGAGE_RATE, MORTGAGE_YEARS, RENTALS, SELL_COSTS } from '../content/finance';
 import { newGame } from './generate';
@@ -22,9 +23,11 @@ describe('homes', () => {
   it('buying takes the down payment + closing costs and sets an amortized mortgage', () => {
     const s = financeAction(rich(601), { kind: 'buyHome', tier: 'family', downPct: 0.2 });
     const h = homeOf(hhOf(s))!;
-    expect(hhOf(s).wallet).toBe(500000 - homeUpfront('family', 0.2));
-    expect(h.mortgage).toBe(HOMES.family.price * 0.8);
-    expect(h.payment).toBe(annuityPayment(HOMES.family.price * 0.8, MORTGAGE_RATE, MORTGAGE_YEARS));
+    const city = cityOfHousehold(hhOf(s));
+    const price = homePriceIn('family', city);
+    expect(hhOf(s).wallet).toBe(500000 - homeUpfront('family', 0.2, city));
+    expect(h.mortgage).toBe(Math.round(price * 0.8));
+    expect(h.payment).toBe(annuityPayment(Math.round(price * 0.8), MORTGAGE_RATE, MORTGAGE_YEARS));
     expect(capacityOf(hhOf(s))).toBe(HOMES.family.capacity);
     expect(estimateYear(s).expenses.some((l) => l.label === 'Rent')).toBe(false);
     expect(estimateYear(s).expenses.find((l) => l.label === 'Mortgage')?.amount).toBe(h.payment);
@@ -57,7 +60,7 @@ describe('homes', () => {
   it('renting a bigger place costs more and fits more people', () => {
     const s = financeAction(rich(606), { kind: 'rent', tier: 'house' });
     expect(hhOf(s).rentTier).toBe('house');
-    expect(estimateYear(s).expenses.find((l) => l.label === 'Rent')?.amount).toBe(RENTALS.house.rent);
+    expect(estimateYear(s).expenses.find((l) => l.label === 'Rent')?.amount).toBe(rentIn('house', cityOfHousehold(hhOf(s))));
     expect(capacityOf(hhOf(s))).toBe(RENTALS.house.capacity);
   });
 });

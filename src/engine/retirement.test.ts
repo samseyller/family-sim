@@ -103,6 +103,7 @@ describe('retiring', () => {
     const me = active(saver);
     me.jobId = 'nurse'; me.pensionYears = 20; me.pensionSalary = 70000; me.careerYears = 25; me.retirementSavings = 400000;
     saver.plan.retireContribution = 0.1;
+    saver.households[me.householdId].city = 'philadelphia'; // an average-cost city
     expect(readiness(saver, me, 65).status).toBe('ready');
     const broke = at(909, 50);
     const b = active(broke);

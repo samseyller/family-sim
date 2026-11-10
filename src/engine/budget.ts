@@ -5,10 +5,11 @@
 import { COSTS } from '../content/actions';
 import { LIFESTYLES, incomeTax, medicalCost } from '../content/economy';
 import { drawdown, statePension } from './retirement';
-import { RENTALS, TRANSIT_COST } from '../content/finance';
-import { commuters, homeOf, loanPayment, rentTierOf } from './finance';
+import { commuters, homeOf, loanPayment, rentIn, rentTierOf } from './finance';
 import { streetParkingCost, workingCars } from './cars';
 import { petCosts } from './dogs';
+import { cityDef, cityOfHousehold } from './location';
+import { TRANSIT_BY_CITY } from '../content/cities';
 import { CAREER_BY_ID, PART_TIME_MAX, PROGRAMS, requiredBlocks, salaryOf, type Career } from '../content/careers';
 import { canWorkFullTime } from './generate';
 import type { GameState, Program } from './types';
@@ -54,32 +55,38 @@ export function householdBudget(s: GameState, householdId: string, activePay: nu
     if (n > 0) contributions[id] = (contributions[id] ?? 0) + n;
   };
 
+  // The city sets pay, everyday costs, rent, and what getting around without a car costs.
+  const city = cityDef(cityOfHousehold(hh));
+  const local = (n: number) => Math.round(n * city.pay);
+  const living = (n: number) => Math.round(n * city.living);
+
   for (const p of mem) {
     const age = ageOf(p, s.year);
     if (age < 18) {
-      add(exp, 'Children', COSTS.child);
+      add(exp, 'Children', living(COSTS.child));
       continue;
     }
     const isMe = p.id === me.id;
     const label = isMe ? 'Your pay' : 'Family pay';
     const npcPart = !isMe && p.partJobId ? CAREER_BY_ID[p.partJobId].salary : 0;
     if (p.studyingUntil) {
-      add(exp, 'Living costs', COSTS.studentLiving);
+      add(exp, 'Living costs', living(COSTS.studentLiving));
       add(exp, 'Tuition', p.studyKind === 'university' ? COSTS.tuition : COSTS.tuition / 2);
       // Students without a real part-time job pick up odd jobs (untaxed).
-      const pay = isMe ? activePay || (p.partJobId ? 0 : COSTS.studentWage) : npcPart || COSTS.studentWage;
+      const pay = local(isMe ? activePay || (p.partJobId ? 0 : COSTS.studentWage) : npcPart || COSTS.studentWage);
       add(inc, label, pay);
       credit(p.id, pay);
       if (isMe ? activePay : npcPart) taxes += incomeTax(pay);
       continue;
     }
-    add(exp, 'Living costs', COSTS.adult);
+    add(exp, 'Living costs', living(COSTS.adult));
     let earned = 0;
     if (isMe) earned += activePay;
     else {
       if (p.jobId) earned += salaryOf(CAREER_BY_ID[p.jobId], p.jobLevel);
       earned += npcPart;
     }
+    earned = local(earned);
     add(inc, label, earned);
     credit(p.id, earned + statePension(p, age) + (p.retired ? p.pension + drawdown(p.retirementSavings ?? 0, age) : 0));
     if (p.retired) {
@@ -102,8 +109,8 @@ export function householdBudget(s: GameState, householdId: string, activePay: nu
   // Children with no adult at home (orphaned) receive survivor benefits.
   if (mem.length && mem.every((p) => ageOf(p, s.year) < 18)) add(inc, 'Survivor benefits', 24000);
 
-  if (!homeOf(hh)) add(exp, 'Rent', RENTALS[rentTierOf(hh)].rent);
-  if (!workingCars(hh).length && commuters(s, householdId)) add(exp, 'Transit', TRANSIT_COST);
+  if (!homeOf(hh)) add(exp, 'Rent', rentIn(rentTierOf(hh), cityOfHousehold(hh)));
+  if (!workingCars(hh).length && commuters(s, householdId)) add(exp, 'Transit', TRANSIT_BY_CITY[city.transit]);
   add(exp, 'Street parking', streetParkingCost(hh));
   add(exp, 'Pet care', petCosts(s, hh));
   for (const a of hh.assets) {

@@ -1,3 +1,4 @@
+import { cityName, cityOf } from '../../engine/location';
 import { useMemo, useState } from 'react';
 import {
   ACTIVITIES, CATEGORIES, activityBlocker, candidatesFor, distanceOf, energyOf, timesThisYear, type ActivityDef, type Category,
@@ -68,7 +69,7 @@ function ActivitySheet({ g, def, onClose }: { g: GameState; def: ActivityDef; on
                   <span className="hint">
                     {' '}
                     {ageOf(p, g.year)}
-                    {def.who === 'relative' || def.who === 'guests' ? ` · ${distanceOf(p.householdId) === 'far' ? 'far away' : 'nearby'}` : ''}
+                    {def.who === 'relative' || def.who === 'guests' || def.who === 'friends' ? ` · ${distanceOf(g, p) === 'far' ? `in ${cityName(cityOf(g, p))}` : 'nearby'}` : ''}
                   </span>
                 </span>
               </label>

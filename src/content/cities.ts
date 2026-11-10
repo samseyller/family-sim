@@ -1,0 +1,49 @@
+/**
+ * Fifteen well-known US cities. Indexes are relative to a typical US city (1.0):
+ *  - housing: home prices and rent
+ *  - living: everyday costs (groceries, kids, student living)
+ *  - pay: salaries for every job
+ *  - transit: how well you get around without a car
+ * Figures are rough game-balance approximations, not real statistics.
+ */
+export type CityId =
+  | 'new_york' | 'los_angeles' | 'chicago' | 'houston' | 'phoenix' | 'philadelphia' | 'san_antonio' | 'san_diego'
+  | 'dallas' | 'austin' | 'seattle' | 'denver' | 'boston' | 'miami' | 'atlanta';
+
+export type Transit = 'great' | 'good' | 'poor';
+
+export interface CityDef {
+  name: string;
+  state: string;
+  icon: string;
+  housing: number;
+  living: number;
+  pay: number;
+  transit: Transit;
+  blurb: string;
+}
+
+export const CITIES: Record<CityId, CityDef> = {
+  new_york: { name: 'New York', state: 'NY', icon: '🗽', housing: 2.2, living: 1.3, pay: 1.25, transit: 'great', blurb: 'Top pay, top prices; nobody needs a car' },
+  los_angeles: { name: 'Los Angeles', state: 'CA', icon: '🌴', housing: 2.0, living: 1.2, pay: 1.15, transit: 'poor', blurb: 'Sunshine, traffic, and pricey homes' },
+  chicago: { name: 'Chicago', state: 'IL', icon: '🌭', housing: 1.1, living: 1.05, pay: 1.05, transit: 'great', blurb: 'Big-city jobs at Midwest prices' },
+  houston: { name: 'Houston', state: 'TX', icon: '🚀', housing: 0.85, living: 0.95, pay: 1.0, transit: 'poor', blurb: 'Affordable and sprawling' },
+  phoenix: { name: 'Phoenix', state: 'AZ', icon: '🌵', housing: 1.0, living: 0.98, pay: 0.95, transit: 'poor', blurb: 'Hot summers, mild winters' },
+  philadelphia: { name: 'Philadelphia', state: 'PA', icon: '🔔', housing: 1.0, living: 1.02, pay: 1.0, transit: 'good', blurb: 'History, neighborhoods, and cheesesteaks' },
+  san_antonio: { name: 'San Antonio', state: 'TX', icon: '🌮', housing: 0.8, living: 0.92, pay: 0.9, transit: 'poor', blurb: 'The most affordable of the big cities' },
+  san_diego: { name: 'San Diego', state: 'CA', icon: '🏄', housing: 2.0, living: 1.15, pay: 1.1, transit: 'poor', blurb: 'Perfect weather, priced like it' },
+  dallas: { name: 'Dallas', state: 'TX', icon: '🤠', housing: 1.0, living: 0.97, pay: 1.02, transit: 'poor', blurb: 'Booming jobs, room to grow' },
+  austin: { name: 'Austin', state: 'TX', icon: '🎸', housing: 1.3, living: 1.02, pay: 1.08, transit: 'poor', blurb: 'Tech jobs and live music' },
+  seattle: { name: 'Seattle', state: 'WA', icon: '☕', housing: 1.8, living: 1.15, pay: 1.2, transit: 'good', blurb: 'Coffee, rain, and high salaries' },
+  denver: { name: 'Denver', state: 'CO', icon: '🏔️', housing: 1.5, living: 1.05, pay: 1.05, transit: 'good', blurb: 'Mountains on the weekends' },
+  boston: { name: 'Boston', state: 'MA', icon: '🦞', housing: 1.9, living: 1.2, pay: 1.2, transit: 'great', blurb: 'Colleges, hospitals, and old brick' },
+  miami: { name: 'Miami', state: 'FL', icon: '🏖️', housing: 1.6, living: 1.1, pay: 0.98, transit: 'poor', blurb: 'Beaches and a popular place to retire' },
+  atlanta: { name: 'Atlanta', state: 'GA', icon: '🍑', housing: 1.1, living: 0.98, pay: 1.02, transit: 'poor', blurb: 'Southern hub with good-value homes' },
+};
+
+export const CITY_IDS = Object.keys(CITIES) as CityId[];
+
+/** Yearly cost of getting to work without a car, by how good transit is. */
+export const TRANSIT_BY_CITY: Record<Transit, number> = { great: 1400, good: 1800, poor: 3200 };
+/** Relocating to another city: base cost plus a share per person. */
+export const RELOCATION = { base: 3000, perPerson: 1000 };

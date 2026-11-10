@@ -7,8 +7,11 @@ import {
   annuityPayment, BUY_COSTS, CARS, GARAGE_BUILD, HOMES, MORTGAGE_RATE, MORTGAGE_YEARS, MOVING_COST,
   RENOVATION, RENTALS, SELL_COSTS, type CarKind, type HomeTier, type RentTier,
 } from '../content/finance';
-import type { Asset, GameState, Household } from './types';
+import type { Asset, GameState, Household, Person } from './types';
 import { financeable, garageOf, makeCar, parkingSpots } from './cars';
+import { cityName, cityOfHousehold, homePriceIn, homeUpkeepIn, rentIn } from './location';
+import { CITIES, RELOCATION, type CityId } from '../content/cities';
+import { runsHousehold } from './household';
 import { retirePerson } from './retirement';
 import { unlockedTabs } from './tutorial';
 import { sanitizePlan } from './generate';
@@ -27,7 +30,8 @@ export type FinanceAction =
   | { kind: 'invest'; amount: number }
   | { kind: 'withdraw'; amount: number }
   | { kind: 'fundDeposit'; childId: string; amount: number }
-  | { kind: 'retire' };
+  | { kind: 'retire' }
+  | { kind: 'moveCity'; city: CityId };
 
 export const homeOf = (hh: Household) => hh.assets.find((a) => a.kind === 'house');
 export const carsOf = (hh: Household) => hh.assets.filter((a) => a.kind === 'car');
@@ -42,7 +46,19 @@ export function netWorth(s: GameState, householdId: string) {
 }
 
 /** Upfront cash needed to buy a home with a given down payment. */
-export const homeUpfront = (tier: HomeTier, downPct: number) => Math.round(HOMES[tier].price * (downPct + BUY_COSTS));
+export { homePriceIn, homeUpkeepIn, rentIn };
+export const homeUpfront = (tier: HomeTier, downPct: number, city: CityId) => Math.round(homePriceIn(tier, city) * (downPct + BUY_COSTS));
+
+/** A newly bought home as an asset (with a mortgage unless `downPct` is 1). */
+export function makeHome(s: GameState, tier: HomeTier, city: CityId, downPct: number): Asset {
+  const h = HOMES[tier];
+  const price = homePriceIn(tier, city);
+  const loan = Math.round(price * (1 - downPct));
+  return {
+    id: newId(s, 'a'), kind: 'house', name: h.label, value: price, upkeep: homeUpkeepIn(tier, city), capacity: h.capacity, garage: h.garage,
+    mortgage: loan, rate: loan ? MORTGAGE_RATE : undefined, payment: loan ? annuityPayment(loan, MORTGAGE_RATE, MORTGAGE_YEARS) : 0,
+  };
+}
 
 /** Why an action can't happen right now, or null if it can. */
 export function financeBlocker(s: GameState, a: FinanceAction): string | null {
@@ -60,7 +76,7 @@ export function financeBlocker(s: GameState, a: FinanceAction): string | null {
     case 'buyHome':
       if (home) return 'You already own a home.';
       if (![0.1, 0.2].includes(a.downPct)) return 'Choose a 10% or 20% down payment.';
-      return hh.wallet < homeUpfront(a.tier, a.downPct) ? `You need ${money(homeUpfront(a.tier, a.downPct))} up front.` : null;
+      return hh.wallet < homeUpfront(a.tier, a.downPct, cityOfHousehold(hh)) ? `You need ${money(homeUpfront(a.tier, a.downPct, cityOfHousehold(hh)))} up front.` : null;
     case 'sellHome':
       return home ? null : 'You do not own a home.';
     case 'buildGarage':
@@ -90,6 +106,12 @@ export function financeBlocker(s: GameState, a: FinanceAction): string | null {
     case 'retire':
       if (me.retired) return 'You are already retired.';
       return ageOf(me, s.year) < EARLY_RETIREMENT_AGE ? `Retirement is possible from ${EARLY_RETIREMENT_AGE}.` : null;
+    case 'moveCity': {
+      if (!runsHousehold(s, me)) return 'Move out of this household first (Money → Household).';
+      if (!CITIES[a.city]) return 'Unknown city.';
+      if (a.city === cityOfHousehold(hh)) return 'You already live here.';
+      return hh.wallet < relocationCost(s, hh) ? `Moving costs ${money(relocationCost(s, hh))}.` : null;
+    }
     case 'fundDeposit': {
       const kid = kidsAtHome(s, me).find((k) => k.id === a.childId);
       if (!kid) return 'That child is not at home.';
@@ -113,15 +135,12 @@ export function financeAction(state: GameState, a: FinanceAction): GameState {
       break;
     }
     case 'buyHome': {
-      const h = HOMES[a.tier];
-      const loan = Math.round(h.price * (1 - a.downPct));
-      hh.wallet -= homeUpfront(a.tier, a.downPct);
-      hh.assets.push({
-        id: newId(s, 'a'), kind: 'house', name: h.label, value: h.price, upkeep: h.upkeep, capacity: h.capacity, garage: h.garage,
-        mortgage: loan, rate: MORTGAGE_RATE, payment: annuityPayment(loan, MORTGAGE_RATE, MORTGAGE_YEARS),
-      });
+      const city = cityOfHousehold(hh);
+      hh.wallet -= homeUpfront(a.tier, a.downPct, city);
+      const home = makeHome(s, a.tier, city, a.downPct);
+      hh.assets.push(home);
       for (const m of membersOf(s, hh.id)) stat(m, 'happiness', 6);
-      journal(s, `You bought a ${h.label.toLowerCase()} for ${money(h.price)}.`, 'major');
+      journal(s, `You bought a ${HOMES[a.tier].label.toLowerCase()} in ${cityName(city)} for ${money(home.value)}.`, 'major');
       break;
     }
     case 'sellHome': {
@@ -196,8 +215,61 @@ export function financeAction(state: GameState, a: FinanceAction): GameState {
       kid.fund += a.amount;
       break;
     }
+    case 'moveCity': {
+      hh.wallet -= relocationCost(s, hh);
+      const note = relocate(s, hh, a.city);
+      s.plan = sanitizePlan(s, s.plan);
+      journal(s, `You moved to ${cityName(a.city)}, ${CITIES[a.city].state}.${note}`, 'major');
+      break;
+    }
   }
   return s;
+}
+
+/** What it costs to move a household across the country. */
+export const relocationCost = (s: GameState, hh: Household) => RELOCATION.base + RELOCATION.perPerson * membersOf(s, hh.id).length;
+
+/**
+ * Move a whole household to another city: any home is sold (you rent at first), working
+ * adults leave their jobs except `keepJob` (who transfers), and kids change schools.
+ * Pets, cars and savings come along. Returns a short note for the journal.
+ */
+export function relocate(s: GameState, hh: Household, city: CityId, keepJob?: Person): string {
+  const notes: string[] = [];
+  const home = homeOf(hh);
+  if (home) {
+    const proceeds = Math.round(home.value * (1 - SELL_COSTS) - home.mortgage);
+    hh.wallet += proceeds;
+    hh.assets = hh.assets.filter((x) => x !== home);
+    notes.push(`The house sold for ${money(proceeds)} after fees and the mortgage`);
+  }
+  const people = membersOf(s, hh.id);
+  hh.rentTier = people.length > 4 ? 'house' : people.length > 2 ? 'apartment' : 'small';
+  hh.city = city;
+  let jobs = 0;
+  for (const p of people) {
+    if (p === keepJob || ageOf(p, s.year) < 16 || p.retired) continue;
+    if (p.jobId || p.partJobId) jobs++;
+    p.jobId = undefined;
+    p.partJobId = undefined;
+    p.jobYears = 0;
+    if (ageOf(p, s.year) < 18) {
+      stat(p, 'happiness', -5);
+      p.flags.moved = (p.flags.moved ?? 0) + 1;
+    }
+  }
+  for (const p of people) {
+    if (ageOf(p, s.year) >= 16) continue;
+    stat(p, 'happiness', -5);
+    p.flags.moved = (p.flags.moved ?? 0) + 1;
+  }
+  if (jobs) notes.push(jobs === 1 ? 'One job was left behind; time to look for work' : `${jobs} jobs were left behind; time to look for work`);
+  const me = active(s);
+  if (me.householdId === hh.id) {
+    me.flags.moved_year = s.year;
+    me.flags.cities_lived = (me.flags.cities_lived ?? 1) + 1;
+  }
+  return notes.length ? ` ${notes.join('. ')}.` : '';
 }
 
 /** Yearly loan payment for an asset (older saves had a flat $18k mortgage cap). */

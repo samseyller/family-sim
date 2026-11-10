@@ -3,6 +3,7 @@ import { active, ageOf, alive, childrenOf, getBond, kidsAtHome, membersOf, money
 import { BASE_PARKING, HOMES } from './finance';
 import { MAX_DOGS } from './dogs';
 import { dogsOf } from '../engine/dogs';
+import { friendsOf, friendshipsOf } from '../engine/friends';
 
 const DATE_IDS = new Set(['date_night', 'picnic', 'concert_date', 'weekend_getaway']);
 
@@ -72,6 +73,55 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     icon: '🍼',
     hidden: true,
     test: (s) => !!active(s).flags.surprise_baby,
+  },
+  {
+    id: 'social_butterfly',
+    title: 'Social Butterfly',
+    desc: 'Have 8 friends at once (not counting ones you’ve drifted from).',
+    icon: '🦋',
+    test: (s) => friendsOf(s).filter((f) => getBond(s, active(s).id, f.id).affinity > 0).length >= 8,
+  },
+  {
+    id: 'bff',
+    title: 'Best Friends Forever',
+    desc: 'Grow a friendship to 80 or more.',
+    icon: '🤞',
+    test: (s) => friendsOf(s).some((f) => getBond(s, active(s).id, f.id).affinity >= 80),
+  },
+  {
+    id: 'like_old_times',
+    title: 'Like Old Times',
+    desc: 'Reconnect with a friend you had drifted apart from.',
+    icon: '🔁',
+    test: (s) => !!active(s).flags.reconnected,
+  },
+  {
+    id: 'worth_the_trip',
+    title: 'Worth the Trip',
+    desc: 'Travel to see a friend who lives in another city.',
+    icon: '✈️',
+    test: (s) => (s.activityLog ?? []).some((x) => x.id === 'visit_friend'),
+  },
+  {
+    id: 'lifelong_friends',
+    title: 'Lifelong Friends',
+    desc: 'Keep a friendship going for 40 years.',
+    icon: '🫶',
+    test: (s) => friendshipsOf(s).some((f) => s.year - f.since >= 40),
+  },
+  {
+    id: 'fresh_start',
+    title: 'Fresh Start',
+    desc: 'Move to a new city.',
+    icon: '🧳',
+    test: (s) => (active(s).flags.cities_lived ?? 1) >= 2,
+  },
+  {
+    id: 'city_hopper',
+    title: 'City Hopper',
+    desc: 'Live in four different cities in one life.',
+    icon: '🗺️',
+    test: (s) => (active(s).flags.cities_lived ?? 1) >= 4,
   },
   {
     id: 'best_friend',

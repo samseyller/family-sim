@@ -11,6 +11,8 @@ import { RetirementCard } from './RetirementCard';
 import { CarsSection } from './CarsSection';
 import { garageOf, parkingSpots } from '../../engine/cars';
 import { HouseholdCard } from './HouseholdCard';
+import { CitySection } from './CitySection';
+import { cityOfHousehold, homePriceIn, rentIn } from '../../engine/location';
 
 const signed = (n: number) => `${n >= 0 ? '+' : '−'}${money(Math.abs(n))}`;
 
@@ -62,6 +64,7 @@ export function MoneyTab({ g }: { g: GameState }) {
   const planning = g.phase === 'PLANNING';
   const people = membersOf(g, hh.id).length;
   const cap = capacityOf(hh);
+  const city = cityOfHousehold(hh);
 
   return (
     <div className="stack two-col">
@@ -93,6 +96,8 @@ export function MoneyTab({ g }: { g: GameState }) {
 
       <LifestylePicker g={g} />
 
+      <CitySection g={g} Act={Act} />
+
       <Section title="🏠 Home" aside={<span className={people > cap ? 'neg' : 'hint'}>{people}/{cap} people</span>}>
         {home ? (
           <>
@@ -110,12 +115,12 @@ export function MoneyTab({ g }: { g: GameState }) {
           </>
         ) : (
           <>
-            <div className="row"><span>Renting: {RENTALS[rentTierOf(hh)].label}</span><strong>{money(RENTALS[rentTierOf(hh)].rent)}/yr</strong></div>
+            <div className="row"><span>Renting: {RENTALS[rentTierOf(hh)].label}</span><strong>{money(rentIn(rentTierOf(hh), city))}/yr</strong></div>
             {people > cap && <p className="notice">⚠️ Too many people for this place: everyone's happiness suffers.</p>}
             <div className="label">Move to another rental</div>
             <div className="choices">
               {(Object.keys(RENTALS) as RentTier[]).filter((t) => t !== rentTierOf(hh)).map((t) => (
-                <Act key={t} g={g} action={{ kind: 'rent', tier: t }} label={`${RENTALS[t].icon} ${RENTALS[t].label}: ${money(RENTALS[t].rent)}/yr`} hint={`Fits ${RENTALS[t].capacity} · moving costs $2,000`} />
+                <Act key={t} g={g} action={{ kind: 'rent', tier: t }} label={`${RENTALS[t].icon} ${RENTALS[t].label}: ${money(rentIn(t, city))}/yr`} hint={`Fits ${RENTALS[t].capacity} · moving costs $2,000`} />
               ))}
             </div>
             <div className="label">Buy a home</div>
@@ -124,14 +129,14 @@ export function MoneyTab({ g }: { g: GameState }) {
                 <div key={t} className="buy-home">
                   <div className="row">
                     <strong>{HOMES[t].icon} {HOMES[t].label}</strong>
-                    <span className="hint">{money(HOMES[t].price)} · fits {HOMES[t].capacity} · {HOMES[t].garage ? `${HOMES[t].garage}-car garage` : 'no garage'}</span>
+                    <span className="hint">{money(homePriceIn(t, city))} · fits {HOMES[t].capacity} · {HOMES[t].garage ? `${HOMES[t].garage}-car garage` : 'no garage'}</span>
                   </div>
                   <div className="buy-options">
                     {[0.1, 0.2].map((d) => (
                       <Act key={d} g={g} action={{ kind: 'buyHome', tier: t, downPct: d }}
-                        label={`${d * 100}% down: ${money(homeUpfront(t, d))} now`}
-                        hint={`Mortgage ${money(annuityPayment(HOMES[t].price * (1 - d), MORTGAGE_RATE, MORTGAGE_YEARS))}/yr for ${MORTGAGE_YEARS} yrs`}
-                        confirm={`Confirm purchase: ${money(homeUpfront(t, d))}`} />
+                        label={`${d * 100}% down: ${money(homeUpfront(t, d, city))} now`}
+                        hint={`Mortgage ${money(annuityPayment(homePriceIn(t, city) * (1 - d), MORTGAGE_RATE, MORTGAGE_YEARS))}/yr for ${MORTGAGE_YEARS} yrs`}
+                        confirm={`Confirm purchase: ${money(homeUpfront(t, d, city))}`} />
                     ))}
                   </div>
                 </div>

@@ -60,6 +60,9 @@ export function referenceProblems(s: GameState): string[] {
     for (const pid of hh.pendingBirth?.parents ?? []) if (!s.people[pid]) problems.push(`${hh.id} expects a birth to missing person ${pid}`);
   }
   if (s.tutorial && !s.people[s.tutorial.personId]) problems.push(`the guide follows missing person ${s.tutorial.personId}`);
+  for (const fs of s.friends ?? []) {
+    if (!s.people[fs.id] || !s.people[fs.of]) problems.push(`a friendship refers to missing person ${s.people[fs.id] ? fs.of : fs.id}`);
+  }
   return problems;
 }
 
@@ -88,6 +91,7 @@ export function repairOlderRules(state: GameState): { state: GameState; notes: s
     if (hh.pendingBirth && hh.pendingBirth.parents.some((pid) => !s.people[pid])) hh.pendingBirth = undefined;
   }
   if (s.tutorial && !s.people[s.tutorial.personId]) delete s.tutorial;
+  if (s.friends) s.friends = s.friends.filter((fs) => s.people[fs.id] && s.people[fs.of]);
   // If every pending decision was dropped, finish the year so play can continue.
   if (s.phase === 'DECISIONS' && s.pending.length === 0) {
     if (s.snapshot) finalizeRecap(s);

@@ -4,7 +4,17 @@ import { FEMALE_NAMES, MALE_NAMES } from '../content/names';
 import { annuityPayment, HOMES, MORTGAGE_RATE, MORTGAGE_YEARS, SCRAP_VALUE } from '../content/finance';
 import { breakdownChance, carAge, conditionOf, garagedIds, repairCost, shakiestCar } from './cars';
 import type { Asset } from './types';
-import { homeUpfront } from './finance';
+import { homePriceIn, homeUpfront, makeHome, relocate } from './finance';
+import { cityName, cityOf, isNear, myCity } from './location';
+import { afterTogether, canMakeFriends, friendsOf, makeFriend } from './friends';
+import { CITIES, CITY_IDS, type CityId } from '../content/cities';
+
+/** Where a job offer would take the family (stable for the event: depends on who and when). */
+function offerCity(c: { s: GameState }, p: Person): CityId {
+  const pool = CITY_IDS.filter((x) => x !== myCity(c.s));
+  const h = [...`${p.id}:${c.s.year}`].reduce((a, ch) => (a * 31 + ch.charCodeAt(0)) >>> 0, 7);
+  return pool[h % pool.length];
+}
 import { adoptInto, dogsOf, dogStage, frailestDog, maxDogs } from './dogs';
 import { BREEDS, DOG_YEARLY, SHELTER_FEE, type DogBreed } from '../content/dogs';
 import type { Dog } from './types';
@@ -536,9 +546,10 @@ const EVENTS: EventDef[] = [
       const mine = [c.me.jobId, c.me.partJobId].filter(Boolean).map((id) => CAREER_BY_ID[id!]);
       const myPay = mine.reduce((sum, j) => sum + salaryOf(j, j.hours === 'full' ? c.me.jobLevel : 1), 0);
       const myJobs = mine.map((j) => j.name).join(' and ');
+      const to = offerCity(c, p!);
       return {
-        title: 'An offer in another city',
-        text: `${p!.firstName} has been offered a promotion to ${LEVEL_TITLES[p!.jobLevel + 1]} ${job.name}, but it means moving across the country. `
+        title: `An offer in ${cityName(to)}`,
+        text: `${p!.firstName} has been offered a promotion to ${LEVEL_TITLES[p!.jobLevel + 1]} ${job.name}, but it means moving to ${cityName(to)}, ${CITIES[to].state} (${CITIES[to].blurb.toLowerCase()}). `
           + `${p!.firstName} makes ${money(now)} now; the new role pays ${money(next)} (+${money(next - now)} a year). `
           + (mine.length ? `You make ${money(myPay)} as a ${myJobs}, and would have to leave ${mine.length > 1 ? 'both jobs' : 'it'}.` : 'You have no job to leave behind.'),
         choices: [
@@ -549,16 +560,12 @@ const EVENTS: EventDef[] = [
     },
     resolve: (c, ch, p) => {
       if (ch === 'move') {
+        const to = offerCity(c, p!);
         p!.jobLevel = Math.min(3, p!.jobLevel + 1);
-        c.me.jobId = undefined;
-        c.me.partJobId = undefined;
-        for (const k of kidsAtHome(c.s, c.me)) {
-          flag(k, 'moved');
-          stat(k, 'happiness', -5);
-        }
+        const note = relocate(c.s, wallet(c), to, p!);
         adjustBond(c.s, c.me.id, p!.id, 12, 8);
-        journal(c.s, 'The family moved to a new city.', 'major');
-        return `New city, new routines. ${p!.firstName} is thriving. You will need to find work.`;
+        journal(c.s, `The family moved to ${cityName(to)}.${note}`, 'major');
+        return `New city, new routines. ${p!.firstName} is thriving. Friends back home are a phone call away now.`;
       }
       flag(p!, 'sacrificed');
       adjustBond(c.s, c.me.id, p!.id, -12, -5);
@@ -815,13 +822,14 @@ const EVENTS: EventDef[] = [
     id: 'house_for_sale',
     major: true,
     cooldown: 4,
-    candidates: (c) => one(!wallet(c).assets.some((a) => a.kind === 'house') && wallet(c).wallet >= homeUpfront('family', 0.1), 3),
-    build: () => {
-      const h = HOMES.family;
-      const loan = h.price * 0.9;
+    candidates: (c) => one(!wallet(c).assets.some((a) => a.kind === 'house') && wallet(c).wallet >= homeUpfront('family', 0.1, myCity(c.s)), 3),
+    build: (c) => {
+      const city = myCity(c.s);
+      const price = homePriceIn('family', city);
+      const loan = price * 0.9;
       return {
         title: 'A house for sale',
-        text: `A ${h.label.toLowerCase()} in a good school district is for sale: ${money(h.price)}, with ${money(homeUpfront('family', 0.1))} up front. No more rent, but a mortgage of ${money(annuityPayment(loan, MORTGAGE_RATE, MORTGAGE_YEARS))} a year. (You can also shop for homes any time in the Money tab.)`,
+        text: `A ${HOMES.family.label.toLowerCase()} in a good ${cityName(city)} school district is for sale: ${money(price)}, with ${money(homeUpfront('family', 0.1, city))} up front. No more rent, but a mortgage of ${money(annuityPayment(loan, MORTGAGE_RATE, MORTGAGE_YEARS))} a year. (You can also shop for homes any time in the Money tab.)`,
         choices: [
           { id: 'buy', label: 'Buy it', hint: 'Builds wealth over time' },
           { id: 'rent', label: 'Keep renting', hint: 'Keep your savings liquid' },
@@ -830,18 +838,151 @@ const EVENTS: EventDef[] = [
     },
     resolve: (c, ch) => {
       if (ch !== 'buy') return 'You kept renting. The savings stay in the bank.';
-      const h = HOMES.family;
-      const loan = Math.round(h.price * 0.9);
-      wallet(c).wallet -= homeUpfront('family', 0.1);
-      wallet(c).assets.push({
-        id: newId(c.s, 'a'), kind: 'house', name: h.label, value: h.price, upkeep: h.upkeep, capacity: h.capacity, garage: h.garage,
-        mortgage: loan, rate: MORTGAGE_RATE, payment: annuityPayment(loan, MORTGAGE_RATE, MORTGAGE_YEARS),
-      });
+      const city = myCity(c.s);
+      wallet(c).wallet -= homeUpfront('family', 0.1, city);
+      wallet(c).assets.push(makeHome(c.s, 'family', city, 0.1));
       for (const m of [c.me, ...kidsAtHome(c.s, c.me)]) stat(m, 'happiness', 6);
       journal(c.s, 'You bought a family home.', 'major');
       return 'You got the keys. The kids raced to claim bedrooms.';
     },
   },
+  // ── Friends ───────────────────────────────────────────────────────
+  {
+    id: 'coworker_lunch',
+    major: false,
+    cooldown: 3,
+    candidates: (c) => one(age(c, c.me) >= 18 && !!c.me.jobId && canMakeFriends(c.s, c.me), 1.4),
+    build: () => ({
+      title: 'Lunch invitation',
+      text: 'A coworker you get along with asks if you want to grab lunch sometime.',
+      choices: [
+        { id: 'yes', label: 'Sure, let’s do it', hint: 'Could become a real friend' },
+        { id: 'no', label: 'Politely decline' },
+      ],
+    }),
+    resolve: (c, ch) => {
+      if (ch !== 'yes') return 'You ate at your desk. Again.';
+      const f = makeFriend(c.s, c.rng, c.me, 'from work');
+      return f ? `Lunch with ${f.firstName} became a weekly thing.` : 'A nice lunch, nothing more.';
+    },
+  },
+  {
+    id: 'new_neighbor',
+    major: false,
+    cooldown: 4,
+    // Much likelier right after a move to a new city.
+    candidates: (c) => one(age(c, c.me) >= 18 && canMakeFriends(c.s, c.me), (c.me.flags.moved_year ?? -9) >= c.s.year - 1 ? 4 : 0.5),
+    build: (c) => ({
+      title: 'The neighbors',
+      text: `Someone from next door knocks with a plate of cookies${(c.me.flags.moved_year ?? -9) >= c.s.year - 1 ? `: "Welcome to ${cityName(myCity(c.s))}!"` : '.'}`,
+      choices: [
+        { id: 'invite', label: 'Invite them in for coffee', hint: 'Could become a friend' },
+        { id: 'thanks', label: 'Thank them at the door' },
+      ],
+    }),
+    resolve: (c, ch) => {
+      if (ch !== 'invite') return 'Delicious cookies. You wave when you see each other now.';
+      const f = makeFriend(c.s, c.rng, c.me, 'next-door neighbor');
+      return f ? `Coffee turned into dinner. ${f.firstName} is great.` : 'A pleasant chat.';
+    },
+  },
+  {
+    id: 'school_friend',
+    stage: 'any',
+    major: false,
+    cooldown: 2,
+    candidates: (c) => one(age(c, c.me) >= 6 && age(c, c.me) <= 17 && canMakeFriends(c.s, c.me) && friendsOf(c.s, c.me).length < 5, 2),
+    build: () => ({
+      title: 'Someone new at school',
+      text: 'The new kid in class laughs at all your jokes.',
+      choices: [
+        { id: 'sit', label: 'Sit with them at lunch' },
+        { id: 'no', label: 'Stick with your usual group' },
+      ],
+    }),
+    resolve: (c, ch) => {
+      if (ch !== 'sit') return 'Maybe tomorrow.';
+      const f = makeFriend(c.s, c.rng, c.me, 'from school');
+      return f ? `You and ${f.firstName} are inseparable now.` : 'You had a good laugh.';
+    },
+  },
+  {
+    id: 'friend_in_need',
+    major: false,
+    cooldown: 4,
+    candidates: (c) => friendsOf(c.s, c.me)
+      .filter((f) => isNear(c.s, f) && getBond(c.s, c.me.id, f.id).affinity >= 15 && ageOf(f, c.s.year) >= 18 && age(c, c.me) >= 18)
+      .slice(0, 3).map((f) => ({ subject: f, weight: 0.6 })),
+    build: (c, f) => ({
+      title: 'A friend in need',
+      text: `${f!.firstName} lost their job and is embarrassed to ask, but could you lend them $2,000 for rent?`,
+      choices: [
+        { id: 'lend', label: 'Lend the money', hint: 'Friends remember this', disabled: wallet(c).wallet < 2000 },
+        { id: 'help', label: 'Help them job-hunt instead', hint: 'Time, not money' },
+        { id: 'no', label: 'Say you can’t right now' },
+      ],
+    }),
+    resolve: (c, ch, f) => {
+      if (ch === 'lend') {
+        wallet(c).wallet -= 2000;
+        adjustBond(c.s, c.me.id, f!.id, 12, 12);
+        afterTogether(c.s, c.me, f!);
+        // Half the time it comes back with interest in gratitude.
+        if (c.rng.chance(0.5)) {
+          wallet(c).wallet += 2000;
+          return `${f!.firstName} found work two months later and paid you back with a thank-you dinner.`;
+        }
+        return `${f!.firstName} is still getting back on their feet. You never mention the money.`;
+      }
+      if (ch === 'help') {
+        adjustBond(c.s, c.me.id, f!.id, 6, 5);
+        afterTogether(c.s, c.me, f!);
+        return `You spent a weekend polishing ${f!.firstName}'s résumé. They got two interviews.`;
+      }
+      adjustBond(c.s, c.me.id, f!.id, -6, -8);
+      return `${f!.firstName} said they understood. Things felt a little stiff after.`;
+    },
+  },
+  {
+    id: 'friend_wedding',
+    major: false,
+    cooldown: 3,
+    candidates: (c) => friendsOf(c.s, c.me)
+      .filter((f) => !partnerOf(c.s, f.id) && ageOf(f, c.s.year) >= 22 && ageOf(f, c.s.year) <= 50 && getBond(c.s, c.me.id, f.id).affinity >= 25 && age(c, c.me) >= 18)
+      .slice(0, 3).map((f) => ({ subject: f, weight: 0.5 })),
+    build: (c, f) => {
+      const far = !isNear(c.s, f!);
+      const cost = far ? 1200 : 300;
+      return {
+        title: `${f!.firstName} is getting married!`,
+        text: `${f!.firstName} wants you there for the big day${far ? ` in ${cityName(cityOf(c.s, f!))}` : ''}.`,
+        choices: [
+          { id: 'go', label: `Go to the wedding (${money(cost)}${far ? ' with travel' : ''})`, disabled: wallet(c).wallet < cost },
+          { id: 'gift', label: 'Send a gift and your regrets ($150)' },
+          { id: 'skip', label: 'Skip it' },
+        ],
+      };
+    },
+    resolve: (c, ch, f) => {
+      const spouse = makeAdultStranger(c.s, c.rng, f!);
+      marry(c.s, f!, spouse);
+      if (ch === 'go') {
+        wallet(c).wallet -= isNear(c.s, f!) ? 300 : 1200;
+        adjustBond(c.s, c.me.id, f!.id, 10, 6);
+        afterTogether(c.s, c.me, f!);
+        stat(c.me, 'happiness', 5);
+        return `You gave a toast that made ${f!.firstName} cry (the good kind).`;
+      }
+      if (ch === 'gift') {
+        wallet(c).wallet -= 150;
+        adjustBond(c.s, c.me.id, f!.id, 2, 1);
+        return `${f!.firstName} sent a sweet thank-you card.`;
+      }
+      adjustBond(c.s, c.me.id, f!.id, -8, -5);
+      return `${f!.firstName} noticed the empty seat.`;
+    },
+  },
+
   // ── Dogs ──────────────────────────────────────────────────────────
   {
     id: 'dog_sick',

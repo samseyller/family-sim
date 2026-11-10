@@ -128,6 +128,8 @@ export interface Household {
   investments?: number;
   /** Size of the rental when the household has no home of its own. */
   rentTier?: 'small' | 'apartment' | 'house';
+  /** Which city this household lives in. */
+  city?: import('../content/cities').CityId;
   /** Pet dogs (including ones that have passed away, for memory). */
   dogs?: Dog[];
   /** Who runs the household (owns the home, decides who lives here). Falls back by age when unset. */
@@ -238,6 +240,8 @@ export interface GameState {
   activityLog?: { year: number; id: string }[];
   /** Result of the most recent activity, shown on its outcome card. */
   lastActivity?: ActivityResult;
+  /** Friendships of player characters (friends are ordinary people with their own homes). */
+  friends?: Friendship[];
   /** Guided first playthrough: who is being guided, and which tips have been seen. */
   tutorial?: { personId: string; seen: string[] };
 }
@@ -268,4 +272,18 @@ export interface Dog {
   trained?: boolean;
   rescued?: boolean;
   lastWalkYear?: number;
+}
+
+export interface Friendship {
+  /** The friend's person id. */
+  id: string;
+  /** The player character whose friend they are. */
+  of: string;
+  since: number;
+  /** Last year you did something together (calls count). */
+  lastSeen: number;
+  /** Set once the friendship has faded to nothing (affinity 0 or below). */
+  distant?: boolean;
+  /** How you met ("from work", "at the dog park"...). */
+  how?: string;
 }
