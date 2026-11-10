@@ -5,9 +5,10 @@
 import { COSTS } from '../content/actions';
 import { LIFESTYLES, incomeTax, medicalCost } from '../content/economy';
 import { drawdown, statePension } from './retirement';
-import { commuters, homeOf, loanPayment, rentIn, rentTierOf } from './finance';
+import { commuters, fundRoom, homeOf, loanPayment, rentIn, rentTierOf } from './finance';
 import { streetParkingCost, workingCars } from './cars';
 import { petCosts } from './dogs';
+import { tuitionFor } from './school';
 import { cityDef, cityOfHousehold } from './location';
 import { TRANSIT_BY_CITY } from '../content/cities';
 import { CAREER_BY_ID, PART_TIME_MAX, PROGRAMS, requiredBlocks, salaryOf, type Career } from '../content/careers';
@@ -71,7 +72,7 @@ export function householdBudget(s: GameState, householdId: string, activePay: nu
     const npcPart = !isMe && p.partJobId ? CAREER_BY_ID[p.partJobId].salary : 0;
     if (p.studyingUntil) {
       add(exp, 'Living costs', living(COSTS.studentLiving));
-      add(exp, 'Tuition', p.studyKind === 'university' ? COSTS.tuition : COSTS.tuition / 2);
+      add(exp, 'Tuition', tuitionFor(p));
       // Students without a real part-time job pick up odd jobs (untaxed).
       const pay = local(isMe ? activePay || (p.partJobId ? 0 : COSTS.studentWage) : npcPart || COSTS.studentWage);
       add(inc, label, pay);
@@ -126,7 +127,7 @@ export function householdBudget(s: GameState, householdId: string, activePay: nu
       if (cp?.tutoring) add(exp, "Kids' tutoring & lessons", COSTS.tutoring);
       if (cp?.lessons && kid.hobby) add(exp, "Kids' tutoring & lessons", COSTS.lessons);
       if (kid.flags.advanced) add(exp, "Kids' tutoring & lessons", COSTS.advancedLessons);
-      add(exp, 'College funds', cp?.fundContribution ?? 0);
+      add(exp, 'College funds', fundRoom(kid, cp?.fundContribution ?? 0));
     }
     for (const parent of parentsOf(s, me)) {
       if (alive(parent) && parent.flags.care_home && parent.flags.care_support) add(exp, "Parent's care", COSTS.careSupport);

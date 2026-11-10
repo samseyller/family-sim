@@ -108,7 +108,8 @@ describe('taking charge and housing your parents', () => {
     const s = withParentsAt(30);
     const me = active(s);
     for (const p of living(s)) p.birthYear = s.year - 60;
-    for (const p of membersOf(s, me.householdId)) p.stake = p.id === me.id ? 1 : 100;
+    const mine = new Set(moverGroup(s, me).map((p) => p.id)); // you, plus a partner if you have one
+    for (const p of membersOf(s, me.householdId)) p.stake = mine.has(p.id) ? 1 : 100;
     expect(householdBlocker(s, { kind: 'takeCharge' })).toMatch(/70/);
     living(s)[0].birthYear = s.year - ELDERLY_AGE;
     expect(householdBlocker(s, { kind: 'takeCharge' })).toBeNull();

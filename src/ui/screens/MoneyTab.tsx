@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { GARAGE_BUILD, HOMES, INVEST_RETURN, MORTGAGE_RATE, MORTGAGE_YEARS, RENOVATION, RENTALS, SELL_COSTS, annuityPayment, type HomeTier, type RentTier } from '../../content/finance';
+import { COLLEGE_FUND_CAP, GARAGE_BUILD, HOMES, INVEST_RETURN, MORTGAGE_RATE, MORTGAGE_YEARS, RENOVATION, RENTALS, SELL_COSTS, annuityPayment, type HomeTier, type RentTier } from '../../content/finance';
 import { estimateYear } from '../../engine/budget';
 import { capacityOf, carsOf, financeBlocker, homeOf, homeUpfront, netWorth, rentTierOf, type FinanceAction } from '../../engine/finance';
 import type { GameState } from '../../engine/types';
@@ -14,6 +14,7 @@ import { HouseholdCard } from './HouseholdCard';
 import { CitySection } from './CitySection';
 import { cityOfHousehold, homePriceIn, rentIn } from '../../engine/location';
 
+const WITHDRAW_STEPS = [5000, 25000, 100000, 500000];
 const signed = (n: number) => `${n >= 0 ? '+' : '−'}${money(Math.abs(n))}`;
 
 /** A money action button: disabled with the reason when it can't happen; optional two-step confirm. */
@@ -153,8 +154,14 @@ export function MoneyTab({ g }: { g: GameState }) {
       <Section title="📊 Investments" aside={<strong>{money(hh.investments ?? 0)}</strong>}>
         <p className="hint">Grows about {Math.round(INVEST_RETURN * 1000) / 10}% a year on average, but some years it falls. Cash in the bank earns 1.5%.</p>
         <div className="money-grid">
-          {[1000, 5000, 25000].map((n) => <Act key={n} g={g} action={{ kind: 'invest', amount: n }} label={`Invest ${money(n)}`} />)}
-          <Act g={g} action={{ kind: 'withdraw', amount: 5000 }} label="Withdraw $5,000" />
+          {[1000, 5000, 25000, 50000].map((n) => <Act key={n} g={g} action={{ kind: 'invest', amount: n }} label={`Invest ${money(n)}`} />)}
+        </div>
+        <hr className="money-sep" aria-hidden />
+        <div className="money-grid">
+          {/* Withdraw options grow with the balance (only amounts you actually have). */}
+          {WITHDRAW_STEPS.filter((n) => n === WITHDRAW_STEPS[0] || n <= (hh.investments ?? 0)).map((n) => (
+            <Act key={n} g={g} action={{ kind: 'withdraw', amount: n }} label={`Withdraw ${money(n)}`} />
+          ))}
           {(hh.investments ?? 0) > 0 && <Act g={g} action={{ kind: 'withdraw', amount: hh.investments! }} label={`Withdraw all (${money(hh.investments!)})`} />}
         </div>
       </Section>
@@ -165,11 +172,11 @@ export function MoneyTab({ g }: { g: GameState }) {
             <div key={k.id} className="car-row">
               <div className="row"><span>{k.firstName} ({ageOf(k, g.year)})</span><strong>{money(k.fund)}</strong></div>
               <div className="money-grid">
-                {[1000, 5000].map((n) => <Act key={n} g={g} action={{ kind: 'fundDeposit', childId: k.id, amount: n }} label={`Add ${money(n)}`} />)}
+                {[1000, 5000, 10000, 20000].map((n) => <Act key={n} g={g} action={{ kind: 'fundDeposit', childId: k.id, amount: n }} label={`Add ${money(n)}`} />)}
               </div>
             </div>
           ))}
-          <p className="hint">Funds grow 4% a year and go with each child at 18. Yearly contributions are set in the Plan tab.</p>
+          <p className="hint">Funds grow 4% a year, top out at {money(COLLEGE_FUND_CAP)}. When a child enrolls in college the fund goes to the household to pay tuition; otherwise it goes with them when they move out. Yearly contributions are set in the Plan tab.</p>
         </Section>
       )}
     </div>

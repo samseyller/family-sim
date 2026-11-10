@@ -56,7 +56,9 @@ export interface Person {
   retired: boolean;
   pension: number;
   studyingUntil?: number;
-  studyKind?: 'university' | 'trade';
+  studyKind?: 'university' | 'trade' | 'top';
+  /** School grades (0–4) by age, 6–17. */
+  grades?: Record<string, number>;
   /** Money saved toward this person's future (college fund). */
   fund: number;
   /** Years worked full-time (state pension eligibility). */

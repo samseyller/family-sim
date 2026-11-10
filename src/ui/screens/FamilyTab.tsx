@@ -10,6 +10,7 @@ import { FamilyTree } from '../tree/FamilyTree';
 import { DogsCard } from './DogsCard';
 import { FriendsCard } from './FriendsCard';
 import { cityName, cityOf } from '../../engine/location';
+import { gpaOf } from '../../engine/school';
 
 function role(g: GameState, me: Person, p: Person): string {
   const ps = [...g.partnerships].reverse().find((x) => (x.a === me.id && x.b === p.id) || (x.b === me.id && x.a === p.id));
@@ -72,6 +73,8 @@ function FamilyList({ g }: { g: GameState }) {
             {ageOf(p, g.year) >= 18 ? ` · ${jobTitle(p)}` : p.hobby ? ` · ${HOBBY_BY_ID[p.hobby].icon} ${HOBBY_BY_ID[p.hobby].label}` : ''}
             {p.householdId === me.householdId && alive(p) ? ' · lives with you' : alive(p) ? ` · 📍 ${cityName(cityOf(g, p))}` : ''}
             {alive(p) && p.flags.care_home ? ' · in a care home' : ''}
+            {alive(p) && gpaOf(p) !== undefined && (ageOf(p, g.year) < 18 || p.studyingUntil) ? ` · GPA ${gpaOf(p)!.toFixed(2)}` : ''}
+            {alive(p) && p.studyingUntil ? ` · at ${p.studyKind === 'top' ? 'a top university' : p.studyKind === 'trade' ? 'trade school' : 'university'}` : ''}
           </div>
           <div className="traits">{p.traits.map((t) => <span key={t} className="chip subtle">{t}</span>)}</div>
           {alive(p) && (

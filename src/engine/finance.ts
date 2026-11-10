@@ -4,7 +4,7 @@
  * pure (state, …) → state transition, validated here so the UI can't cheat.
  */
 import {
-  annuityPayment, BUY_COSTS, CARS, GARAGE_BUILD, HOMES, MORTGAGE_RATE, MORTGAGE_YEARS, MOVING_COST,
+  annuityPayment, BUY_COSTS, CARS, COLLEGE_FUND_CAP, GARAGE_BUILD, HOMES, MORTGAGE_RATE, MORTGAGE_YEARS, MOVING_COST,
   RENOVATION, RENTALS, SELL_COSTS, type CarKind, type HomeTier, type RentTier,
 } from '../content/finance';
 import type { Asset, GameState, Household, Person } from './types';
@@ -115,6 +115,8 @@ export function financeBlocker(s: GameState, a: FinanceAction): string | null {
     case 'fundDeposit': {
       const kid = kidsAtHome(s, me).find((k) => k.id === a.childId);
       if (!kid) return 'That child is not at home.';
+      if (kid.fund >= COLLEGE_FUND_CAP) return `${kid.firstName}'s fund is full (${money(COLLEGE_FUND_CAP)}).`;
+      if (kid.fund + a.amount > COLLEGE_FUND_CAP) return `Only ${money(COLLEGE_FUND_CAP - kid.fund)} more fits (max ${money(COLLEGE_FUND_CAP)}).`;
       return a.amount > 0 && hh.wallet >= a.amount ? null : 'Not enough cash.';
     }
   }
@@ -283,3 +285,6 @@ export function loanPayment(asset: Asset) {
 /** Living adults with a job in the household (they need to get to work). */
 export const commuters = (s: GameState, householdId: string) =>
   membersOf(s, householdId).filter((p) => alive(p) && ageOf(p, s.year) >= 16 && (p.jobId || p.partJobId)).length;
+
+/** How much of `amount` still fits in a child's college fund (the fund tops out at the cap). */
+export const fundRoom = (kid: Person, amount: number) => Math.max(0, Math.min(amount, COLLEGE_FUND_CAP - kid.fund));

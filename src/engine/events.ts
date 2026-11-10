@@ -7,6 +7,7 @@ import type { Asset } from './types';
 import { homePriceIn, homeUpfront, makeHome, relocate } from './finance';
 import { cityName, cityOf, isNear, myCity } from './location';
 import { afterTogether, canMakeFriends, friendsOf, makeFriend } from './friends';
+import { canAfford, collegeChoice, gpaText } from './school';
 import { CITIES, CITY_IDS, type CityId } from '../content/cities';
 
 /** Where a job offer would take the family (stable for the event: depends on who and when). */
@@ -400,9 +401,10 @@ const EVENTS: EventDef[] = [
         : (kid.flags.resents ?? 0) >= 3 ? ' They are tired of being told what to do.' : '';
       return {
         title: `${kid.firstName} turns 18`,
-        text: `${kid.firstName} is graduating high school. Smarts ${kid.stats.smarts}${kid.hobby ? `, ${HOBBY_BY_ID[kid.hobby].label.toLowerCase()} skill ${skill}` : ''}, college fund ${money(kid.fund)}. ${receptivenessLabel(r)}.${memory}`,
+        text: `${kid.firstName} is graduating high school. ${gpaText(kid)}, smarts ${kid.stats.smarts}${kid.hobby ? `, ${HOBBY_BY_ID[kid.hobby].label.toLowerCase()} skill ${skill}` : ''}, college fund ${money(kid.fund)}. ${receptivenessLabel(r)}.${memory}`,
         choices: [
-          { id: 'university', label: 'Encourage university', hint: '4 years of study; the best-paid careers' },
+          collegeChoice(kid, wallet(c), 'top', 'top_university', 'Encourage a top university'),
+          collegeChoice(kid, wallet(c), 'state', 'university', 'Encourage state university'),
           { id: 'trade', label: 'Suggest trade school', hint: '2 years; steady skilled work' },
           { id: 'passion', label: kid.hobby ? `Back their ${HOBBY_BY_ID[kid.hobby].label.toLowerCase()} dream` : 'Back their passion', hint: 'Only realistic with strong skill', disabled: skill < 40 },
           { id: 'decide', label: "It's their call", hint: 'They choose; they will appreciate the trust' },
@@ -426,8 +428,11 @@ const EVENTS: EventDef[] = [
         adjustBond(c.s, c.me.id, kid.id, -3, -3);
         text = `${kid.firstName} heard you out, then did what they wanted`;
       }
-      startPath(c.s, kid, path);
-      const label = path === 'university' ? 'university' : path === 'trade' ? 'trade school' : `a life in ${kid.hobby ?? 'their passion'}`;
+      // Their own choice can be a college the family can't pay for; then they aim lower.
+      if ((path === 'top_university' && !canAfford(kid, wallet(c), 'top')) || (path === 'university' && !canAfford(kid, wallet(c), 'state'))) {
+        path = path === 'top_university' && canAfford(kid, wallet(c), 'state') ? 'university' : 'trade';
+      }
+      const label = startPath(c.s, kid, path, c.rng);
       journal(c.s, `${kid.firstName} set off toward ${label}.`, 'major');
       enqueue(c, 'leaving_home', kid);
       return `${text}: ${label}.`;

@@ -118,6 +118,22 @@ for random). When your baby is born, a naming event offers suggestions or lets y
   pregnancy. The partner's wishes are shown, and going against them strains the relationship.
 - Achievements: Butterflies, Playing the Field (5 people), Second Spark, Hopeless Romantic (10 dates), Surprise!
 
+## School and college
+
+- **GPA** (0.0–4.0): every school year from 6 to 17 earns a grade from smarts *relative to age* (nobody is
+  expected to be smart at 6), that year's study effort (the player's Study time; for your kids, tutoring and
+  a studies focus) and stress. 35% of each year's grade carries over from last year, so slacking early is hard
+  to climb out of. For admissions, high school (14–17) counts 70% and the earlier years 30%. GPA shows on the
+  Family cards and on a child player's Study row.
+- **At 18** (you or your kids): apply to a **top university** (selective; $55,000/yr; the only route to
+  **doctor, lawyer and engineer**), **state university** ($12,000/yr) or **trade school** ($5,000/yr), chase
+  a passion, or start working. Each college option shows the admission chance (GPA and smarts) and the cost
+  after any merit scholarship (25–50% for strong GPAs). It is disabled if the college fund plus savings can't
+  cover the first year. Rejections fall back to state university, then trade school. At enrollment the
+  college fund goes to the household to pay tuition.
+- **College funds** take deposits of $1k, $5k, $10k or $20k and top out at $500,000. **Investments** have
+  $1k–$50k deposits, and withdraw options that grow with the balance ($5k, $25k, $100k, $500k, all).
+
 ## Cities and friends
 
 - **15 cities** (`src/content/cities.ts`): New York, Los Angeles, Chicago, Houston, Phoenix, Philadelphia,

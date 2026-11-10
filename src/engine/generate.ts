@@ -11,8 +11,8 @@ import { TUTORIAL_SEED, TUTORIAL_START_AGE, scheduleScript } from './tutorial';
 import type { GameState, Household, Looks, Person, Plan, Trait } from './types';
 import { adjustBond, ageOf, alive, cleanName, kidsAtHome, newId, parentsOf, partnerOf, active } from './util';
 
-export const SCHEMA_VERSION = 13;
-export const RULES_VERSION = '0.12.0';
+export const SCHEMA_VERSION = 14;
+export const RULES_VERSION = '0.13.0';
 export const START_YEAR = 2026;
 
 const TRAITS: Trait[] = ['ambitious', 'kind', 'stubborn', 'curious', 'anxious', 'easygoing', 'creative', 'athletic'];
@@ -84,7 +84,11 @@ export function makePerson(s: GameState, rng: Rng, o: PersonOpts): Person {
 
 export function giveEducation(rng: Rng, p: Person) {
   const r = rng.next();
-  if (r < 0.45 && p.stats.smarts >= 50) p.flags.degree = 1;
+  if (r < 0.45 && p.stats.smarts >= 50) {
+    p.flags.degree = 1;
+    // The very smart sometimes went to a top university (doctor, lawyer, engineer).
+    if (p.stats.smarts >= 70 && r < 0.12) p.flags.top_degree = 1;
+  }
   else if (r < 0.75) p.flags.trade_cert = 1;
 }
 

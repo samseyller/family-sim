@@ -467,3 +467,4 @@ kbd {
 .person.distant { opacity: 0.7; }
 .chip.best { background: color-mix(in srgb, #e8c547 35%, var(--surface)); }
 @media (max-width: 420px) { .topbar-city { display: none; } }
+.money-sep { border: none; border-top: 1px solid var(--border); margin: 10px 0 2px; }

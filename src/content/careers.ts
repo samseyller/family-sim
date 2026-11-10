@@ -13,7 +13,7 @@ export interface Career {
   blocks: number;
   stress: number;
   minSmarts: number;
-  requires?: 'degree' | 'trade_cert';
+  requires?: 'degree' | 'trade_cert' | 'top_degree';
   skill?: Hobby;
   /** Employer pension (defined benefit) for years of service. */
   pension?: boolean;
@@ -33,6 +33,10 @@ export const CAREERS: Career[] = [
   { id: 'accountant', name: 'Accountant', icon: '📊', hours: 'full', salary: 71000, blocks: 5, stress: 5, minSmarts: 55, requires: 'degree' },
   { id: 'chef', name: 'Chef', icon: '👩‍🍳', hours: 'full', salary: 44000, blocks: 5, stress: 7, minSmarts: 0, requires: 'trade_cert' },
   { id: 'mechanic', name: 'Mechanic', icon: '🔧', hours: 'full', salary: 50000, blocks: 4, stress: 4, minSmarts: 25, requires: 'trade_cert' },
+  // Top-university careers: only with a degree from a top university.
+  { id: 'doctor', name: 'Doctor', icon: '🩻', hours: 'full', salary: 210000, blocks: 6, stress: 9, minSmarts: 75, requires: 'top_degree', pension: true },
+  { id: 'lawyer', name: 'Lawyer', icon: '⚖️', hours: 'full', salary: 160000, blocks: 6, stress: 9, minSmarts: 70, requires: 'top_degree' },
+  { id: 'engineer', name: 'Engineer', icon: '🏗️', hours: 'full', salary: 120000, blocks: 5, stress: 6, minSmarts: 68, requires: 'top_degree' },
   // Part-time: no degree/cert requirements, lower pay, 1–4 blocks (2 expected)
   { id: 'barista', name: 'Barista', icon: '☕', hours: 'part', salary: 15000, blocks: 2, stress: 3, minSmarts: 0 },
   { id: 'delivery', name: 'Delivery Driver', icon: '🚚', hours: 'part', salary: 17000, blocks: 2, stress: 4, minSmarts: 0 },

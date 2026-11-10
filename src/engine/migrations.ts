@@ -83,6 +83,9 @@ const STEPS: Record<number, Step> = {
     }
     return s;
   },
+  // v13 → v14: school grades and top universities (all optional; kids without a record are
+  // judged by smarts until they build one). Nothing to rewrite.
+  13: (s) => s,
   10: (s) => {
     const garages: Record<string, number> = { 'Starter home': 0, 'Family home': 2, 'Large home': 2 };
     for (const hh of isObj(s.households) ? Object.values(s.households).filter(isObj) : []) {

@@ -3,6 +3,7 @@ import { ESTATE_EXEMPTION, ESTATE_TAX_RATE } from '../content/economy';
 import { makeHousehold } from './generate';
 import { headOf, moverGroup, splitOff } from './household';
 import { otherCity } from './location';
+import { admissionGpa, enroll } from './school';
 import type { Rng } from './rng';
 import type { GameState, Person } from './types';
 import {
@@ -218,18 +219,30 @@ export function settleEstates(s: GameState) {
   }
 }
 
-export type LifePath = 'university' | 'trade' | 'passion';
+export type LifePath = 'top_university' | 'university' | 'trade' | 'passion';
 
+/** What a young adult would pick on their own: grades and smarts point the way. */
 export function preferredPath(p: Person): LifePath {
   const skill = p.hobby ? p.skills[p.hobby] ?? 0 : 0;
   if (skill >= 55 && (p.traits.includes('creative') || p.traits.includes('athletic') || skill >= 70)) return 'passion';
-  if (p.stats.smarts >= 58) return 'university';
+  if (admissionGpa(p) >= 3.5 && p.stats.smarts >= 66) return 'top_university';
+  if (p.stats.smarts >= 58 || admissionGpa(p) >= 3.0) return 'university';
   return 'trade';
 }
 
-export function startPath(s: GameState, p: Person, path: LifePath) {
+/**
+ * Start a path. University paths go through admissions (and can fall back to state
+ * university or trade school); returns a description of where they ended up.
+ */
+export function startPath(s: GameState, p: Person, path: LifePath, rng?: Rng): string {
   p.flags.came_of_age = 1;
-  if (path === 'university') {
+  if ((path === 'top_university' || path === 'university') && rng) {
+    return enroll(s, rng, p, path === 'top_university' ? 'top' : 'state', s.households[p.householdId]).note;
+  }
+  if (path === 'top_university') {
+    p.studyingUntil = s.year + 4;
+    p.studyKind = 'top';
+  } else if (path === 'university') {
     p.studyingUntil = s.year + 4;
     p.studyKind = 'university';
   } else if (path === 'trade') {
@@ -238,11 +251,12 @@ export function startPath(s: GameState, p: Person, path: LifePath) {
   } else {
     p.flags.passion = 1;
   }
+  return path === 'trade' ? 'trade school' : path === 'passion' ? `a life in ${p.hobby ?? 'their passion'}` : path === 'top_university' ? 'a top university' : 'university';
 }
 
 /** Coming of age for children nobody is actively parenting (NPC branches). */
 export function autoComeOfAge(s: GameState, rng: Rng, p: Person, leaveHome: boolean) {
-  startPath(s, p, preferredPath(p));
+  startPath(s, p, preferredPath(p), rng);
   if (leaveHome) {
     moveOut(s, p, rng.int(0, 3000));
     // Some young adults move away for school or work.

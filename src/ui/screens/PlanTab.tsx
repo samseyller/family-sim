@@ -1,3 +1,4 @@
+import { gpaOf } from '../../engine/school';
 import type { ChildFocus, GameState, Hobby, JobIntent, Plan } from '../../engine/types';
 import { canWorkFullTime, homeParents } from '../../engine/generate';
 import { NightSchool } from './NightSchool';
@@ -153,7 +154,7 @@ export function PlanTab({ g }: { g: GameState }) {
       <Section title="🧘 Yourself">
         {step('exercise', ACTION_BY_ID.exercise.label, ACTION_BY_ID.exercise.icon, me.flags.health_vow ? 'Extra effective since your health scare' : 'Fitness, health; less stress')}
         {step('relax', ACTION_BY_ID.relax.label, ACTION_BY_ID.relax.icon, 'Less stress, more happiness')}
-        {step('learn', isMinor ? 'Study' : ACTION_BY_ID.learn.label, isMinor ? '🎒' : ACTION_BY_ID.learn.icon, isMinor ? 'Better grades; smarts up' : 'Smarts: opens better careers')}
+        {step('learn', isMinor ? 'Study' : ACTION_BY_ID.learn.label, isMinor ? '🎒' : ACTION_BY_ID.learn.icon, isMinor ? `Better grades; smarts up${gpaOf(me) !== undefined ? ` · GPA ${gpaOf(me)!.toFixed(2)}` : ''}` : 'Smarts: opens better careers')}
         {me.hobby && step('practice', `Practice ${HOBBY_BY_ID[me.hobby].label.toLowerCase()}`, HOBBY_BY_ID[me.hobby].icon, 'Skill up; it can become a career')}
         {step('socialize', isMinor ? 'Friends' : ACTION_BY_ID.socialize.label, isMinor ? '🛝' : ACTION_BY_ID.socialize.icon, isMinor ? 'Make friends; happiness up' : partner ? 'Happiness up, less stress' : 'Happiness up; more likely to meet someone')}
         <p className="hint">Each extra block on the same thing is worth a bit less.</p>

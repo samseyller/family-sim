@@ -6,6 +6,7 @@
 import { HOBBY_BY_ID } from '../content/actions';
 import type { Ctx, EventDef } from './events';
 import { moveOut, startPath, type LifePath } from './family';
+import { collegeChoice, gpaText, TUITION } from './school';
 import type { GameState, Hobby, Person } from './types';
 import { adjustBond, ageOf, alive, clamp, flag, getBond, journal, money, parentsOf, partnerOf, stat } from './util';
 
@@ -261,12 +262,14 @@ export const CHILD_EVENTS: EventDef[] = [
     candidates: (c) => one(age(c) >= 18 && !c.me.flags.came_of_age, 1000, true),
     build: (c) => {
       const skill = c.me.hobby ? c.me.skills[c.me.hobby] ?? 0 : 0;
+      const home = c.s.households[c.me.householdId];
       return {
         title: "You're 18",
-        text: `High school is done. Smarts ${c.me.stats.smarts}${c.me.hobby ? `, ${HOBBY_BY_ID[c.me.hobby].label.toLowerCase()} skill ${skill}` : ''}, savings ${money(c.me.fund)}. What's next?`,
+        text: `High school is done. ${gpaText(c.me)}, smarts ${c.me.stats.smarts}${c.me.hobby ? `, ${HOBBY_BY_ID[c.me.hobby].label.toLowerCase()} skill ${skill}` : ''}, college fund and savings ${money(c.me.fund)}. What's next?`,
         choices: [
-          { id: 'university', label: '🎓 University', hint: '4 years; best-paid careers. Smarts helps.', disabled: c.me.stats.smarts < 45 },
-          { id: 'trade', label: '🛠️ Trade school', hint: '2 years; steady skilled work' },
+          collegeChoice(c.me, home, 'top', 'top', '🏛️ Apply to a top university'),
+          collegeChoice(c.me, home, 'state', 'university', '🎓 Apply to state university'),
+          { id: 'trade', label: '🛠️ Trade school', hint: `2 years; steady skilled work · ${money(TUITION.trade)}/yr` },
           { id: 'passion', label: c.me.hobby ? `${HOBBY_BY_ID[c.me.hobby].icon} Chase your ${HOBBY_BY_ID[c.me.hobby].label.toLowerCase()} dream` : 'Chase a dream', hint: 'Needs real skill', disabled: skill < 45 },
           { id: 'work', label: '💼 Start working', hint: 'Look for a job in your plan right away' },
         ],
@@ -278,10 +281,10 @@ export const CHILD_EVENTS: EventDef[] = [
         journal(c.s, 'You skipped college and went straight to work.', 'major');
         return 'No more classrooms. Time to find a job: check the Work section of your plan.';
       }
-      startPath(c.s, c.me, ch as LifePath);
-      const label = ch === 'university' ? 'university' : ch === 'trade' ? 'trade school' : `a life in ${c.me.hobby}`;
+      const path: LifePath = ch === 'top' ? 'top_university' : (ch as LifePath);
+      const label = startPath(c.s, c.me, path, c.rng);
       journal(c.s, `You set off toward ${label}.`, 'major');
-      return `You chose ${label}.`;
+      return `You're headed to ${label}.`;
     },
   },
   {

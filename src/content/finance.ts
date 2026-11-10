@@ -88,3 +88,6 @@ export function annuityPayment(principal: number, rate: number, years: number) {
   if (principal <= 0) return 0;
   return Math.round((principal * rate) / (1 - Math.pow(1 + rate, -years)));
 }
+
+/** College funds top out here (deposits, yearly contributions and growth all stop at the cap). */
+export const COLLEGE_FUND_CAP = 500_000;

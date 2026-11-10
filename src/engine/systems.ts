@@ -3,7 +3,8 @@ import { DEBT_RATE, LIFESTYLES, SAVINGS_RATE } from '../content/economy';
 import { CAREER_BY_ID, PART_TIME_MAX, PROGRAMS, TWO_JOB_STRESS, qualifies, requiredBlocks } from '../content/careers';
 import { assignJob, canWorkFullTime, homeParents, makeAdultStranger, makeBaby, pickCareer } from './generate';
 import { fullTimePay, householdBudget, partTimePay } from './budget';
-import { capacityOf, loanPayment } from './finance';
+import { capacityOf, fundRoom, loanPayment } from './finance';
+import { COLLEGE_FUND_CAP } from '../content/finance';
 import { accrueWorkingYear, contributionFor, drawdown } from './retirement';
 import { deathGuard, financeGuard } from './tutorial';
 import { SAVINGS_RETURN, SAVINGS_VOLATILITY } from '../content/retirement';
@@ -11,6 +12,7 @@ import { INVEST_RETURN, INVEST_VOLATILITY } from '../content/finance';
 import { autoComeOfAge, die, isCloseKin, marry, moveOut, receptiveness, retire } from './family';
 import { STAKE_KEEP, seedStakes } from './household';
 import { ageCars } from './cars';
+import { schoolYear } from './school';
 import { cityDef, cityName, cityOfHousehold, otherCity } from './location';
 import type { Rng } from './rng';
 import type { GameState, Hobby, Person } from './types';
@@ -251,9 +253,9 @@ export function runEconomy(s: GameState, activePay: number, rng?: Rng) {
       if (a.kind === 'house') a.value = Math.round(a.value * 1.03);
     }
     if (hh.id === me.householdId) {
-      for (const kid of kidsAtHome(s, me)) kid.fund += s.plan.children[kid.id]?.fundContribution ?? 0;
+      for (const kid of kidsAtHome(s, me)) kid.fund += fundRoom(kid, s.plan.children[kid.id]?.fundContribution ?? 0);
     }
-    for (const p of mem) if (p.fund > 0) p.fund = Math.round(p.fund * 1.04);
+    for (const p of mem) if (p.fund > 0) p.fund = Math.round(ageOf(p, s.year) < 18 ? Math.min(COLLEGE_FUND_CAP, p.fund * 1.04) : p.fund * 1.04);
     hh.wallet += budget.net;
     // Cars age (value, upkeep, repairs, and eventually dying for good).
     ageCars(s, hh, rng, hh.id === me.householdId);
@@ -339,15 +341,19 @@ function childYear(s: GameState, rng: Rng, c: Person) {
   stat(c, 'smarts', study);
   if (c.hobby) c.skills[c.hobby] = Math.round(clamp((c.skills[c.hobby] ?? 0) + practice, 0, 100));
   stat(c, 'stress', (20 - c.stats.stress) * 0.3);
+  // This year's school grade: the player's effort is their Study time; other kids' is the study above.
+  schoolYear(s, rng, c, c.id === me.id ? 1.5 + (s.plan.alloc.learn ?? 0) : study);
 }
 
 function education(s: GameState, p: Person) {
   if (p.studyingUntil && s.year >= p.studyingUntil) {
-    p.flags[p.studyKind === 'university' ? 'degree' : 'trade_cert'] = 1;
-    stat(p, 'smarts', p.studyKind === 'university' ? 8 : 3);
+    p.flags[p.studyKind === 'trade' ? 'trade_cert' : 'degree'] = 1;
+    if (p.studyKind === 'top') p.flags.top_degree = 1;
+    delete p.flags.scholarship;
+    stat(p, 'smarts', p.studyKind === 'top' ? 10 : p.studyKind === 'university' ? 8 : 3);
     if (isCloseKin(s, p)) {
       const who = p.id === s.activeId ? 'You' : p.firstName;
-      journal(s, `${who} graduated from ${p.studyKind === 'university' ? 'university' : 'trade school'}.`, 'good');
+      journal(s, `${who} graduated from ${p.studyKind === 'top' ? 'a top university' : p.studyKind === 'university' ? 'university' : 'trade school'}.`, 'good');
     }
     p.studyingUntil = undefined;
     p.studyKind = undefined;
