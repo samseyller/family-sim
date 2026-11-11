@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { CARS, type CarKind } from '../content/finance';
 import { BREEDS, type DogBreed } from '../content/dogs';
 import { CITY_IDS, type CityId } from '../content/cities';
+import { SPORT_IDS, type SportId } from '../content/sports';
 import type { GameState } from '../engine/types';
 
 const num = z.number().finite();
@@ -14,6 +15,7 @@ const id = z.string().min(1);
 
 const Stats = z.object({ health: num, happiness: num, smarts: num, fitness: num, stress: num });
 const Hobby = z.enum(['music', 'sports', 'art', 'flying', 'woodworking', 'fishing', 'cooking', 'mechanics', 'gardening']);
+const SportEnum = z.enum(SPORT_IDS as [SportId, ...SportId[]]);
 const ProgramId = z.enum(['degree', 'trade_cert', 'ppl', 'cpl', 'carpentry_cert', 'auto_cert', 'culinary_cert', 'captains_license']);
 const Trait = z.enum(['ambitious', 'kind', 'stubborn', 'curious', 'anxious', 'easygoing', 'creative', 'athletic']);
 
@@ -30,6 +32,9 @@ const Person = z.object({
   traits: z.array(Trait),
   skills: z.partialRecord(Hobby, num),
   hobby: Hobby.optional(),
+  sport: SportEnum.optional(),
+  sportSkills: z.partialRecord(SportEnum, num).optional(),
+  club: SportEnum.optional(),
   flags: z.record(z.string(), num),
   jobId: z.string().optional(),
   jobLevel: int,
@@ -79,7 +84,7 @@ const Asset = z.object({
   rate: num.optional(),
   capacity: int.optional(),
   garage: int.optional(),
-  upgrades: z.array(z.enum(['pool', 'hot_tub', 'home_gym', 'theater', 'workshop', 'security', 'studio', 'chef_kitchen', 'greenhouse', 'garage_lift', 'expansion'])).optional(),
+  upgrades: z.array(z.enum(['pool', 'hot_tub', 'home_gym', 'theater', 'workshop', 'security', 'studio', 'chef_kitchen', 'greenhouse', 'garage_lift', 'sport_court', 'batting_cage', 'putting_green', 'expansion'])).optional(),
   model: z.enum(Object.keys(CARS) as [CarKind, ...CarKind[]]).optional(),
   age: int.optional(),
   broken: z.boolean().optional(),

@@ -8,6 +8,7 @@ import { householdAction, type HouseholdAction } from '../engine/household';
 import { dogAction, type DogAction } from '../engine/dogs';
 import { takeUpHobby } from '../engine/hobbies';
 import { enlistNow } from '../engine/military';
+import { sportsAction, type SportsAction } from '../engine/sports';
 import type { Hobby } from '../engine/types';
 import {
   choose, chooseHeir, devKill, devSkip, dismissOutcome, nextYear, resolveYear, updatePlan,
@@ -72,6 +73,7 @@ interface Store {
   dog(a: DogAction): void;
   takeHobby(h: Hobby): void;
   enlist(asOfficer: boolean): void;
+  sports(a: SportsAction): void;
   activity(id: string, people: string[]): void;
   dismissActivity(): void;
   askEndYear(open: boolean): void;
@@ -211,6 +213,7 @@ export const useGame = create<Store>((set, get) => {
     dog: (a) => withGame((g) => dogAction(g, a)),
     takeHobby: (h) => withGame((g) => takeUpHobby(g, h)),
     enlist: (asOfficer) => withGame((g) => enlistNow(g, asOfficer)),
+    sports: (a) => withGame((g) => sportsAction(g, a)),
     activity: (id, people) => withGame((g) => performActivity(g, id, people)),
     dismissActivity: () => withGame(dismissActivity),
     markTip: (id) => withGame((g) => markSeen(g, id)),

@@ -1,4 +1,5 @@
 import type { Hobby, Person, Program } from '../engine/types';
+import { PRO_SKILL, SPORTS, SPORT_IDS } from './sports';
 
 export type JobSlot = 'full' | 'part';
 
@@ -36,6 +37,10 @@ export interface Career {
   touring?: boolean;
   /** Military service: joined through a recruiter (or ROTC), never through job listings. */
   military?: 'enlisted' | 'officer' | 'reserve';
+  /** A professional athlete in this sport: signed through the draft, never through job listings. */
+  pro?: import('./sports').SportId;
+  /** Only for someone who played professionally. */
+  formerPro?: boolean;
   skill?: Hobby;
   /** Employer pension (defined benefit) for years of service. */
   pension?: boolean;
@@ -93,7 +98,8 @@ export const CAREERS: Career[] = [
   { id: 'musician', name: 'Musician', icon: '🎸', hours: 'full', sector: 'entertainment', salary: 40000, blocks: 4, stress: 4, minSmarts: 0, skill: 'music', minSkill: 55, titles: ['Session Musician', 'Touring Musician', 'Headliner'], levelPay: [40000, 78000, 320000], promoSkill: [72, 90], touring: true },
   { id: 'music_director', name: 'School Music Director', icon: '🎼', hours: 'full', sector: 'education', salary: 60000, blocks: 4, stress: 5, minSmarts: 45, requires: 'degree', skill: 'music', minSkill: 50, pension: true },
   { id: 'charter_captain', name: 'Charter Captain', icon: '⛵', hours: 'full', sector: 'hospitality', salary: 90000, blocks: 5, stress: 6, minSmarts: 20, requires: 'captains_license', skill: 'fishing', minSkill: 60, needsGear: 'offshore_boat', coastal: true, variance: 0.6, titles: ['Charter Captain', 'Charter Captain', 'Charter Captain'], levelPay: [90000, 90000, 90000] },
-  { id: 'coach', name: 'Sports Coach', icon: '🏅', hours: 'full', sector: 'education', salary: 47000, blocks: 4, stress: 4, minSmarts: 0, skill: 'sports', minSkill: 55, pension: true },
+  { id: 'coach', name: 'Sports Coach', icon: '🏅', hours: 'full', sector: 'education', salary: 45000, blocks: 4, stress: 4, minSmarts: 0, skill: 'sports', minSkill: 55, pension: true, titles: ['Assistant Coach', 'Head Coach', 'College Coach'], levelPay: [45000, 62000, 95000], promoSkill: [62, 75] },
+  { id: 'pro_coach', name: 'Pro Coach', icon: '📋', hours: 'full', sector: 'entertainment', salary: 150000, blocks: 6, stress: 8, minSmarts: 40, skill: 'sports', minSkill: 70, formerPro: true, titles: ['Pro Assistant Coach', 'Pro Head Coach', 'Championship Coach'], levelPay: [150000, 450000, 1800000], promoSkill: [80, 90] },
   { id: 'designer', name: 'Graphic Designer', icon: '🎨', hours: 'full', sector: 'creative', salary: 61000, blocks: 4, stress: 5, minSmarts: 35, skill: 'art', minSkill: 50 },
   { id: 'film_editor', name: 'Film Editor', icon: '🎬', hours: 'full', sector: 'entertainment', salary: 70000, blocks: 5, stress: 6, minSmarts: 40, skill: 'art', minSkill: 55 },
   { id: 'actor', name: 'Actor', icon: '🎭', hours: 'full', sector: 'entertainment', salary: 45000, blocks: 4, stress: 6, minSmarts: 0, skill: 'art', minSkill: 60 },
@@ -122,6 +128,8 @@ export const CAREERS: Career[] = [
   { id: 'fishing_guide', name: 'Fishing Guide', icon: '🎣', hours: 'part', sector: 'hospitality', salary: 17000, blocks: 2, stress: 1, minSmarts: 0, skill: 'fishing', minSkill: 40 },
   { id: 'line_cook_pt', name: 'Prep Cook', icon: '🔪', hours: 'part', sector: 'hospitality', salary: 15000, blocks: 2, stress: 3, minSmarts: 0, skill: 'cooking', minSkill: 5 },
   { id: 'referee', name: 'Youth Referee', icon: '🏟️', hours: 'part', sector: 'education', salary: 16000, blocks: 2, stress: 3, minSmarts: 0, skill: 'sports', minSkill: 30 },
+  { id: 'youth_coach', name: 'Youth Coach', icon: '🧢', hours: 'part', sector: 'education', salary: 12000, blocks: 2, stress: 2, minSmarts: 0, skill: 'sports', minSkill: 30 },
+  { id: 'personal_trainer', name: 'Personal Trainer', icon: '💪', hours: 'part', sector: 'service', salary: 20000, blocks: 2, stress: 2, minSmarts: 0, skill: 'sports', minSkill: 45 },
   { id: 'illustrator', name: 'Freelance Illustrator', icon: '🖍️', hours: 'part', sector: 'creative', salary: 20000, blocks: 2, stress: 2, minSmarts: 0, skill: 'art', minSkill: 35 },
   { id: 'photographer', name: 'Event Photographer', icon: '📷', hours: 'part', sector: 'creative', salary: 21000, blocks: 2, stress: 2, minSmarts: 0, skill: 'art', minSkill: 30 },
 ];
@@ -211,3 +219,14 @@ export function programBlocker(p: Person, prog: ProgramDef, age: number): string
   if (prog.skill && (p.skills[prog.skill] ?? 0) < (prog.minSkill ?? 0)) return `Needs ${prog.skill} skill ${prog.minSkill}+`;
   return null;
 }
+
+/** Pro athlete careers, one per sport (signed through the draft; see engine/sports.ts). */
+export const PRO_CAREERS: Career[] = SPORT_IDS.map((id) => {
+  const sp = SPORTS[id];
+  return {
+    id: `pro_${id}`, name: `Pro ${sp.label} Player`, icon: sp.icon, hours: 'full', sector: 'entertainment', salary: sp.proPay[0], blocks: 6, stress: 7,
+    minSmarts: 0, skill: 'sports', minSkill: PRO_SKILL, pro: id, titles: ['Rookie', 'Starter', 'All-Star'], levelPay: sp.proPay,
+  } satisfies Career;
+});
+CAREERS.push(...PRO_CAREERS);
+for (const c of PRO_CAREERS) CAREER_BY_ID[c.id] = c;

@@ -93,7 +93,7 @@ export function annuityPayment(principal: number, rate: number, years: number) {
 export const COLLEGE_FUND_CAP = 500_000;
 
 /** Luxury upgrades for a home you own. Costs scale with the city's living index. */
-export type UpgradeId = 'pool' | 'hot_tub' | 'home_gym' | 'theater' | 'workshop' | 'security' | 'studio' | 'chef_kitchen' | 'greenhouse' | 'garage_lift' | 'expansion';
+export type UpgradeId = 'pool' | 'hot_tub' | 'home_gym' | 'theater' | 'workshop' | 'security' | 'studio' | 'chef_kitchen' | 'greenhouse' | 'garage_lift' | 'sport_court' | 'batting_cage' | 'putting_green' | 'expansion';
 export interface UpgradeDef {
   label: string;
   icon: string;
@@ -116,6 +116,9 @@ export const HOME_UPGRADES: Record<UpgradeId, UpgradeDef> = {
   chef_kitchen: { label: "Chef's kitchen", icon: '🍳', cost: 40000, upkeep: 600, value: 25000, max: 1, desc: 'Cooking practice 50% faster; great dinner parties' },
   greenhouse: { label: 'Greenhouse', icon: '🌿', cost: 15000, upkeep: 400, value: 6000, max: 1, desc: 'Gardening practice 50% faster, year round' },
   garage_lift: { label: 'Garage lift and tools', icon: '🛠️', cost: 12000, upkeep: 200, value: 3000, max: 1, desc: 'Mechanics practice 50% faster (needs a garage)' },
+  sport_court: { label: 'Sport court', icon: '🏀', cost: 35000, upkeep: 500, value: 12000, max: 1, desc: 'Basketball, tennis, volleyball at home: practice 30% faster' },
+  batting_cage: { label: 'Batting cage', icon: '⚾', cost: 15000, upkeep: 300, value: 4000, max: 1, desc: 'Baseball practice 30% faster' },
+  putting_green: { label: 'Putting green', icon: '⛳', cost: 20000, upkeep: 600, value: 6000, max: 1, desc: 'Golf practice 30% faster' },
   security: { label: 'Security system', icon: '🔒', cost: 3000, upkeep: 400, value: 0, max: 1, desc: 'Break-ins become much less likely' },
   expansion: { label: 'Home addition', icon: '🧱', cost: 80000, upkeep: 1200, value: 60000, max: 3, desc: 'One more bedroom: +1 person fits' },
 };

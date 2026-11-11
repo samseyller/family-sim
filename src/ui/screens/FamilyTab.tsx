@@ -1,3 +1,4 @@
+import { SPORTS } from '../../content/sports';
 import { useState } from 'react';
 import type { GameState, Person } from '../../engine/types';
 import { active, ageOf, alive, childrenOf, getBond, parentsOf, partnerOf } from '../../engine/util';
@@ -72,7 +73,7 @@ function FamilyList({ g }: { g: GameState }) {
           </div>
           <div className="hint">
             {alive(p) ? `Age ${ageOf(p, g.year)}` : `${p.birthYear}–${p.deathYear}`}
-            {ageOf(p, g.year) >= 18 ? ` · ${jobTitle(p)}` : p.hobby ? ` · ${HOBBY_BY_ID[p.hobby].icon} ${HOBBY_BY_ID[p.hobby].label}` : ''}
+            {ageOf(p, g.year) >= 18 ? ` · ${jobTitle(p)}` : p.hobby === 'sports' && p.sport ? ` · ${SPORTS[p.sport].icon} ${SPORTS[p.sport].label} (skill ${p.skills.sports ?? 0})${p.flags.varsity ? ', varsity' : p.flags.travel_team ? ', travel team' : ''}` : p.hobby ? ` · ${HOBBY_BY_ID[p.hobby].icon} ${HOBBY_BY_ID[p.hobby].label}` : ''}
             {p.householdId === me.householdId && alive(p) ? ' · lives with you' : alive(p) ? ` · 📍 ${cityName(cityOf(g, p))}` : ''}
             {alive(p) && p.flags.care_home ? ' · in a care home' : ''}
             {alive(p) && gpaOf(p) !== undefined && (ageOf(p, g.year) < 18 || p.studyingUntil) ? ` · GPA ${gpaOf(p)!.toFixed(2)}` : ''}

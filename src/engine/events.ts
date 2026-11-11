@@ -3,6 +3,8 @@ import { CHILD_EVENTS } from './childhood';
 import { LIFE_EVENTS, setEnqueue } from './lifeEvents';
 import { HOBBY_EVENTS } from './hobbyEvents';
 import { MILITARY_EVENTS } from './militaryEvents';
+import { SPORTS_EVENTS } from './sportsEvents';
+import { SCHOLARSHIP_SKILL } from '../content/sports';
 import { FEMALE_NAMES, MALE_NAMES } from '../content/names';
 import { annuityPayment, HOMES, MORTGAGE_RATE, MORTGAGE_YEARS, SCRAP_VALUE } from '../content/finance';
 import { breakdownChance, carAge, conditionOf, garagedIds, repairCost, shakiestCar } from './cars';
@@ -421,6 +423,7 @@ const EVENTS: EventDef[] = [
           collegeChoice(kid, wallet(c), 'state', 'university', 'Encourage state university'),
           { id: 'trade', label: 'Suggest trade school', hint: '2 years; steady skilled work' },
           { id: 'military', label: 'Suggest the military', hint: 'A 4-year tour, the GI Bill after; deployments carry some risk' },
+          ...(kid.hobby === 'sports' && (kid.skills.sports ?? 0) >= SCHOLARSHIP_SKILL ? [{ id: 'athletic', label: 'Take the athletic scholarship', hint: 'University paid; they keep playing' }] : []),
           { id: 'passion', label: kid.hobby ? `Back their ${HOBBY_BY_ID[kid.hobby].label.toLowerCase()} dream` : 'Back their passion', hint: 'Only realistic with strong skill', disabled: skill < 40 },
           { id: 'decide', label: "It's their call", hint: 'They choose; they will appreciate the trust' },
         ],
@@ -1462,7 +1465,7 @@ const GUIDED_KID: EventDef = {
   },
 };
 
-const ALL_EVENTS: EventDef[] = [...EVENTS, ...CHILD_EVENTS, ...LIFE_EVENTS, ...HOBBY_EVENTS, ...MILITARY_EVENTS, NAME_BABY, GUIDED_KID];
+const ALL_EVENTS: EventDef[] = [...EVENTS, ...CHILD_EVENTS, ...LIFE_EVENTS, ...HOBBY_EVENTS, ...MILITARY_EVENTS, ...SPORTS_EVENTS, NAME_BABY, GUIDED_KID];
 
 export const EVENT_BY_ID: Record<string, EventDef> = Object.fromEntries(ALL_EVENTS.map((e) => [e.id, e]));
 
@@ -1568,7 +1571,7 @@ setEnqueue(enqueue);
 /** Ready for the next rank: the career has one, and any hobby skill it needs is there. */
 function canPromote(p: Person) {
   const job = p.jobId ? CAREER_BY_ID[p.jobId] : undefined;
-  if (!job || !hasLadder(job) || job.military) return false; // military ranks come with each new tour
+  if (!job || !hasLadder(job) || job.military || job.pro) return false; // military ranks come with tours; pro ranks with play
   const need = promoSkillFor(job, p.jobLevel);
   return !need || (job.skill ? p.skills[job.skill] ?? 0 : 0) >= need;
 }

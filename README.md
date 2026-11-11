@@ -142,6 +142,25 @@ for random). When your baby is born, a naming event offers suggestions or lets y
   wealth now levels off by the third generation instead of compounding.
 - Next: hobby → training → gear → career paths (`docs/plans/hobby-career-paths.md`).
 
+## Sports
+
+- **Ten sports** under the sports hobby (Plan → Hobby → Sports…): soccer, basketball, baseball, football, hockey,
+  volleyball, tennis, golf, swimming, running. Each has its own skill (kept when you switch; 30% carries over),
+  practice cost, injury risk (football and hockey are rough), the age it can start, and a pro career. Kids can start
+  at 5–8; adults any time. Your kids get a sport when they take up sports.
+- **The road to the pros:** travel-team tryouts (8–13; about $3k a year for your kids), varsity (14–17), an
+  **athletic scholarship** at 18 with skill 62+ (university paid; stars with decent grades get a top school; college
+  athletes keep training), and the **draft** at 18–24 with skill 80+. Pros are Rookie → Starter → All-Star, with pay
+  by sport (up to $15M for an All-Star in basketball), contract years, injuries, and retirement in their 30s. Former
+  pros can become pro coaches. In simulated lives about 1 in 20 athletes goes pro and a few of those reach All-Star.
+- **Coaching:** volunteer-coach your kids (they may take up your sport), hire a private coach, send kids to sports
+  camp; careers as a youth coach, personal trainer, sports coach (Assistant → Head → College Coach) or pro coach.
+- **Buy:** pro gear per sport (+20% practice), club memberships for golf, tennis and swimming (+40%, a yearly fee,
+  and you meet people), and home setups: a sport court, batting cage or putting green (the pool counts for swimming).
+- **Activities → Sports:** pickup games, rec leagues, races and tournaments (marathons, swim meets, golf, with a rare
+  hole-in-one), going to a pro game, playing catch.
+- Achievements: Varsity Letter, Full Ride, Going Pro, All-Star, Champion, 26.2, Hole-in-One, Coach, Multi-Sport Athlete.
+
 ## Military service
 
 - **At 18**, next to college, trade school, a passion or work: **enlist** (a 4-year tour) or take an **ROTC

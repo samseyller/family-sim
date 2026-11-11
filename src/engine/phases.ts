@@ -15,6 +15,7 @@ import { dogYear } from './dogs';
 import { friendsYear } from './friends';
 import { homeLife, rollMisfortunes } from './lifeEvents';
 import { militaryYear } from './military';
+import { sportsYear } from './sports';
 import { generateEvents, refreshPending, resolveEvent, stillRelevant } from './events';
 import { strategyPlan } from './strategies';
 import { applyCushion } from './tutorial';
@@ -73,6 +74,7 @@ export function resolveYear(state: GameState): GameState {
   friendsYear(s, rng); //              friendships fade, drift apart, move away
   runHealth(s, rng); //             6. aging effects, deaths at year end
   militaryYear(s, rng); //              tours, deployments, and their risks
+  sportsYear(s, rng); //                injuries, pros, drafts
   settleEstates(s);
   homeLife(s); //                       perks of pools, gyms and the like
   rollMisfortunes(s, rng); //           accidents, fires, floods, bills, family in need

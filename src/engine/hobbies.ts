@@ -9,6 +9,8 @@ import { CAREER_BY_ID, type Career } from '../content/careers';
 import { COASTAL, GEAR, RESTORED_VALUE, type GearId } from '../content/gear';
 import type { UpgradeId } from '../content/finance';
 import { cityOfHousehold } from './location';
+import { sportBoost } from './sports';
+import { SPORTS } from '../content/sports';
 import type { Rng } from './rng';
 import { unlockedTabs } from './tutorial';
 import type { Asset, GameState, Hobby, Household, Person } from './types';
@@ -29,6 +31,7 @@ const home = (hh: Household) => hh.assets.find((a) => a.kind === 'house');
 
 /** How much faster you improve at a hobby with your gear and home setup (best one counts). */
 export function practiceBoost(s: GameState, p: Person, hobby: Hobby): number {
+  if (hobby === 'sports') return sportBoost(s, p);
   const hh = s.households[p.householdId];
   let best = 1;
   for (const a of gearOf(hh)) if (a.gear && GEAR[a.gear].hobby === hobby) best = Math.max(best, GEAR[a.gear].boost);
@@ -41,6 +44,7 @@ export function practiceBoost(s: GameState, p: Person, hobby: Hobby): number {
 export function practiceCostPerBlock(s: GameState, p: Person): number {
   if (!p.hobby) return 0;
   if (p.hobby === 'flying' && ownsGear(s.households[p.householdId], 'plane')) return 120;
+  if (p.hobby === 'sports' && p.sport) return SPORTS[p.sport].cost;
   return HOBBY_BY_ID[p.hobby].cost;
 }
 
@@ -119,6 +123,7 @@ export function promoSkillFor(c: Career, level: number) {
 export function jobExtraBlocker(s: GameState, p: Person, c: Career): string | null {
   const hh = s.households[p.householdId];
   if (c.needsGear && !ownsGear(hh, c.needsGear)) return `Needs your own ${GEAR[c.needsGear].label.toLowerCase()}`;
+  if (c.formerPro && !p.flags.former_pro) return 'Only for former pro athletes';
   if (c.startup && hh.wallet < c.startup) return `Needs ${money(c.startup)} to start`;
   return null;
 }

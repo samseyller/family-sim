@@ -42,6 +42,11 @@ export interface Person {
   traits: Trait[];
   skills: Partial<Record<Hobby, number>>;
   hobby?: Hobby;
+  /** Which sport, when the hobby is sports; skill per sport is kept (skills.sports is the current one). */
+  sport?: import('../content/sports').SportId;
+  sportSkills?: Partial<Record<import('../content/sports').SportId, number>>;
+  /** A sports club membership (golf, tennis, swim), paid yearly. */
+  club?: import('../content/sports').SportId;
   /** Memories and counters, e.g. degree, resents, parent_missed_events. */
   flags: Record<string, number>;
   /** Full-time job. */

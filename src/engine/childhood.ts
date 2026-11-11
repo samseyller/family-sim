@@ -7,6 +7,7 @@ import { HOBBY_BY_ID } from '../content/actions';
 import type { Ctx, EventDef } from './events';
 import { moveOut, startPath, type LifePath } from './family';
 import { admitChance, collegeChoice, gpaText, TUITION } from './school';
+import { SCHOLARSHIP_SKILL, SPORTS } from '../content/sports';
 import type { GameState, Hobby, Person } from './types';
 import { adjustBond, ageOf, alive, clamp, flag, getBond, journal, money, parentsOf, partnerOf, stat } from './util';
 
@@ -272,6 +273,7 @@ export const CHILD_EVENTS: EventDef[] = [
           { id: 'trade', label: '🛠️ Trade school', hint: `2 years; steady skilled work · ${money(TUITION.trade)}/yr` },
           { id: 'rotc', label: `🎓 ROTC scholarship to state university (${Math.round(admitChance(c.me, 'state') * 100)}% chance)`, hint: 'Tuition paid; then serve 4 years as an officer' },
           { id: 'military', label: '🎖️ Enlist in the military', hint: 'A 4-year tour: steady pay, training, the GI Bill. Deployments carry some risk.' },
+          ...(c.me.hobby === 'sports' && (c.me.skills.sports ?? 0) >= SCHOLARSHIP_SKILL ? [{ id: 'athletic', label: `🏅 Athletic scholarship (${SPORTS[c.me.sport ?? 'soccer'].label})`, hint: 'University paid; keep training; the pros could come calling' }] : []),
           { id: 'passion', label: c.me.hobby ? `${HOBBY_BY_ID[c.me.hobby].icon} Chase your ${HOBBY_BY_ID[c.me.hobby].label.toLowerCase()} dream` : 'Chase a dream', hint: 'Needs real skill', disabled: skill < 45 },
           { id: 'work', label: '💼 Start working', hint: 'Look for a job in your plan right away' },
         ],

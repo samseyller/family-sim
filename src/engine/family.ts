@@ -6,6 +6,7 @@ import { otherCity } from './location';
 import { passDownGear } from './hobbies';
 import { admissionGpa, enroll } from './school';
 import { enlist } from './military';
+import { SCHOLARSHIP_SKILL } from '../content/sports';
 import type { Rng } from './rng';
 import type { GameState, Person } from './types';
 import {
@@ -275,11 +276,12 @@ export function settleEstates(s: GameState) {
   }
 }
 
-export type LifePath = 'top_university' | 'university' | 'trade' | 'passion' | 'military' | 'rotc';
+export type LifePath = 'top_university' | 'university' | 'trade' | 'passion' | 'military' | 'rotc' | 'athletic';
 
 /** What a young adult would pick on their own: grades and smarts point the way. */
 export function preferredPath(p: Person): LifePath {
   const skill = p.hobby ? p.skills[p.hobby] ?? 0 : 0;
+  if (p.hobby === 'sports' && (p.skills.sports ?? 0) >= SCHOLARSHIP_SKILL) return 'athletic';
   if (skill >= 55 && (p.traits.includes('creative') || p.traits.includes('athletic') || skill >= 70)) return 'passion';
   if (admissionGpa(p) >= 3.5 && p.stats.smarts >= 66) return 'top_university';
   if (p.stats.smarts >= 58 || admissionGpa(p) >= 3.0) return 'university';
@@ -292,6 +294,16 @@ export function preferredPath(p: Person): LifePath {
  */
 export function startPath(s: GameState, p: Person, path: LifePath, rng?: Rng): string {
   p.flags.came_of_age = 1;
+  if (path === 'athletic') {
+    // An athletic scholarship: recruited (no admissions roll), tuition paid. Stars with decent
+    // grades get a top university.
+    const top = (p.skills.sports ?? 0) >= 75 && admissionGpa(p) >= 2.5;
+    p.studyingUntil = s.year + 4;
+    p.studyKind = top ? 'top' : 'university';
+    p.flags.athletic_scholarship = 1;
+    p.flags.full_ride = 1;
+    return `${top ? 'a top university' : 'state university'} on an athletic scholarship`;
+  }
   if (path === 'military') {
     enlist(s, p, false);
     return 'the military';

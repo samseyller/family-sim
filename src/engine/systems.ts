@@ -14,6 +14,7 @@ import { STAKE_KEEP, seedStakes } from './household';
 import { ageCars } from './cars';
 import { schoolYear } from './school';
 import { enlist } from './military';
+import { chooseSport, randomSport } from './sports';
 import { isHiring } from './jobMarket';
 import { ageGear, hobbyCareerYear, jobExtraBlocker, practiceGain } from './hobbies';
 import { cityDef, cityName, cityOfHousehold, otherCity } from './location';
@@ -337,6 +338,8 @@ function childYear(s: GameState, rng: Rng, c: Person) {
       if (mine) journal(s, `${c.firstName} discovered a love of ${HOBBY_BY_ID[c.hobby].label.toLowerCase()}.`, 'info');
     }
   }
+  // Kids who took up sports settle on one (they can switch in the Plan tab).
+  if (c.hobby === 'sports' && !c.sport && a >= 5) chooseSport(c, randomSport(rng, c, a));
   if (a < 5) return;
 
   let study = 1.5 + (c.traits.includes('curious') ? 1 : 0) + (cp?.tutoring ? 3 : 0);
@@ -369,6 +372,7 @@ function education(s: GameState, p: Person) {
     p.flags.graduated = s.year;
     if (p.studyKind === 'top') p.flags.top_degree = 1;
     delete p.flags.scholarship;
+    delete p.flags.athletic_scholarship;
     stat(p, 'smarts', p.studyKind === 'top' ? 10 : p.studyKind === 'university' ? 8 : 3);
     if (isCloseKin(s, p)) {
       const who = p.id === s.activeId ? 'You' : p.firstName;

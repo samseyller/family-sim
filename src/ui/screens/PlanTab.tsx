@@ -9,6 +9,8 @@ import { ACTION_BY_ID, COSTS, FUND_OPTIONS, HOBBIES, HOBBY_BY_ID, TIME_BUDGET, d
 import { CAREERS, CAREER_BY_ID, PART_TIME_MAX, qualifies, requiredBlocks, salaryOf, titleOf, type JobSlot } from '../../content/careers';
 import { GEAR } from '../../content/gear';
 import { HobbyPicker, practiceHint } from './HobbyPicker';
+import { SportsPanel } from './SportsPanel';
+import { SPORTS } from '../../content/sports';
 import { MilitaryCard } from './MilitaryCard';
 import { receptiveness, receptivenessLabel } from '../../engine/family';
 import { useGame } from '../../store/gameStore';
@@ -165,8 +167,9 @@ export function PlanTab({ g }: { g: GameState }) {
         {step('exercise', ACTION_BY_ID.exercise.label, ACTION_BY_ID.exercise.icon, me.flags.health_vow ? 'Extra effective since your health scare' : 'Fitness, health; less stress')}
         {step('relax', ACTION_BY_ID.relax.label, ACTION_BY_ID.relax.icon, 'Less stress, more happiness')}
         {step('learn', isMinor ? 'Study' : ACTION_BY_ID.learn.label, isMinor ? '🎒' : ACTION_BY_ID.learn.icon, isMinor ? `Better grades; smarts up${gpaOf(me) !== undefined ? ` · GPA ${gpaOf(me)!.toFixed(2)}` : ''}` : 'Smarts: opens better careers')}
-        {me.hobby && step('practice', `Practice ${HOBBY_BY_ID[me.hobby].label.toLowerCase()} (skill ${me.skills[me.hobby] ?? 0})`, HOBBY_BY_ID[me.hobby].icon, practiceHint(g))}
+        {me.hobby && step('practice', `Practice ${me.hobby === 'sports' && me.sport ? SPORTS[me.sport].label.toLowerCase() : HOBBY_BY_ID[me.hobby].label.toLowerCase()} (skill ${me.skills[me.hobby] ?? 0})`, me.hobby === 'sports' && me.sport ? SPORTS[me.sport].icon : HOBBY_BY_ID[me.hobby].icon, practiceHint(g))}
         <HobbyPicker g={g} />
+        <SportsPanel g={g} />
         {step('socialize', isMinor ? 'Friends' : ACTION_BY_ID.socialize.label, isMinor ? '🛝' : ACTION_BY_ID.socialize.icon, isMinor ? 'Make friends; happiness up' : partner ? 'Happiness up, less stress' : 'Happiness up; more likely to meet someone')}
         <p className="hint">Each extra block on the same thing is worth a bit less.</p>
         <NightSchool g={g} left={left} />

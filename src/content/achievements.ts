@@ -222,6 +222,74 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     test: (s) => ['contractor', 'shop_owner', 'restaurant_owner', 'charter_captain'].includes(active(s).jobId ?? ''),
   },
   {
+    id: 'varsity_letter',
+    title: 'Varsity Letter',
+    desc: 'Make the varsity team in high school.',
+    icon: '🏅',
+    test: (s) => !!active(s).flags.varsity,
+  },
+  {
+    id: 'full_ride',
+    title: 'Full Ride',
+    desc: 'Go to college on an athletic scholarship.',
+    icon: '🎓',
+    test: (s) => !!active(s).flags.full_ride,
+  },
+  {
+    id: 'went_pro',
+    title: 'Going Pro',
+    desc: 'Get drafted into professional sports.',
+    icon: '🏟️',
+    test: (s) => !!active(s).flags.went_pro,
+  },
+  {
+    id: 'all_star',
+    title: 'All-Star',
+    desc: 'Be named an All-Star as a pro.',
+    icon: '🌟',
+    test: (s) => !!active(s).flags.all_star,
+  },
+  {
+    id: 'champion',
+    title: 'Champion',
+    desc: 'Win a championship, race, or tournament.',
+    icon: '🏆',
+    test: (s) => !!active(s).flags.champion,
+  },
+  {
+    id: 'marathoner',
+    title: '26.2',
+    desc: 'Finish a marathon.',
+    icon: '🏃',
+    test: (s) => !!active(s).flags.marathon,
+  },
+  {
+    id: 'hole_in_one',
+    title: 'Hole-in-One',
+    desc: 'Ace a hole in a golf tournament.',
+    icon: '⛳',
+    hidden: true,
+    test: (s) => !!active(s).flags.hole_in_one,
+  },
+  {
+    id: 'coach',
+    title: 'Coach',
+    desc: 'Coach your kids’ team five times.',
+    icon: '🧢',
+    test: (s) => (active(s).flags.coached ?? 0) >= 5,
+  },
+  {
+    id: 'multi_sport',
+    title: 'Multi-Sport Athlete',
+    desc: 'Reach skill 50 in three different sports.',
+    icon: '🤸',
+    test: (s) => {
+      const p = active(s);
+      const skills = { ...(p.sportSkills ?? {}), ...(p.sport ? { [p.sport]: p.skills.sports ?? 0 } : {}) };
+      return Object.values(skills).filter((v) => (v ?? 0) >= 50).length >= 3;
+    },
+  },
+  {
     id: 'served',
     title: 'Thank You for Your Service',
     desc: 'Complete a tour in the military.',

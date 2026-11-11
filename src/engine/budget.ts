@@ -14,6 +14,7 @@ import { petCosts } from './dogs';
 import { tuitionFor } from './school';
 import { practiceCostPerBlock } from './hobbies';
 import { isActiveDuty, veteranIncome } from './military';
+import { sportsCosts } from './sports';
 import { cityDef, cityOfHousehold } from './location';
 import { TRANSIT_BY_CITY } from '../content/cities';
 import { CAREER_BY_ID, PART_TIME_MAX, PROGRAMS, requiredBlocks, salaryOf, type Career } from '../content/careers';
@@ -134,6 +135,9 @@ export function householdBudget(s: GameState, householdId: string, activePay: nu
   if (!workingCars(hh).length && commuters(s, householdId)) add(exp, 'Transit', TRANSIT_BY_CITY[city.transit]);
   add(exp, 'Street parking', streetParkingCost(hh));
   add(exp, 'Pet care', petCosts(s, hh));
+  const sportsBill = sportsCosts(s, mem);
+  add(exp, 'Club memberships', sportsBill.clubs);
+  add(exp, "Kids' travel teams", sportsBill.travel);
   // Insurance: the home (or renters'), optional flood cover, and every working car.
   const house = homeOf(hh);
   add(exp, 'Home insurance', house ? Math.round(house.value * HOME_INSURANCE_RATE) : mem.length && mem.some((p) => ageOf(p, s.year) >= 18) ? RENTERS_INSURANCE : 0);
