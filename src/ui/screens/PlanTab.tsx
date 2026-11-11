@@ -9,6 +9,7 @@ import { ACTION_BY_ID, COSTS, FUND_OPTIONS, HOBBIES, HOBBY_BY_ID, TIME_BUDGET, d
 import { CAREERS, CAREER_BY_ID, PART_TIME_MAX, qualifies, requiredBlocks, salaryOf, titleOf, type JobSlot } from '../../content/careers';
 import { GEAR } from '../../content/gear';
 import { HobbyPicker, practiceHint } from './HobbyPicker';
+import { MilitaryCard } from './MilitaryCard';
 import { receptiveness, receptivenessLabel } from '../../engine/family';
 import { useGame } from '../../store/gameStore';
 import { Avatar } from '../Avatar';
@@ -123,6 +124,7 @@ export function PlanTab({ g }: { g: GameState }) {
             value={part} max={PART_TIME_MAX} disabledPlus={left <= 0} onChange={(n) => setAlloc('parttime', n)} />
         )}
         {twoJobs && partActive && <p className="hint">⚠️ Working two jobs adds stress every year.</p>}
+        <MilitaryCard g={g} />
 
         {(['full', 'part'] as const).map((slot) => {
           if (slot === 'full' && (me.studyingUntil || isMinor)) return null;

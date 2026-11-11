@@ -142,6 +142,23 @@ for random). When your baby is born, a naming event offers suggestions or lets y
   wealth now levels off by the third generation instead of compounding.
 - Next: hobby → training → gear → career paths (`docs/plans/hobby-career-paths.md`).
 
+## Military service
+
+- **At 18**, next to college, trade school, a passion or work: **enlist** (a 4-year tour) or take an **ROTC
+  scholarship** (state university tuition paid, then a tour as an officer). You can suggest the military to your
+  kids too. Adults 18–34 can **visit a recruiter** (Plan → Work), enlisting or joining as an officer with a degree.
+- **Ranks:** Private → Sergeant → Master Sergeant, or Lieutenant → Captain → Major. Military jobs never show up in
+  job listings. Health care is covered while serving.
+- **Tours:** each year on active duty there's a 35% chance of deployment (stress and time away from family, with
+  choices about staying in touch). At the end of a tour: re-enlist (promotion and a $10k bonus), officer school
+  (needs a degree or smarts 60), the part-time **reserve** (which can be called up), or civilian life. Veterans
+  get the **GI Bill** (college and night-school tuition paid). After 20 years: a pension of half your final pay.
+- **Risk** while deployed, kept PG-13: about a 3% chance of being seriously injured (recover and return, or a
+  medical discharge with disability pay and the Purple Heart), and a rare chance of being killed in the line of
+  duty, honored with a flag-folding ceremony. Officers are a little less exposed. Family members who serve face
+  the same odds; the guided first life is shielded.
+- Achievements: Thank You for Your Service, Commissioned, Purple Heart (hidden), Twenty Years.
+
 ## Hobby career paths
 
 - **Nine hobbies** (Plan → Yourself → Take up a hobby): music, sports, art, cooking, woodworking, auto mechanics,

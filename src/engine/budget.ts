@@ -13,6 +13,7 @@ import { streetParkingCost, workingCars } from './cars';
 import { petCosts } from './dogs';
 import { tuitionFor } from './school';
 import { practiceCostPerBlock } from './hobbies';
+import { isActiveDuty, veteranIncome } from './military';
 import { cityDef, cityOfHousehold } from './location';
 import { TRANSIT_BY_CITY } from '../content/cities';
 import { CAREER_BY_ID, PART_TIME_MAX, PROGRAMS, requiredBlocks, salaryOf, type Career } from '../content/careers';
@@ -71,7 +72,8 @@ export function householdBudget(s: GameState, householdId: string, activePay: nu
 
   for (const p of mem) {
     const age = ageOf(p, s.year);
-    add(exp, 'Health insurance', healthPremium(age));
+    // Military health care covers service members.
+    add(exp, 'Health insurance', isActiveDuty(p) ? 0 : healthPremium(age));
     if (age < 18) {
       add(exp, 'Children', living(COSTS.child));
       if (age < 5 && allWork) add(exp, 'Childcare', living(CHILDCARE));
@@ -117,7 +119,10 @@ export function householdBudget(s: GameState, householdId: string, activePay: nu
     add(exp, 'Late-life care', living(lateLifeCare(age, p.stats.health)));
     // Night school tuition (for the active character the caller may predict enrollment).
     const enrolled = isMe && activeEnrolled !== undefined ? activeEnrolled : p.education?.program;
-    if (enrolled) add(exp, 'Night school', PROGRAMS[enrolled].tuition);
+    if (enrolled && !p.flags.gi_bill) add(exp, 'Night school', PROGRAMS[enrolled].tuition);
+    // Veterans: disability pay after a service injury, and military pensions.
+    add(inc, 'Veterans benefits', veteranIncome(p));
+    credit(p.id, veteranIncome(p));
     if (p.flags.care_home) add(exp, 'Care home', COSTS.careHome);
     if (p.flags.care_home && p.flags.care_support) add(inc, 'Family support', COSTS.careSupport);
   }

@@ -141,7 +141,8 @@ export function enroll(s: GameState, rng: Rng, p: Person, tier: CollegeTier, pay
 }
 
 /** Tuition this year for someone studying (with their scholarship). */
-export const tuitionFor = (p: Person) => Math.round(TUITION[tierOfStudy(p.studyKind)] * (1 - (p.flags.scholarship ?? 0) / 100));
+/** Tuition this year for someone studying: free with the GI Bill or an ROTC scholarship. */
+export const tuitionFor = (p: Person) => (p.flags.gi_bill || p.flags.rotc ? 0 : Math.round(TUITION[tierOfStudy(p.studyKind)] * (1 - (p.flags.scholarship ?? 0) / 100)));
 
 /** A decision choice for applying to college: odds, cost after scholarship, affordability. */
 export function collegeChoice(p: Person, payer: Household, tier: 'top' | 'state', id: string, label: string) {

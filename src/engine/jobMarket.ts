@@ -58,7 +58,7 @@ export function listings(seed: number, city: CityId, year: number, slot: JobSlot
   const cycle = cycleOf(year);
   const rng = makeRng(hash(`${seed}:${city}:${cycle}:${slot}`));
   // Some careers only hire in coastal cities (charter fishing).
-  const all = CAREERS.filter((c) => c.hours === slot && (!c.coastal || isCoastal(city)));
+  const all = CAREERS.filter((c) => c.hours === slot && !c.military && (!c.coastal || isCoastal(city)));
   let open = sample(rng, all, (c) => demand(city, c), OPENINGS[slot]);
   if (!open.some(isEntry)) open.push(sample(rng, all.filter(isEntry), (c) => demand(city, c), 1)[0]);
   // Later in the cycle, some openings are filled (never the last entry-level one).

@@ -13,6 +13,7 @@ import { autoComeOfAge, die, isCloseKin, marry, moveOut, receptiveness, retire }
 import { STAKE_KEEP, seedStakes } from './household';
 import { ageCars } from './cars';
 import { schoolYear } from './school';
+import { enlist } from './military';
 import { isHiring } from './jobMarket';
 import { ageGear, hobbyCareerYear, jobExtraBlocker, practiceGain } from './hobbies';
 import { cityDef, cityName, cityOfHousehold, otherCity } from './location';
@@ -375,6 +376,11 @@ function education(s: GameState, p: Person) {
     }
     p.studyingUntil = undefined;
     p.studyKind = undefined;
+    // ROTC graduates are commissioned as officers for their first tour.
+    if (p.flags.rotc) {
+      delete p.flags.rotc;
+      enlist(s, p, true);
+    }
   }
 }
 

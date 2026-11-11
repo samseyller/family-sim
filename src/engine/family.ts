@@ -5,6 +5,7 @@ import { headOf, moverGroup, shareOf, splitOff } from './household';
 import { otherCity } from './location';
 import { passDownGear } from './hobbies';
 import { admissionGpa, enroll } from './school';
+import { enlist } from './military';
 import type { Rng } from './rng';
 import type { GameState, Person } from './types';
 import {
@@ -274,7 +275,7 @@ export function settleEstates(s: GameState) {
   }
 }
 
-export type LifePath = 'top_university' | 'university' | 'trade' | 'passion';
+export type LifePath = 'top_university' | 'university' | 'trade' | 'passion' | 'military' | 'rotc';
 
 /** What a young adult would pick on their own: grades and smarts point the way. */
 export function preferredPath(p: Person): LifePath {
@@ -291,6 +292,25 @@ export function preferredPath(p: Person): LifePath {
  */
 export function startPath(s: GameState, p: Person, path: LifePath, rng?: Rng): string {
   p.flags.came_of_age = 1;
+  if (path === 'military') {
+    enlist(s, p, false);
+    return 'the military';
+  }
+  if (path === 'rotc') {
+    // ROTC: state university with tuition paid, then serve as an officer after graduating.
+    if (rng) {
+      const res = enroll(s, rng, p, 'state', s.households[p.householdId]);
+      if (res.tier === 'state') {
+        p.flags.rotc = 1;
+        return 'state university on an ROTC scholarship';
+      }
+      return res.note;
+    }
+    p.studyingUntil = s.year + 4;
+    p.studyKind = 'university';
+    p.flags.rotc = 1;
+    return 'state university on an ROTC scholarship';
+  }
   if ((path === 'top_university' || path === 'university') && rng) {
     return enroll(s, rng, p, path === 'top_university' ? 'top' : 'state', s.households[p.householdId]).note;
   }

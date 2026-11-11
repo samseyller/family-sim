@@ -34,6 +34,8 @@ export interface Career {
   needsGear?: import('./gear').GearId;
   /** Long stretches on the road at level 2+ (strains family bonds). */
   touring?: boolean;
+  /** Military service: joined through a recruiter (or ROTC), never through job listings. */
+  military?: 'enlisted' | 'officer' | 'reserve';
   skill?: Hobby;
   /** Employer pension (defined benefit) for years of service. */
   pension?: boolean;
@@ -95,7 +97,11 @@ export const CAREERS: Career[] = [
   { id: 'designer', name: 'Graphic Designer', icon: '🎨', hours: 'full', sector: 'creative', salary: 61000, blocks: 4, stress: 5, minSmarts: 35, skill: 'art', minSkill: 50 },
   { id: 'film_editor', name: 'Film Editor', icon: '🎬', hours: 'full', sector: 'entertainment', salary: 70000, blocks: 5, stress: 6, minSmarts: 40, skill: 'art', minSkill: 55 },
   { id: 'actor', name: 'Actor', icon: '🎭', hours: 'full', sector: 'entertainment', salary: 45000, blocks: 4, stress: 6, minSmarts: 0, skill: 'art', minSkill: 60 },
+  // ── Military (recruiter or ROTC only; see engine/military.ts) ──
+  { id: 'enlisted', name: 'Soldier', icon: '🎖️', hours: 'full', sector: 'government', salary: 34000, blocks: 5, stress: 7, minSmarts: 0, pension: true, military: 'enlisted', titles: ['Private', 'Sergeant', 'Master Sergeant'], levelPay: [34000, 52000, 72000] },
+  { id: 'officer', name: 'Military Officer', icon: '⭐', hours: 'full', sector: 'government', salary: 60000, blocks: 6, stress: 8, minSmarts: 45, requires: 'degree', pension: true, military: 'officer', titles: ['Lieutenant', 'Captain', 'Major'], levelPay: [60000, 90000, 125000] },
   // ── Part-time: lower pay, 1–4 blocks (2 expected) ──
+  { id: 'reserve', name: 'Military Reserve', icon: '🪖', hours: 'part', sector: 'government', salary: 9000, blocks: 2, stress: 2, minSmarts: 0, military: 'reserve' },
   { id: 'barista', name: 'Barista', icon: '☕', hours: 'part', sector: 'service', salary: 15000, blocks: 2, stress: 3, minSmarts: 0 },
   { id: 'cashier', name: 'Cashier', icon: '🧾', hours: 'part', sector: 'retail', salary: 14000, blocks: 2, stress: 3, minSmarts: 0 },
   { id: 'server', name: 'Restaurant Server', icon: '🍽️', hours: 'part', sector: 'hospitality', salary: 18000, blocks: 2, stress: 4, minSmarts: 0 },

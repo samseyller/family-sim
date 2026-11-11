@@ -12,7 +12,7 @@ import type { GameState, Household, Looks, Person, Plan, Trait } from './types';
 import { adjustBond, ageOf, alive, cleanName, kidsAtHome, newId, parentsOf, partnerOf, active } from './util';
 
 export const SCHEMA_VERSION = 16;
-export const RULES_VERSION = '0.15.0';
+export const RULES_VERSION = '0.16.0';
 export const START_YEAR = 2026;
 
 const TRAITS: Trait[] = ['ambitious', 'kind', 'stubborn', 'curious', 'anxious', 'easygoing', 'creative', 'athletic'];
@@ -93,7 +93,7 @@ export function giveEducation(rng: Rng, p: Person) {
 }
 
 export function pickCareer(rng: Rng, p: Person, slot: JobSlot = 'full'): Career | undefined {
-  const opts = CAREERS.filter((c) => c.hours === slot && qualifies(p, c)).sort((a, b) => b.salary - a.salary);
+  const opts = CAREERS.filter((c) => c.hours === slot && !c.military && qualifies(p, c)).sort((a, b) => b.salary - a.salary);
   if (!opts.length) return undefined;
   return rng.chance(0.7) ? opts[0] : rng.pick(opts.slice(0, 3));
 }
