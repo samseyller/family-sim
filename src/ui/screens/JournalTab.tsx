@@ -1,3 +1,4 @@
+import { journalText } from '../../engine/util';
 import type { GameState, JournalEntry } from '../../engine/types';
 import { Section } from '../components';
 
@@ -13,7 +14,7 @@ export function JournalTab({ g }: { g: GameState }) {
         <Section key={y} title={String(y)}>
           <ul className="journal-list">
             {byYear.get(y)!.map((j, i) => (
-              <li key={i} className={j.kind}><span aria-hidden>{ICON[j.kind]}</span> {j.text}</li>
+              <li key={i} className={j.kind}><span aria-hidden>{ICON[j.kind]}</span> {journalText(g, j)}</li>
             ))}
           </ul>
         </Section>

@@ -89,3 +89,39 @@ export function cleanName(raw: string | undefined): string {
   const s = (raw ?? '').normalize('NFC').replace(/[^\p{L}\p{M}' -]/gu, '').replace(/\s+/g, ' ').trim().slice(0, NAME_MAX).trim();
   return s ? s[0].toLocaleUpperCase() + s.slice(1) : '';
 }
+
+/**
+ * A journal entry as the current player should read it. Entries are written in the second
+ * person ("You were promoted") for whoever was playing then; once the story has passed to
+ * someone else, those are retold about that person ("Joe was promoted", "Joe's mortgage").
+ */
+export function journalText(s: GameState, j: { text: string; who: string }): string {
+  if (!j.who || j.who === s.activeId) return j.text;
+  const p = s.people[j.who];
+  if (!p) return j.text;
+  return retell(j.text, p.firstName);
+}
+
+/** Retell second-person text about someone by name (they/them after the first mention). */
+export function retell(text: string, name: string): string {
+  // One left-to-right pass: the first mention gets the name, later ones become they/them/their.
+  let named = false;
+  const first = () => !named && (named = true);
+  const out = text.replace(
+    /\b(You were|You are|You're|You have|You've|you were|Yourself|yourself|Your|your|You|you)\b/g,
+    (m) => {
+      switch (m) {
+        case 'You were': return first() ? `${name} was` : 'they were';
+        case 'You are': case "You're": return first() ? `${name} is` : 'they are';
+        case 'You have': case "You've": return first() ? `${name} has` : 'they have';
+        case 'you were': return first() ? `${name} was` : 'they were';
+        case 'Yourself': case 'yourself': return 'themself';
+        case 'Your': case 'your': return first() ? `${name}'s` : 'their';
+        case 'You': return first() ? name : 'they';
+        default: return first() ? name : 'them'; // lowercase "you" is usually an object ("hugged you")
+      }
+    },
+  );
+  // Capitalize "they" at the start of a sentence.
+  return out.replace(/(^|[.!?]\s+)(they|their)\b/g, (_m, pre: string, w: string) => `${pre}${w[0].toUpperCase()}${w.slice(1)}`);
+}

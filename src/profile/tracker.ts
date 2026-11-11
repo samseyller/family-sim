@@ -3,6 +3,7 @@
  * update lifetime stats, archive finished families, and unlock achievements.
  * No DOM or storage here, so it runs in tests and the headless sim too.
  */
+import { retell } from '../engine/util';
 import { ACHIEVEMENTS, type AchievementDef } from '../content/achievements';
 import { buildMemorial } from '../engine/memorial';
 import type { GameState } from '../engine/types';
@@ -37,7 +38,8 @@ export function archiveEntry(s: GameState, now: string): ArchivedFamily {
       knownFor: e.knownFor,
       epitaph: e.epitaph,
       children: e.children,
-      highlights: e.highlights.map((h) => `${h.year}: ${h.text}`),
+      // Told about them ("Joe married Ana"), not "You married Ana".
+      highlights: e.highlights.map((h) => `${h.year}: ${retell(h.text, e.person.firstName)}`),
     })),
     legacy: m.legacy.total,
     breakdown: { wealth: m.legacy.wealth, bonds: m.legacy.bonds, achievement: m.legacy.achievement, wellbeing: m.legacy.wellbeing },

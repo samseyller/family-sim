@@ -1,5 +1,5 @@
 import type { GameState } from '../../engine/types';
-import { active, ageOf, getBond, membersOf, money, partnerOf } from '../../engine/util';
+import { active, ageOf, getBond, journalText, membersOf, money, partnerOf } from '../../engine/util';
 import { jobTitle, CAREER_BY_ID } from '../../content/careers';
 import { Avatar } from '../Avatar';
 import { Section, StatBar } from '../components';
@@ -60,7 +60,7 @@ export function HomeTab({ g }: { g: GameState }) {
 
       {lastYear.length > 0 && (
         <Section title={`Last year (${g.year - 1})`}>
-          <ul className="journal-list">{lastYear.map((j, i) => <li key={i} className={j.kind}>{j.text}</li>)}</ul>
+          <ul className="journal-list">{lastYear.map((j, i) => <li key={i} className={j.kind}>{journalText(g, j)}</li>)}</ul>
         </Section>
       )}
 

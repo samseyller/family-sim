@@ -188,7 +188,8 @@ export function die(s: GameState, p: Person, cause: string) {
     ps.endYear = s.year;
   }
   if (isCloseKin(s, p)) {
-    const who = p.id === s.activeId ? 'You' : fullName(p);
+    // Always by name: after the torch passes, "You" would read as the heir.
+    const who = fullName(p);
     journal(s, `${who} passed away at age ${ageOf(p, s.year)} (${cause}).`, 'death');
     // A parent of the player: the family plans the funeral.
     const me = s.people[s.activeId];
