@@ -54,6 +54,7 @@ export function applyPlan(s: GameState, rng: Rng): number {
       journal(s, `You couldn't start as a ${c.name}: ${extra.toLowerCase()}.`, 'bad');
     } else if (c && qualifies(me, c) && rng.chance(c.startup ? 1 : c.hours === 'part' ? 0.9 : 0.75)) {
       assignJob(me, c);
+      me.flags.hired_year = s.year; // workplace events wait until you've settled in
       if (c.hours === 'full') me.retired = false;
       if (c.startup) {
         s.households[me.householdId].wallet -= c.startup;

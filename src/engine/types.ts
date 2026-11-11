@@ -188,6 +188,8 @@ export interface PendingEvent {
   title: string;
   text: string;
   choices: PendingChoice[];
+  /** Picked by chance from this year's circumstances: dropped if an earlier decision makes it moot. */
+  recheck?: boolean;
 }
 
 export interface Scheduled {

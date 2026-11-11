@@ -11,7 +11,8 @@ const skill = (p: Person, h: Hobby) => p.skills[h] ?? 0;
 const one = (cond: boolean, weight: number) => (cond ? [{ weight, urgent: false }] : []);
 const adult = (c: Ctx) => ageOf(c.me, c.s.year) >= 18;
 const practiced = (c: Ctx) => (c.s.plan.alloc.practice ?? 0) > 0;
-const job = (c: Ctx) => (c.me.jobId ? CAREER_BY_ID[c.me.jobId] : undefined);
+/** Your job, if you've held it since before this year. */
+const job = (c: Ctx) => (c.me.jobId && c.me.flags.hired_year !== c.s.year ? CAREER_BY_ID[c.me.jobId] : undefined);
 
 export const HOBBY_EVENTS: EventDef[] = [
   {

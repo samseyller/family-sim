@@ -14,7 +14,7 @@ import { applyPlan, driftBonds, runEconomy, runHealth, runPeople } from './syste
 import { dogYear } from './dogs';
 import { friendsYear } from './friends';
 import { homeLife, rollMisfortunes } from './lifeEvents';
-import { generateEvents, resolveEvent } from './events';
+import { generateEvents, refreshPending, resolveEvent, stillRelevant } from './events';
 import { strategyPlan } from './strategies';
 import { applyCushion } from './tutorial';
 import { autoComeOfAge, die, settleEstates } from './family';
@@ -93,6 +93,9 @@ export function choose(state: GameState, uid: string, choiceId: string, text?: s
   s.resolvedEventUids = [...s.resolvedEventUids, uid].slice(-200);
   s.lastOutcome = { title: pe.title, text: outcome };
   settleEstates(s);
+  // Drop chance events that this decision made moot (e.g. office drama after a layoff).
+  // ...and refresh the rest, so prices and options reflect what was just decided.
+  if (alive(active(s))) s.pending = s.pending.filter((p) => stillRelevant(s, p)).map((p) => refreshPending(s, p));
   if (!s.pending.length) finalizeRecap(s);
   return end(s, rng);
 }

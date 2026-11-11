@@ -37,7 +37,7 @@ import {
   breakUp, divorce, homeEquityShare, marry, mergeHouseholds, moveOut, partnerInHome, preferredPath, receptiveness,
   receptivenessLabel, reconcile, retire, separate, separatedFrom, startDating, startPath, type LifePath,
 } from './family';
-import type { Rng } from './rng';
+import { makeRng, type Rng } from './rng';
 import type { GameState, PendingChoice, PendingEvent, Person } from './types';
 import {
   active, activePartnership, adjustBond, ageOf, alive, childrenOf, cleanName, flag, fullName, getBond, journal, kidsAtHome, NAME_MAX,
@@ -80,6 +80,8 @@ const wallet = (c: Ctx) => c.s.households[c.me.householdId];
 const age = (c: Ctx, p: Person) => ageOf(p, c.s.year);
 const one = (cond: boolean, weight: number, urgent = false, subject?: Person): Candidate[] =>
   cond ? [{ weight, urgent, subject }] : [];
+/** You have a job you've held since before this year (no office drama in your first days). */
+export const settledInJob = (c: { s: GameState; me: Person }) => !!c.me.jobId && c.me.flags.hired_year !== c.s.year;
 const childBlocks = (c: Ctx, k: Person) =>
   (c.s.plan.alloc[`child_time:${k.id}`] ?? 0) + (c.s.plan.alloc[`homework:${k.id}`] ?? 0);
 
@@ -97,7 +99,7 @@ const EVENTS: EventDef[] = [
     major: true,
     cooldown: 3,
     // Hobby-based careers also need enough skill for the next rank; flat-pay businesses don't promote.
-    candidates: (c) => one(!!c.me.jobId && c.me.jobLevel < 3 && c.me.workPerf >= 65 && c.me.jobYears >= 2 && canPromote(c.me), 4),
+    candidates: (c) => one(settledInJob(c) && c.me.jobLevel < 3 && c.me.workPerf >= 65 && c.me.jobYears >= 2 && canPromote(c.me), 4),
     build: (c) => {
       const job = CAREER_BY_ID[c.me.jobId!];
       const lvl = c.me.jobLevel + 1;
@@ -221,7 +223,7 @@ const EVENTS: EventDef[] = [
     severe: true,
     major: true,
     cooldown: 5,
-    candidates: (c) => one(!!c.me.jobId, c.me.workPerf < 35 ? 3 : 0.4),
+    candidates: (c) => one(settledInJob(c), c.me.workPerf < 35 ? 3 : 0.4),
     build: (c) => ({
       title: 'Cuts at work',
       text: `Your company is cutting staff. HR offers a severance package of ${money(salaryOf(CAREER_BY_ID[c.me.jobId!], c.me.jobLevel) / 2)}, or you can try to keep your spot.`,
@@ -251,7 +253,7 @@ const EVENTS: EventDef[] = [
     id: 'retirement',
     major: true,
     cooldown: 3,
-    candidates: (c) => one(!!c.me.jobId && age(c, c.me) >= FULL_RETIREMENT_AGE, 5, true),
+    candidates: (c) => one(settledInJob(c) && age(c, c.me) >= FULL_RETIREMENT_AGE, 5, true),
     build: (c) => {
       const a = age(c, c.me);
       const r = readiness(c.s, c.me, a);
@@ -873,7 +875,7 @@ const EVENTS: EventDef[] = [
     id: 'coworker_lunch',
     major: false,
     cooldown: 3,
-    candidates: (c) => one(age(c, c.me) >= 18 && !!c.me.jobId && canMakeFriends(c.s, c.me), 1.4),
+    candidates: (c) => one(age(c, c.me) >= 18 && settledInJob(c) && canMakeFriends(c.s, c.me), 1.4),
     build: () => ({
       title: 'Lunch invitation',
       text: 'A coworker you get along with asks if you want to grab lunch sometime.',
@@ -1336,6 +1338,7 @@ const EVENTS: EventDef[] = [
       delete c.me.flags.fresh_credential;
       if (ch !== 'take') return 'You thanked them and kept their number.';
       assignJob(c.me, job);
+      c.me.flags.hired_year = c.s.year;
       c.me.retired = false;
       journal(c.s, `You started a new career as a ${job.name}.`, 'major');
       return `New badge, new desk, new title: ${job.name}.`;
@@ -1345,7 +1348,7 @@ const EVENTS: EventDef[] = [
     id: 'workplace_credit',
     major: false,
     cooldown: 4,
-    candidates: (c) => one(!!c.me.jobId, 1),
+    candidates: (c) => one(settledInJob(c), 1),
     build: () => ({
       title: 'Stolen credit',
       text: 'A coworker presents your idea in a meeting as their own.',
@@ -1461,13 +1464,14 @@ const ALL_EVENTS: EventDef[] = [...EVENTS, ...CHILD_EVENTS, ...LIFE_EVENTS, ...H
 
 export const EVENT_BY_ID: Record<string, EventDef> = Object.fromEntries(ALL_EVENTS.map((e) => [e.id, e]));
 
-function pushPending(c: Ctx, def: EventDef, subject?: Person) {
+function pushPending(c: Ctx, def: EventDef, subject?: Person, recheck = false) {
   const built = def.build(c, subject);
   const ev: PendingEvent = {
     uid: `${c.s.year}-${def.id}-${newId(c.s, 'e')}`,
     eventId: def.id,
     subjectId: subject?.id,
     major: def.major,
+    ...(recheck ? { recheck: true } : {}),
     ...built,
   };
   c.s.pending.push(ev);
@@ -1529,7 +1533,7 @@ export function generateEvents(s: GameState, rng: Rng) {
         pick = rng.weighted(eligible.filter((e) => e.def.major).map((e) => [e, e.cand.weight] as const));
       }
     }
-    if (pick) pushPending(c, pick.def, pick.cand.subject);
+    if (pick) pushPending(c, pick.def, pick.cand.subject, true);
   }
 
   let minors = eligible.filter((e) => !e.def.major);
@@ -1538,7 +1542,7 @@ export function generateEvents(s: GameState, rng: Rng) {
     const pick = rng.weighted(minors.map((e) => [e, e.cand.weight] as const))!;
     minors = minors.filter((e) => e.def !== pick.def);
     if (!rng.chance(0.55)) continue;
-    pushPending(c, pick.def, pick.cand.subject);
+    pushPending(c, pick.def, pick.cand.subject, true);
     count++;
   }
 }
@@ -1565,4 +1569,37 @@ function canPromote(p: Person) {
   if (!job || !hasLadder(job)) return false;
   const need = promoSkillFor(job, p.jobLevel);
   return !need || (job.skill ? p.skills[job.skill] ?? 0 : 0) >= need;
+}
+
+/**
+ * Is a chance-picked event still sensible after this year's earlier decisions? (A layoff
+ * means no more office drama; a breakup means no proposal; a dog that passed can't get sick.)
+ * Its own conditions are checked again against the current state.
+ */
+export function stillRelevant(s: GameState, pe: PendingEvent): boolean {
+  if (!pe.recheck) return true;
+  const def = EVENT_BY_ID[pe.eventId];
+  if (!def?.candidates) return true;
+  const c: Ctx = { s, rng: makeRng(0), me: active(s) }; // conditions never roll dice
+  return def.candidates(c).some((x) => x.weight > 0 && (x.subject?.id ?? undefined) === (pe.subjectId ?? undefined));
+}
+
+/**
+ * Rebuild a waiting event against the current state, so its text and which choices are
+ * affordable reflect earlier decisions this year. Keeps its identity; keeps the original if
+ * the event can't be rebuilt or would change its set of choices.
+ */
+export function refreshPending(s: GameState, pe: PendingEvent): PendingEvent {
+  const def = EVENT_BY_ID[pe.eventId];
+  if (!def) return pe;
+  const sub = pe.subjectId ? s.people[pe.subjectId] : undefined;
+  if (pe.subjectId && (!sub || !alive(sub))) return pe;
+  try {
+    const built = def.build({ s, rng: makeRng(0), me: active(s) }, sub);
+    const same = built.choices.length === pe.choices.length && built.choices.every((ch, i) => ch.id === pe.choices[i].id)
+      && built.choices.some((ch) => !ch.disabled);
+    return same ? { ...pe, ...built } : pe;
+  } catch {
+    return pe;
+  }
 }

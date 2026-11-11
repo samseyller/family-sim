@@ -142,6 +142,7 @@ const PendingEvent = z.object({
   major: z.boolean(),
   title: z.string(),
   text: z.string(),
+  recheck: z.boolean().optional(),
   choices: z.array(z.object({
     id, label: z.string(), hint: z.string().optional(), disabled: z.boolean().optional(),
     input: z.object({ label: z.string(), maxLength: int, placeholder: z.string().optional() }).optional(),
