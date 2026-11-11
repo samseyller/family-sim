@@ -1250,9 +1250,9 @@ const EVENTS: EventDef[] = [
       const theirs = c.s.households[p!.householdId].wallet;
       return {
         title: `${p!.firstName} can't live alone`,
-        text: `After a fall, ${p!.firstName}'s doctor says living alone isn't safe anymore. ${p!.firstName} has ${money(theirs)} saved.`,
+        text: `After a fall, ${p!.firstName}'s doctor says living alone isn't safe anymore. ${theirs >= 0 ? `${p!.firstName} has ${money(theirs)} saved.` : `${p!.firstName} is ${money(-theirs)} in debt.`}`,
         choices: [
-          { id: 'move_in', label: 'Move in with us', hint: `Their savings join your household; more stress for you` },
+          { id: 'move_in', label: 'Move in with us', hint: `${theirs >= 0 ? 'Their savings join' : 'Their debt joins'} your household; more stress for you` },
           { id: 'care_help', label: 'Care home, and you help pay', hint: '$15,000/yr from you toward $35,000/yr' },
           { id: 'care', label: 'Care home on their own savings', hint: '$35,000/yr from their money' },
           { id: 'no', label: 'They will manage', hint: 'Risky' },

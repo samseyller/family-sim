@@ -16,7 +16,11 @@
     "sim": "tsx scripts/sim.ts",
     "econ": "tsx scripts/econ.ts",
     "e2e": "playwright test",
-    "check:devtools": "tsx scripts/check-devtools.ts"
+    "check:devtools": "tsx scripts/check-devtools.ts",
+    "test:balance": "vitest run --config vitest.balance.config.ts",
+    "balance": "tsx scripts/balance.ts",
+    "balance:update": "tsx scripts/balance.ts update",
+    "balance:deep": "tsx scripts/balance.ts deep"
   },
   "dependencies": {
     "dexie": "^4.0.11",

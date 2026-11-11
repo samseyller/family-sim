@@ -148,3 +148,30 @@ describe('life events', () => {
     expect(DEDUCTIBLE.car).toBeLessThan(3500);
   });
 });
+
+describe('households the player does not run', () => {
+  it('cut back before their debt spirals; yours is still yours to manage', async () => {
+    const { runEconomy } = await import('./systems');
+    const { NPC_DEBT_FLOOR } = await import('../content/economy');
+    const s = newGame(4401);
+    const mine = s.households[active(s).householdId];
+    const other = Object.values(s.households).find((h) => h.id !== mine.id && !h.settled && Object.values(s.people).some((p) => p.householdId === h.id))!;
+    other.wallet = -2_000_000; // e.g. an elderly parent living alone on a deficit
+    mine.wallet = -2_000_000;
+    runEconomy(s, 0);
+    expect(other.wallet).toBe(-NPC_DEBT_FLOOR);
+    expect(mine.wallet).toBeLessThan(-2_000_000);
+  });
+
+  it('an elderly parent moving in shows their debt honestly', () => {
+    const s = newGame(4402);
+    const me = active(s);
+    const mom = Object.values(s.people).find((p) => me.biologicalParents.includes(p.id) && p.householdId !== me.householdId);
+    expect(mom).toBeDefined();
+    if (!mom) return;
+    s.households[mom.householdId].wallet = -30_000;
+    const ev = EVENT_BY_ID.parent_needs_care.build({ s, rng: makeRng(1), me }, mom);
+    expect(ev.text).toContain('$30,000 in debt');
+    expect(ev.choices.find((c) => c.id === 'move_in')!.hint).toContain('Their debt joins');
+  });
+});

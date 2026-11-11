@@ -39,6 +39,8 @@ export const ESTATE_TAX_RATE = 0.3;
 
 export const SAVINGS_RATE = 0.015;
 export const DEBT_RATE = 0.08;
+/** Households the player doesn't run cut back before their debt passes this (no endless spirals). */
+export const NPC_DEBT_FLOOR = 50_000;
 
 // ── Costs most households can't avoid (Stage: economy balance) ──────────
 

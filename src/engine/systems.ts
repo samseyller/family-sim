@@ -1,5 +1,5 @@
 import { HOBBY_BY_ID } from '../content/actions';
-import { DEBT_RATE, LIFESTYLES, SAVINGS_RATE } from '../content/economy';
+import { DEBT_RATE, LIFESTYLES, NPC_DEBT_FLOOR, SAVINGS_RATE } from '../content/economy';
 import { CAREER_BY_ID, PART_TIME_MAX, PROGRAMS, TWO_JOB_STRESS, qualifies, requiredBlocks } from '../content/careers';
 import { assignJob, canWorkFullTime, homeParents, makeAdultStranger, makeBaby, pickCareer } from './generate';
 import { fullTimePay, householdBudget, partTimePay } from './budget';
@@ -298,6 +298,7 @@ export function runEconomy(s: GameState, activePay: number, rng?: Rng) {
       }
     }
     hh.wallet = Math.round(hh.wallet * (hh.wallet > 0 ? 1 + SAVINGS_RATE : 1 + DEBT_RATE));
+    if (hh.id !== me.householdId && hh.wallet < -NPC_DEBT_FLOOR) hh.wallet = -NPC_DEBT_FLOOR;
     // Investments swing year to year around their average return.
     if (rng && (hh.investments ?? 0) > 0) {
       const r = INVEST_RETURN + (rng.next() * 2 - 1) * INVEST_VOLATILITY * 1.7;

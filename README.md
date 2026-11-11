@@ -12,11 +12,38 @@ See [PLAN.md](PLAN.md) for the full design and roadmap. Done so far: **Stage 1**
 |---|---|
 | `npm run dev` | Start the game at http://localhost:5173 |
 | `npm test` | Unit tests: engine (determinism, exactly-once saves, succession money), saves (schema, round-trips), profile (tracking, merge rules, backup format) |
+| `npm run test:balance` | Balance suite (~30s): plays 60 lives per play style and fails if the game leaves its design bands or drifts from the baseline. See [Balance testing](#balance-testing) |
+| `npm run balance:deep [n]` | Occasional deep check: n lives per style (default 500) on fresh seeds, in parallel (~1 min); report in `balance-reports/` |
 | `npm run sim [runs]` | Headless balance sim comparing career / family / balanced play styles, incl. achievement unlock rates |
 | `npm run e2e` | Playwright tests (keyboard on desktop, touch on mobile, reload mid-event, failing storage). Starts its own dev server on port 5174 with dev tools enabled |
 | `npm run check:devtools` | Builds with and without the dev-tools flag and checks the controls are only in the flagged build |
 | `npm run build` | Typecheck and build for production (installable PWA, works offline) |
 | `npx vite preview --port 4173` + `npx tsx scripts/check-pwa.ts` | Verify the build installs and plays offline |
+
+## Balance testing
+
+The balance tools play whole family lines headlessly with three scripted play styles (career, family, balanced),
+random but valid event choices, and fixed seeds, then turn them into one flat set of metrics (`src/balance/`).
+
+- **Metrics:** net worth at 35–75 and at 65 by generation, wealth growth across generations, savings rate, years in
+  debt, runaway debt, lifespan, generations, how often a line dies out, legacy scores, children's outcomes (degrees,
+  sports, scholarships, pros, service, deaths in service), every achievement's unlock rate and every event's rate, and
+  broken invariants (NaN money, stats outside 0–100, events with no available choice).
+- **Design bands** (`BANDS` in `src/balance/metrics.ts`): what "balanced" means, e.g. a first-generation life ends
+  with $0.4–4M at 65, wealth grows at most 4.5× by the third generation, no play style trails the best by more than
+  40%, going pro stays rare, deaths in service stay rare. A band can be marked `known` to warn instead of fail while
+  a fix is pending.
+- **Drift:** `src/balance/baseline.json` holds the metrics from the standard sample. The balance suite fails when a
+  metric moves more than seed noise. Tolerances were measured by running the same code on several seed sets, because
+  any change that adds a random roll reshuffles every life. When a change is meant to shift the balance, run
+  `npm run balance:update`, review the before/after table it prints, and commit the new baseline.
+- **Where it runs:** `npm test` includes a quick smoke (a few short lives must break no invariants).
+  `npm run test:balance` is the full gate (~30s): run it before merging gameplay or economy changes.
+  `npm run balance` prints the same report. `npm run balance:deep` is the occasional deep check: 500 lives per style
+  on seeds the baseline never uses, split across CPU cores, with spreads (10th/90th percentile), every invariant
+  violation, seeds of lives with runaway debt (to replay), and whether the standard sample still represents the game.
+- **Blind spots:** the scripted players never take up hobbies or sports themselves, invest, buy upgrades, move, adopt
+  dogs or date around, so content behind those choices is listed as "never reached" rather than measured.
 
 ## Controls
 
