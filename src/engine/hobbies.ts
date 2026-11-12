@@ -9,7 +9,7 @@ import { CAREER_BY_ID, type Career } from '../content/careers';
 import { COASTAL, GEAR, RESTORED_VALUE, type GearId } from '../content/gear';
 import type { UpgradeId } from '../content/finance';
 import { cityOfHousehold } from './location';
-import { sportBoost } from './sports';
+import { sportBoost, trainSport } from './sports';
 import { SPORTS } from '../content/sports';
 import type { Rng } from './rng';
 import { unlockedTabs } from './tutorial';
@@ -174,3 +174,9 @@ export function passDownGear(s: GameState, from: Household, heirs: Person[]) {
 
 /** Skill gained per practice block (before diminishing returns), with gear and setup. */
 export const practiceGain = (s: GameState, p: Person) => (p.hobby ? 4 * practiceBoost(s, p, p.hobby) : 0);
+
+/** Add hobby skill (0–100). Sports skill also respects the person's natural ceiling. */
+export function addHobbySkill(s: GameState, p: Person, hobby: Hobby, gain: number) {
+  if (hobby === 'sports') trainSport(s, p, gain);
+  else p.skills[hobby] = Math.round(clamp((p.skills[hobby] ?? 0) + gain, 0, 100));
+}

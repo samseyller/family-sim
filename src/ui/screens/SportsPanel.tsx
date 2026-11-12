@@ -1,6 +1,6 @@
 import { CAREER_BY_ID, titleOf } from '../../content/careers';
 import { PRO_SKILL, SCHOLARSHIP_SKILL, SPORTS, SPORT_IDS } from '../../content/sports';
-import { hasGear, isPro, sportBlocker, sportBoost, sportSkill, sportsBlocker, type SportsAction } from '../../engine/sports';
+import { hasGear, isPro, nearPeak, sportBlocker, sportBoost, sportSkill, sportsBlocker, type SportsAction } from '../../engine/sports';
 import type { GameState } from '../../engine/types';
 import { active, ageOf, money } from '../../engine/util';
 import { useGame } from '../../store/gameStore';
@@ -52,13 +52,14 @@ export function SportsPanel({ g }: { g: GameState }) {
   else if (me.flags.varsity && age < 18) status.push('Varsity');
   else if (me.flags.travel_team && age < 18) status.push('Travel team');
   if (me.flags.former_pro) status.push('Former pro: pro coaching jobs are open to you');
+  const peaked = !isPro(me) && nearPeak(g, me);
   const next = age < 18 ? (skill < SCHOLARSHIP_SKILL ? `Skill ${SCHOLARSHIP_SKILL} by 18 could earn an athletic scholarship` : `Skill ${PRO_SKILL} could get you drafted`)
     : age <= 24 && !isPro(me) && !me.flags.went_pro ? `Skill ${PRO_SKILL} by 24 could get you drafted` : '';
   return (
     <div className="sub-group">
       <div className="sub-head">{sp.icon} {sp.label} · skill {skill}{boost > 1 ? ` · training ${boost}× faster` : ''}</div>
       {status.map((t) => <p key={t} className="hint">🏅 {t}</p>)}
-      {next && <p className="hint">{next}.</p>}
+      {peaked ? <p className="hint">📉 Your progress has leveled off. This may be as good as you'll get at {sp.label.toLowerCase()}; another sport might suit you better.</p> : next && <p className="hint">{next}.</p>}
       <div className="choices">
         {!hasGear(me, me.sport) && <Btn g={g} action={{ kind: 'gear' }} label={`🛍️ ${sp.gear.label} (${money(sp.gear.price)})`} hint="Practice 20% faster" />}
         {sp.club && (me.club === me.sport

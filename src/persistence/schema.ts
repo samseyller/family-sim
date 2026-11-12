@@ -35,6 +35,7 @@ const Person = z.object({
   sport: SportEnum.optional(),
   sportSkills: z.partialRecord(SportEnum, num).optional(),
   club: SportEnum.optional(),
+  athleticCeiling: num.optional(),
   flags: z.record(z.string(), num),
   jobId: z.string().optional(),
   jobLevel: int,

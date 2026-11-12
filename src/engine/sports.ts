@@ -5,7 +5,9 @@
  * young; former pros can coach.
  */
 import { CAREER_BY_ID } from '../content/careers';
-import { CLUB_BOOST, GEAR_BOOST, PRO_SKILL, SPORTS, SPORT_CARRYOVER, SPORT_IDS, TRAVEL_TEAM_COST, type SportId } from '../content/sports';
+import { CLUB_BOOST, GEAR_BOOST, PRO_LADDER, PRO_SKILL, SPORTS, SPORT_CARRYOVER, SPORT_IDS, TALENT, TRAVEL_TEAM_COST, type SportId } from '../content/sports';
+import { hash } from './jobMarket';
+import { makeRng } from './rng';
 import { assignJob } from './generate';
 import { isCloseKin } from './family';
 import type { Rng } from './rng';
@@ -16,6 +18,42 @@ export const proSport = (p: Person): SportId | undefined => (p.jobId ? CAREER_BY
 export const isPro = (p: Person) => !!proSport(p);
 export const sportSkill = (p: Person, id: SportId) => (p.sport === id ? p.skills.sports ?? 0 : p.sportSkills?.[id] ?? 0);
 export const hasGear = (p: Person, id: SportId) => !!p.flags[`gear_${id}`];
+
+/**
+ * How good this person can ever get at a sport: their natural athletic ceiling (rolled once,
+ * from the game seed and their id) plus a small per-sport offset. Hidden from the player.
+ */
+export function talentOf(s: GameState, p: Person, sport: SportId | undefined = p.sport, store = true): number {
+  let base = p.athleticCeiling;
+  if (base === undefined) {
+    const u = makeRng(hash(`${s.seed}:${p.id}:talent`)).next();
+    base = Math.round(TALENT.base + TALENT.range * u ** TALENT.skew + (p.traits.includes('athletic') ? TALENT.athleticBonus : 0));
+    if (store) p.athleticCeiling = base;
+  }
+  const offset = sport ? (hash(`${p.id}:${sport}`) % (TALENT.sportSpread * 2 + 1)) - TALENT.sportSpread : 0;
+  return clamp(base + offset, 30, 100);
+}
+
+/** Skill after a gain: progress slows near the ceiling and stops at it (setbacks apply in full). */
+export function sportGain(s: GameState, p: Person, from: number, gain: number): number {
+  if (gain <= 0) return clamp(from + gain, 0, 100);
+  const cap = talentOf(s, p);
+  if (from >= cap) return from;
+  const fade = clamp((cap - from) / TALENT.fadeZone, TALENT.minFade, 1);
+  // Round fractions up by chance (seeded), so small gains near the ceiling slow progress rather than stop it.
+  const raw = gain * fade;
+  const whole = Math.floor(raw);
+  const roll = makeRng(hash(`${s.seed}:${p.id}:${s.year}:${from}:${gain}`)).next();
+  return Math.min(cap, from + whole + (roll < raw - whole ? 1 : 0));
+}
+
+/** Train in your current sport (activities, camps, coaching, teams). */
+export function trainSport(s: GameState, p: Person, gain: number) {
+  p.skills.sports = sportGain(s, p, p.skills.sports ?? 0, gain);
+}
+
+/** Within a couple of points of their ceiling: progress has leveled off. */
+export const nearPeak = (s: GameState, p: Person) => !!p.sport && (p.skills.sports ?? 0) >= talentOf(s, p, p.sport, false) - 2; // read-only: safe in the UI
 
 /** Switch to (or take up) a sport. Skill in each sport is kept; some athleticism carries over. */
 export function chooseSport(p: Person, id: SportId) {
@@ -148,12 +186,12 @@ export function sportsYear(s: GameState, rng: Rng) {
     const pro = isPro(p);
     const serious = pro || !!p.flags.travel_team || !!p.flags.varsity;
     // Youth travel teams build skill; pros keep improving until their late 20s.
-    if (p.flags.travel_team && age < 18) p.skills.sports = clamp((p.skills.sports ?? 0) + 3, 0, 100);
-    if (pro && age < 29) p.skills.sports = clamp((p.skills.sports ?? 0) + 1, 0, 100);
+    if (p.flags.travel_team && age < 18) trainSport(s, p, 3);
+    if (pro && age < 29) trainSport(s, p, 1);
     if (age >= 35) p.skills.sports = clamp((p.skills.sports ?? 0) - (age >= 50 ? 2 : 1), 0, 100);
     if (age >= 18) delete p.flags.travel_team;
     // College athletes keep training; good high-school players make varsity.
-    if (p.flags.athletic_scholarship && p.studyingUntil) p.skills.sports = clamp((p.skills.sports ?? 0) + 3, 0, 100);
+    if (p.flags.athletic_scholarship && p.studyingUntil) trainSport(s, p, 3);
     if (!mine && age >= 14 && age < 18 && !p.flags.varsity && (p.skills.sports ?? 0) >= 45) {
       p.flags.varsity = 1;
       if (isCloseKin(s, p)) journal(s, `${p.firstName} made varsity ${sp.label.toLowerCase()}!`, 'good');
@@ -168,10 +206,10 @@ export function sportsYear(s: GameState, rng: Rng) {
     }
     if (pro) {
       const skill = p.skills.sports ?? 0;
-      if (p.jobLevel === 1 && skill >= 86 && rng.chance(0.35)) {
+      if (p.jobLevel === 1 && skill >= PRO_LADDER.starter && rng.chance(0.35)) {
         p.jobLevel = 2;
         if (isCloseKin(s, p)) journal(s, `${mine ? 'You' : p.firstName} earned a starting spot!`, 'good');
-      } else if (p.jobLevel === 2 && skill >= 91 && rng.chance(0.2)) {
+      } else if (p.jobLevel === 2 && skill >= PRO_LADDER.allStar && rng.chance(0.2)) {
         p.jobLevel = 3;
         flag(p, 'all_star');
         if (isCloseKin(s, p)) journal(s, `${mine ? 'You were' : `${p.firstName} was`} named an All-Star!`, 'major');

@@ -368,6 +368,7 @@ function bigFamilyPrefer(pe: PendingEvent, s: GameState): string[] {
   if (pe.eventId === 'baby') return cash(s) > 200_000 && age(s) >= 40 ? ['adopt', 'yes'] : ['yes', 'adopt'];
   if (pe.eventId === 'proposal') return ['propose_ring', 'propose'];
   if (pe.eventId === 'kid_moves_back' || pe.eventId === 'parent_needs_care') return ['home', 'move_in'];
+  if (pe.eventId === 'crowded_home') return ['expand', 'move_up', 'squeeze'];
   return familyPrefer(pe);
 }
 
@@ -386,7 +387,7 @@ export const PLAY_STYLES: PlayStyle[] = [
     prefer: athletePrefer,
   },
   {
-    id: 'soldier', core: false, start: 'child', lives: 90,
+    id: 'soldier', core: false, start: 'child', lives: 180,
     plan: soldierPlan,
     act: soldierAct,
     prefer: soldierPrefer,

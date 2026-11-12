@@ -7,9 +7,9 @@ import { makeRng, type Rng } from './rng';
 import type { ActivityResult, GameState, Hobby, Person, StatKey } from './types';
 import { HOBBY_BY_ID } from '../content/actions';
 import type { UpgradeId } from '../content/finance';
-import { ownsGear, practiceBoost, restoreProgress } from './hobbies';
+import { addHobbySkill, ownsGear, practiceBoost, restoreProgress } from './hobbies';
 import { SPORTS } from '../content/sports';
-import { chooseSport } from './sports';
+import { chooseSport, trainSport } from './sports';
 import {
   active, activePartnership, adjustBond, ageOf, alive, childrenOf, clamp, flag, getBond, journal, kidsAtHome, membersOf, money,
   parentsOf, partnerOf, stat,
@@ -376,7 +376,7 @@ export const ACTIVITIES: ActivityDef[] = [
     energy: flat(10), cost: flat(10),
     run: (c) => {
       stat(c.me, 'fitness', 3);
-      c.me.skills.sports = Math.min(100, (c.me.skills.sports ?? 0) + 2);
+      trainSport(c.s, c.me, 2);
       if (!c.people.length) {
         const f = maybeMeetFriend(c.s, c.rng, c.me, 0.25, `playing pickup ${SPORTS[c.me.sport!].label.toLowerCase()}`);
         return { text: f ? `You and ${f.firstName} ended up on the same team, and now you play every week.` : 'A good sweat with strangers.', tone: 'good' };
@@ -392,7 +392,7 @@ export const ACTIVITIES: ActivityDef[] = [
       c.me.flags.league_year = c.s.year;
       stat(c.me, 'fitness', 4);
       stat(c.me, 'happiness', 3);
-      c.me.skills.sports = Math.min(100, (c.me.skills.sports ?? 0) + 3);
+      trainSport(c.s, c.me, 3);
       const f = maybeMeetFriend(c.s, c.rng, c.me, 0.3, 'on your league team');
       return { text: f ? `A fun season, and ${f.firstName} from the team is a real friend now.` : 'A fun season. You never miss a game.', tone: 'good' };
     },
@@ -426,7 +426,7 @@ export const ACTIVITIES: ActivityDef[] = [
     energy: flat(10), cost: (s) => (ageOf(active(s), s.year) < 18 ? 0 : 1200),
     kidAsk: true,
     run: (c) => {
-      c.me.skills.sports = Math.min(100, (c.me.skills.sports ?? 0) + 6);
+      trainSport(c.s, c.me, 6);
       return { text: `Your coach fixed one thing in your ${SPORTS[c.me.sport!].label.toLowerCase()} technique, and everything clicked.`, tone: 'good' };
     },
   },
@@ -439,11 +439,11 @@ export const ACTIVITIES: ActivityDef[] = [
     run: (c) => {
       for (const k of c.people) {
         if (k.hobby !== 'sports' && c.me.sport) chooseSport(k, c.me.sport);
-        k.skills.sports = Math.min(100, (k.skills.sports ?? 0) + 4);
+        trainSport(c.s, k, 4);
       }
       bondAll(c, 7, 5);
       flag(c.me, 'coached');
-      c.me.skills.sports = Math.min(100, (c.me.skills.sports ?? 0) + 1);
+      trainSport(c.s, c.me, 1);
       return { text: `Orange slices, a whistle, and ${names(c.people)} beaming every time you yelled "nice hustle!"`, tone: 'good' };
     },
   },
@@ -453,7 +453,7 @@ export const ACTIVITIES: ActivityDef[] = [
     desc: 'A week with real coaches: a big skill boost.',
     energy: flat(4), cost: (_s, ppl) => 1500 * Math.max(1, ppl.length),
     run: (c) => {
-      for (const k of c.people) { k.skills.sports = Math.min(100, (k.skills.sports ?? 0) + 8); stat(k, 'happiness', 5); }
+      for (const k of c.people) { trainSport(c.s, k, 8); stat(k, 'happiness', 5); }
       bondAll(c, 3, 2);
       return { text: `${names(c.people)} came home sunburned, exhausted, and much better.`, tone: 'good' };
     },
@@ -979,7 +979,7 @@ export const ACTIVITIES: ActivityDef[] = [
   {
     id: 'sports_camp', category: 'kid', icon: '⛺', label: 'Ask to go to summer camp', who: 'solo', ages: [8, 16], kidAsk: true, desc: 'A week away with new friends.',
     energy: flat(20), cost: flat(500),
-    run: (c) => { stat(c.me, 'happiness', 7); stat(c.me, 'fitness', 4); if (c.me.hobby) c.me.skills[c.me.hobby] = Math.min(100, (c.me.skills[c.me.hobby] ?? 0) + 4); return { text: 'Campfires, bug bites, and a friend for life.', tone: 'good' }; },
+    run: (c) => { stat(c.me, 'happiness', 7); stat(c.me, 'fitness', 4); if (c.me.hobby) addHobbySkill(c.s, c.me, c.me.hobby, 4); return { text: 'Campfires, bug bites, and a friend for life.', tone: 'good' }; },
   },
   {
     id: 'science_fair', category: 'kid', icon: '🔬', label: 'Science fair project', who: 'solo', ages: [8, 17], perYear: 1, desc: 'A volcano? A robot? Glory awaits.',

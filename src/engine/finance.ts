@@ -154,6 +154,12 @@ export function financeBlocker(s: GameState, a: FinanceAction): string | null {
 export function financeAction(state: GameState, a: FinanceAction): GameState {
   if (financeBlocker(state, a)) return state;
   const s: GameState = structuredClone(state);
+  applyFinance(s, a);
+  return s;
+}
+
+/** Carry out a money action on `s` in place, with no checks (life events that decide for you use this). */
+export function applyFinance(s: GameState, a: FinanceAction) {
   const me = active(s);
   const hh = s.households[me.householdId];
   const home = homeOf(hh);
@@ -284,7 +290,6 @@ export function financeAction(state: GameState, a: FinanceAction): GameState {
       break;
     }
   }
-  return s;
 }
 
 /** What it costs to move a household across the country. */

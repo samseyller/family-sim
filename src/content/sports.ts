@@ -46,6 +46,8 @@ export const SPORT_IDS = Object.keys(SPORTS) as SportId[];
 
 /** Skill needed to be drafted or signed as a pro. */
 export const PRO_SKILL = 80;
+/** Skill a pro needs to earn a starting spot, then All-Star (talent ceilings decide who gets there). */
+export const PRO_LADDER = { starter: 83, allStar: 87 };
 /** Skill (with good grades) for an athletic scholarship. */
 export const SCHOLARSHIP_SKILL = 62;
 /** Pro gear speeds practice by this much. */
@@ -56,3 +58,11 @@ export const CLUB_BOOST = 1.4;
 export const SPORT_CARRYOVER = 0.3;
 /** Travel team: yearly cost while a kid plays on one. */
 export const TRAVEL_TEAM_COST = 3000;
+
+/**
+ * Talent: everyone has a natural athletic ceiling, BASE + RANGE × u^SKEW (u uniform), plus a
+ * bonus for the athletic trait and a small per-sport offset. About 1 in 7 people (1 in 3 with
+ * the athletic trait) can reach pro level, however hard they train. Gains fade within FADE_ZONE
+ * points of the ceiling, so progress levels off before it stops.
+ */
+export const TALENT = { base: 48, range: 40, skew: 1.6, athleticBonus: 10, sportSpread: 6, fadeZone: 12, minFade: 0.15 };

@@ -47,6 +47,8 @@ export interface Person {
   sportSkills?: Partial<Record<import('../content/sports').SportId, number>>;
   /** A sports club membership (golf, tennis, swim), paid yearly. */
   club?: import('../content/sports').SportId;
+  /** Natural athletic ceiling (hidden; rolled the first time it matters). Most people peak below pro level. */
+  athleticCeiling?: number;
   /** Memories and counters, e.g. degree, resents, parent_missed_events. */
   flags: Record<string, number>;
   /** Full-time job. */

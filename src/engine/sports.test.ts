@@ -10,7 +10,7 @@ import { newGame, pickCareer } from './generate';
 import { listings } from './jobMarket';
 import { makeRng } from './rng';
 import { tuitionFor } from './school';
-import { chooseSport, goPro, isPro, sportBoost, sportSkill, sportsAction, sportsYear } from './sports';
+import { chooseSport, goPro, isPro, nearPeak, sportBoost, sportSkill, sportsAction, sportsYear, talentOf, trainSport } from './sports';
 import type { GameState } from './types';
 import { active, kidsAtHome } from './util';
 import { financeAction } from './finance';
@@ -159,4 +159,37 @@ describe('sports activities', () => {
     s = performActivity(fresh(s), 'sport_event', []);
     expect(got(s, 'marathoner')).toBe(true);
   });
+});
+
+describe('natural talent', () => {
+  it('most people peak below pro level; the athletic trait helps', () => {
+    const s = newGame(2130);
+    const base = active(s);
+    const ceilings = (athletic: boolean) => Array.from({ length: 1500 }, (_, i) => {
+      const p = { ...structuredClone(base), id: `t${i}`, athleticCeiling: undefined, traits: athletic ? ['athletic' as const] : [] };
+      return talentOf(s, p, 'soccer');
+    });
+    const pro = (xs: number[]) => xs.filter((x) => x >= PRO_SKILL).length / xs.length;
+    expect(pro(ceilings(false))).toBeGreaterThan(0.05);
+    expect(pro(ceilings(false))).toBeLessThan(0.25);
+    expect(pro(ceilings(true))).toBeGreaterThan(pro(ceilings(false)));
+  });
+
+  it('progress slows near the ceiling and stops at it', () => {
+    const s = newGame(2131);
+    const p = active(s);
+    chooseSport(p, 'tennis');
+    const cap = talentOf(s, p);
+    p.skills.sports = 0;
+    let early = 0;
+    for (let i = 0; i < 5; i++) { const b = p.skills.sports!; trainSport(s, p, 6); early += p.skills.sports! - b; s.year++; }
+    p.skills.sports = cap - 3;
+    let late = 0;
+    for (let i = 0; i < 5; i++) { const b = p.skills.sports!; trainSport(s, p, 6); late += p.skills.sports! - b; s.year++; }
+    expect(early).toBeGreaterThan(late);
+    for (let i = 0; i < 200; i++) { trainSport(s, p, 10); s.year++; }
+    expect(p.skills.sports).toBe(cap);
+    expect(nearPeak(s, p)).toBe(true);
+  });
+
 });

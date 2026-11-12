@@ -149,6 +149,9 @@ for random). When your baby is born, a naming event offers suggestions or lets y
 - Running your own home you can buy your parents a home of their own (or ask them to leave), ask grown children
   to move out (with a gift or their share), and invite grown children or parents to live with you when you're
   close enough. Their whole household moves in and their home is sold. Invited children don't leave on their own.
+- Grown children (and anyone else) living with you can still marry, with the spouse moving in, and have children.
+  When the home holds more people than it fits, a **full house** prompt offers an addition, a bigger home or
+  rental for everyone, helping a grown child's family into their own place, or squeezing in (more stress).
 
 ## Dating
 
@@ -166,6 +169,9 @@ for random). When your baby is born, a naming event offers suggestions or lets y
 
 - `npm run econ [runs]` plays many lives per strategy and reports net worth at key ages (and what it's made of
   at 65), savings rate, years in debt, inheritances, where the money goes, and how often events happen.
+- **Debt spirals:** when you owe more than $25,000 and the interest outruns what you can put aside, a prompt
+  offers a way out: sell the house and rent, buy a smaller home, move to a cheaper rental, or switch to a frugal
+  lifestyle. Ignoring it is allowed (some retirees in a house they can no longer afford do go under).
 - **Everyday costs:** progressive income tax plus payroll tax (7.65% of wages), health insurance by age,
   late-life care from 80 (or when very unwell), daycare for under-5s when every adult works, home or renters
   insurance, car insurance (30% higher for 3 years after a claim), optional flood insurance.
@@ -196,7 +202,12 @@ for random). When your baby is born, a naming event offers suggestions or lets y
   **athletic scholarship** at 18 with skill 62+ (university paid; stars with decent grades get a top school; college
   athletes keep training), and the **draft** at 18–24 with skill 80+. Pros are Rookie → Starter → All-Star, with pay
   by sport (up to $15M for an All-Star in basketball), contract years, injuries, and retirement in their 30s. Former
-  pros can become pro coaches. In simulated lives about 1 in 20 athletes goes pro and a few of those reach All-Star.
+  pros can become pro coaches.
+- **Talent:** everyone has a hidden natural ceiling (the athletic trait helps; each sport varies a little).
+  Progress slows as you near it and stops there, and the Plan tab says when it has leveled off. Only about 1 in 7
+  people can reach pro level however hard they train: in simulated lives a fully dedicated young athlete goes pro
+  about 10–15% of the time (about 1 in 5 pros become All-Stars; Starter needs skill 83, All-Star 87), and kids who
+  just play for fun almost never do. The rest still earn varsity letters and scholarships.
 - **Coaching:** volunteer-coach your kids (they may take up your sport), hire a private coach, send kids to sports
   camp; careers as a youth coach, personal trainer, sports coach (Assistant → Head → College Coach) or pro coach.
 - **Buy:** pro gear per sport (+20% practice), club memberships for golf, tennis and swimming (+40%, a yearly fee,
@@ -256,6 +267,9 @@ for random). When your baby is born, a naming event offers suggestions or lets y
   (`salaryOf`), and higher levels expect an extra block (`requiredBlocks`). City industry strengths are
   `industries` in `src/content/cities.ts`. How openings are chosen is in `src/engine/jobMarket.ts`.
 - 38 full-time careers (no-qualification, trades, university, top-university and talent jobs) and 18 part-time jobs.
+- **Promotions** come after 2 years at a level with good performance (65+), or 4 years when stress is 70+ (burnout
+  costs you). Steady good work is never ignored forever: after 5 years (7 when stressed) the offer comes even in a
+  year that already has big news.
 - **Listings:** each city posts about 10 full-time and 6 part-time openings every 2 years, picked at random
   but weighted toward its industries (Seattle and Austin: tech; Houston: energy; Los Angeles: entertainment;
   New York: finance and law; Boston: healthcare, science and education...). In the second year some openings

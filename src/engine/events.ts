@@ -4,6 +4,7 @@ import { LIFE_EVENTS, setEnqueue } from './lifeEvents';
 import { HOBBY_EVENTS } from './hobbyEvents';
 import { MILITARY_EVENTS } from './militaryEvents';
 import { SPORTS_EVENTS } from './sportsEvents';
+import { HOME_EVENTS } from './homeEvents';
 import { SCHOLARSHIP_SKILL } from '../content/sports';
 import { FEMALE_NAMES, MALE_NAMES } from '../content/names';
 import { annuityPayment, HOMES, MORTGAGE_RATE, MORTGAGE_YEARS, SCRAP_VALUE } from '../content/finance';
@@ -34,7 +35,7 @@ import { readiness } from './retirement';
 import { guidedPerson, scriptedPhase, severeGuard } from './tutorial';
 import { FULL_RETIREMENT_AGE } from '../content/retirement';
 import { CAREERS, CAREER_BY_ID, LEVEL_TITLES, PROGRAMS, qualifies, requiredBlocks, salaryOf, titleOf } from '../content/careers';
-import { hasLadder, promoSkillFor } from './hobbies';
+import { addHobbySkill, hasLadder, promoSkillFor } from './hobbies';
 import { assignJob, makeAdultStranger, makePerson, pickCareer } from './generate';
 import {
   breakUp, divorce, homeEquityShare, marry, mergeHouseholds, moveOut, partnerInHome, preferredPath, receptiveness,
@@ -64,6 +65,8 @@ interface Candidate {
   weight: number;
   /** Circumstance-driven: fires before the pacing timer is considered. */
   urgent?: boolean;
+  /** Long overdue: comes up even in a year that already has major news (at most one a year). */
+  overdue?: boolean;
 }
 
 export interface EventDef {
@@ -95,6 +98,12 @@ const RINGS = [
   { id: 'ring_stunning', label: 'a stunning ring', cost: 15000, boost: 0.1, hint: 'Their friends will gasp', reaction: 'Their friends gasped at the ring.' },
 ];
 
+/**
+ * Promotions: after PROMO.years at a level with good performance (65+), or PROMO.stressedYears if
+ * stress is high (70+). Overdue (5 years, or 7 when stressed) the offer comes ahead of other news.
+ */
+export const PROMO = { years: 2, overdue: 5, stressedAt: 70, stressedYears: 4, stressedOverdue: 7 };
+
 const EVENTS: EventDef[] = [
   // ── Arc: work vs. life ─────────────────────────────────────────────
   {
@@ -102,7 +111,16 @@ const EVENTS: EventDef[] = [
     major: true,
     cooldown: 3,
     // Hobby-based careers also need enough skill for the next rank; flat-pay businesses don't promote.
-    candidates: (c) => one(settledInJob(c) && c.me.jobLevel < 3 && c.me.workPerf >= 65 && c.me.jobYears >= 2 && canPromote(c.me), 4),
+    candidates: (c) => {
+      const p = c.me;
+      if (!settledInJob(c) || p.jobLevel >= 3 || p.workPerf < 65 || !canPromote(p)) return [];
+      // Burned-out, stressed workers are passed over longer, but steady good work is never
+      // ignored forever: once overdue, the offer is urgent (it can't be crowded out by other news).
+      const stressed = p.stats.stress >= PROMO.stressedAt;
+      if (p.jobYears < (stressed ? PROMO.stressedYears : PROMO.years)) return [];
+      const overdue = p.jobYears >= (stressed ? PROMO.stressedOverdue : PROMO.overdue);
+      return [{ weight: overdue ? 8 : stressed ? 2 : 4, urgent: overdue, overdue, subject: undefined }];
+    },
     build: (c) => {
       const job = CAREER_BY_ID[c.me.jobId!];
       const lvl = c.me.jobLevel + 1;
@@ -301,7 +319,7 @@ const EVENTS: EventDef[] = [
     resolve: (c, ch, k) => {
       if (ch === 'advanced') {
         k!.flags.advanced = 1;
-        k!.skills[k!.hobby!] = Math.min(100, (k!.skills[k!.hobby!] ?? 0) + 5);
+        addHobbySkill(c.s, k!, k!.hobby!, 5);
         adjustBond(c.s, c.me.id, k!.id, 5, 2);
         return `${k!.firstName} lit up. Practice is now four days a week.`;
       }
@@ -1465,7 +1483,7 @@ const GUIDED_KID: EventDef = {
   },
 };
 
-const ALL_EVENTS: EventDef[] = [...EVENTS, ...CHILD_EVENTS, ...LIFE_EVENTS, ...HOBBY_EVENTS, ...MILITARY_EVENTS, ...SPORTS_EVENTS, NAME_BABY, GUIDED_KID];
+const ALL_EVENTS: EventDef[] = [...EVENTS, ...CHILD_EVENTS, ...LIFE_EVENTS, ...HOBBY_EVENTS, ...MILITARY_EVENTS, ...SPORTS_EVENTS, ...HOME_EVENTS, NAME_BABY, GUIDED_KID];
 
 export const EVENT_BY_ID: Record<string, EventDef> = Object.fromEntries(ALL_EVENTS.map((e) => [e.id, e]));
 
@@ -1538,6 +1556,11 @@ export function generateEvents(s: GameState, rng: Rng) {
         pick = rng.weighted(eligible.filter((e) => e.def.major).map((e) => [e, e.cand.weight] as const));
       }
     }
+    if (pick) pushPending(c, pick.def, pick.cand.subject, true);
+  } else {
+    // Something major already happened this year; long-overdue news (a promotion earned years
+    // ago) still comes, so a run of bad luck can't hold it back forever.
+    const pick = rng.weighted(eligible.filter((e) => e.def.major && e.cand.overdue).map((e) => [e, e.cand.weight] as const));
     if (pick) pushPending(c, pick.def, pick.cand.subject, true);
   }
 

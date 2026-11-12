@@ -11,8 +11,8 @@ import { TUTORIAL_SEED, TUTORIAL_START_AGE, scheduleScript } from './tutorial';
 import type { GameState, Household, Looks, Person, Plan, Trait } from './types';
 import { adjustBond, ageOf, alive, cleanName, kidsAtHome, newId, parentsOf, partnerOf, active } from './util';
 
-export const SCHEMA_VERSION = 17;
-export const RULES_VERSION = '0.17.0';
+export const SCHEMA_VERSION = 18;
+export const RULES_VERSION = '0.18.0';
 export const START_YEAR = 2026;
 
 const TRAITS: Trait[] = ['ambitious', 'kind', 'stubborn', 'curious', 'anxious', 'easygoing', 'creative', 'athletic'];

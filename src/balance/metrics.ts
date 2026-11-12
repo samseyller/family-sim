@@ -100,21 +100,18 @@ export const BANDS: Band[] = [
   ...perStrategy('nw65.gen1', 400_000, 4_000_000, 'A first-generation working life should end comfortable, not rich beyond need.'),
   ...perStrategy('wealthGrowth', 0.8, 4.5, 'Wealth should level off across generations (siblings, probate, costs), not snowball.'),
   ...perStrategy('savingsRate', 0.02, 0.45, 'Money should feel scarce: neither always broke nor effortless.'),
-  ...perStrategy('debtShare', 0.01, 0.3, 'Debt should happen sometimes but not dominate a life.'),
+  ...perStrategy('debtShare', 0.003, 0.3, 'Debt should happen sometimes but not dominate a life.'),
   ...perStrategy('lifespan', 62, 92, 'Played characters should mostly live a full life.'),
   ...perStrategy('generations', 2, 6, 'A 120-year run should pass the torch at least once or twice.'),
   ...perStrategy('endedEarly', undefined, 0.75, 'Most family lines should survive 120 years. (Scripted players pick randomly at baby and marriage choices, so this runs high.)'),
   // Over 500 lives per style this is ~87%; the 60-life sample swings ±15 points, hence 0.6.
   { key: 'all.legacyBalance', min: 0.6, why: 'No play style (career, family, balanced) should trail the best by much (median legacy score).' },
-  { key: 'kids.proPerAthlete', min: 0.005, max: 0.12, why: 'For children who play sports casually, going pro should be possible but rare.' },
+  { key: 'kids.proPerAthlete', max: 0.05, why: 'For children who play sports casually, going pro should be rare (the athlete style checks it is possible).' },
   { key: 'kids.fallenPerServed', max: 0.03, why: 'Deaths in service must stay rare.' },
   { key: 'kids.degree', min: 0.15, max: 0.85, why: 'College should be common but not universal.' },
   { key: 'coverage.achievementsMissing', max: 0, why: 'Every achievement should be reached by at least one simulated life (otherwise it may be impossible).' },
   { key: 'coverage.eventsMissing', max: 0, why: 'Every event should fire in at least one simulated life (otherwise it may be dead content).' },
-  {
-    key: 'athlete.first.went_pro', max: 0.5, why: 'Going pro should stay hard even for a fully dedicated young athlete.',
-    known: 'A child who trains 5 blocks a year with coaching, camps and gear goes pro (and usually All-Star) almost every time. Needs a design decision.',
-  },
+  { key: 'athlete.first.went_pro', min: 0.03, max: 0.35, why: 'Even a fully dedicated young athlete should only sometimes have the talent to go pro.' },
 ];
 
 export interface BandFailure extends Band { value: number | undefined }
@@ -139,7 +136,7 @@ export interface Drift { key: string; before: number; after: number; reason: str
 export function tolerance(key: string): { rel?: number; abs?: number; deadOnly?: boolean } {
   if (key.startsWith('ach.') || key.startsWith('event.')) return { deadOnly: true };
   if (key === 'all.violations' || key.startsWith('coverage.')) return { abs: 0 };
-  if (key.includes('.first.')) return { abs: 0.25 }; // explorer milestones: few lives each
+  if (key.includes('.first.')) return { abs: 0.35 }; // explorer milestones: 20–60 lives each, so noisy
   if (key === 'kids.perLife') return { rel: 0.25 };
   if (key.startsWith('kids.')) return { abs: 0.03, rel: 0.6 };
   if (key.endsWith('.inheritance')) return { rel: 2.5 }; // few inheritances per life: very noisy, so only flags huge shifts

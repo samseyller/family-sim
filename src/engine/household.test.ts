@@ -214,7 +214,8 @@ describe('a long life at home (the reported case)', () => {
     const hid = active(g).householdId;
     g.households[hid].investments = 3_000_000;
     const f = shareOf(g, hid, moverGroup(g, active(g))); // you and your partner leave together
-    expect(f).toBeGreaterThan(0.4);
+    // A large share, though not most of it: siblings who married at home and their spouses hold stakes too.
+    expect(f).toBeGreaterThan(0.3);
     expect(f).toBeLessThan(1);
     const out = householdAction(g, { kind: 'moveOut', bring: [], take: 'share' });
     expect(out.households[active(out).householdId].investments).toBeCloseTo(3_000_000 * f, -2);

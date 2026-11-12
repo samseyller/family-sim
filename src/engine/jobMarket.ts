@@ -23,7 +23,8 @@ export const OPENINGS: Record<JobSlot, number> = { full: 10, part: 6 };
 /** Share of openings filled each later year of a cycle. */
 export const FILLED_PER_YEAR = 0.25;
 
-const hash = (k: string) => [...k].reduce((a, ch) => (Math.imul(a, 31) + ch.charCodeAt(0)) >>> 0, 2166136261);
+/** A stable 32-bit hash of a string (for seeded, order-independent randomness). */
+export const hash = (k: string) => [...k].reduce((a, ch) => (Math.imul(a, 31) + ch.charCodeAt(0)) >>> 0, 2166136261);
 
 export const cycleOf = (year: number) => Math.floor(year / LISTING_YEARS);
 /** The year the next round of listings is posted. */

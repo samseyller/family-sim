@@ -16,7 +16,7 @@ import { schoolYear } from './school';
 import { enlist } from './military';
 import { chooseSport, randomSport } from './sports';
 import { isHiring } from './jobMarket';
-import { ageGear, hobbyCareerYear, jobExtraBlocker, practiceGain } from './hobbies';
+import { addHobbySkill, ageGear, hobbyCareerYear, jobExtraBlocker, practiceGain } from './hobbies';
 import { cityDef, cityName, cityOfHousehold, otherCity } from './location';
 import type { Rng } from './rng';
 import type { GameState, Hobby, Person } from './types';
@@ -119,7 +119,7 @@ export function applyPlan(s: GameState, rng: Rng): number {
   const pr = g('practice');
   if (pr && me.hobby) {
     // Gear and a home setup (workshop, studio, plane, boat...) speed up practice.
-    me.skills[me.hobby] = Math.round(clamp((me.skills[me.hobby] ?? 0) + practiceGain(s, me) * dim(pr), 0, 100));
+    addHobbySkill(s, me, me.hobby, practiceGain(s, me) * dim(pr));
     if (me.hobby === 'fishing' || me.hobby === 'gardening') stat(me, 'stress', -3 * dim(pr));
     stat(me, 'happiness', 2 * dim(pr));
   }
@@ -361,7 +361,7 @@ function childYear(s: GameState, rng: Rng, c: Person) {
     else practice += 1;
   }
   stat(c, 'smarts', study);
-  if (c.hobby) c.skills[c.hobby] = Math.round(clamp((c.skills[c.hobby] ?? 0) + practice, 0, 100));
+  if (c.hobby) addHobbySkill(s, c, c.hobby, practice);
   stat(c, 'stress', (20 - c.stats.stress) * 0.3);
   // This year's school grade: the player's effort is their Study time; other kids' is the study above.
   schoolYear(s, rng, c, c.id === me.id ? 1.5 + (s.plan.alloc.learn ?? 0) : study);
@@ -430,11 +430,13 @@ function adultYear(s: GameState, rng: Rng, p: Person) {
 
   // Close branches of the family live their own lives; distant branches stop
   // expanding so long family lines stay cheap to simulate.
-  if (p.householdId === me.householdId || !isCloseKin(s, p)) return;
+  // People living with you marry and start families too (your partner's family plans are yours).
+  if (!isCloseKin(s, p) || (pt && pt.id === me.id)) return;
+  const atHome = p.householdId === me.householdId;
   if (!pt && a >= 22 && a <= 40 && rng.chance(0.15)) {
     const spouse = makeAdultStranger(s, rng, p);
     marry(s, p, spouse);
-    if (isCloseKin(s, p)) journal(s, `${p.firstName} married ${fullName(spouse)}.`, 'good');
+    journal(s, atHome ? `${p.firstName} married ${fullName(spouse)}, who moved in with the family.` : `${p.firstName} married ${fullName(spouse)}.`, 'good');
   }
   const hh = s.households[p.householdId];
   if (pt && pt.householdId === p.householdId && a <= 42 && ageOf(pt, s.year) <= 44 && !hh.pendingBirth
