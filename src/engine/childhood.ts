@@ -45,7 +45,7 @@ export const CHILD_EVENTS: EventDef[] = [
     resolve: (c, ch) => {
       if (ch === 'none') return 'You walked past the sign-up table.';
       c.me.hobby = ch as Hobby;
-      c.me.skills[c.me.hobby] = (c.me.skills[c.me.hobby] ?? 0) + 5;
+      c.me.skills[c.me.hobby] = Math.min(100, (c.me.skills[c.me.hobby] ?? 0) + 5);
       stat(c.me, 'happiness', 4);
       return `You signed up for ${HOBBY_BY_ID[c.me.hobby].label.toLowerCase()}. Plan Practice time to get good at it.`;
     },
@@ -244,7 +244,7 @@ export const CHILD_EVENTS: EventDef[] = [
       if (ch === 'watch') return 'You cheered for your friends and imagined being up there.';
       const skill = c.me.skills[c.me.hobby!] ?? 0;
       if (c.rng.chance(clamp(skill / 80, 0.2, 0.9))) {
-        c.me.skills[c.me.hobby!] = skill + 5;
+        c.me.skills[c.me.hobby!] = Math.min(100, skill + 5);
         stat(c.me, 'happiness', 8);
         bondParents(c, 5, 3);
         flag(c.me, 'showcase_star');

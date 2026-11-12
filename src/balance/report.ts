@@ -5,7 +5,7 @@ import { DEAD_CHECK_MIN, fmt, type BandFailure, type Drift, type Metrics } from 
 import { STRATEGIES, type LifeSample } from './simulate';
 
 export interface Baseline {
-  meta: { lives: number; seedFrom: number; maxYears: number; rulesVersion: string; updated: string };
+  meta: { scale: number; seedFrom: number; maxYears: number; rulesVersion: string; updated: string };
   metrics: Metrics;
 }
 
@@ -17,6 +17,8 @@ export interface ReportInput {
   baseline?: Baseline;
   /** Extra sections (the deep run adds spreads and violations). */
   extra?: string[];
+  /** The lives played (adds the explorer-style table). */
+  samples?: Record<string, LifeSample[]>;
 }
 
 const ROWS: [string, string][] = [
@@ -58,7 +60,7 @@ const cell = (key: string, m: Metrics, base?: Metrics) => {
   return base && base[key] !== undefined ? `${now} <sub>(${fmt(key, base[key])})</sub>` : now;
 };
 
-export function renderReport({ title, metrics: m, failures, drift, baseline, extra = [] }: ReportInput): string {
+export function renderReport({ title, metrics: m, failures, drift, baseline, extra = [], samples }: ReportInput): string {
   const base = baseline?.metrics;
   const hard = failures.filter((f) => !f.known);
   const known = failures.filter((f) => f.known);
@@ -96,13 +98,13 @@ export function renderReport({ title, metrics: m, failures, drift, baseline, ext
   out.push(`Achievements unlocked in at least one life: ${achieved.length - never.length} of ${achieved.length}.`);
   out.push(`Most common: ${[...achieved].sort((a, b) => b.v - a.v).slice(0, 6).map((x) => `${x.a.title} ${fmt('ach.', x.v)}`).join(', ')}.`);
   out.push(`Rare (under ${fmt('ach.', DEAD_CHECK_MIN.ach)} of lives): ${achieved.filter((x) => x.v > 0 && x.v < DEAD_CHECK_MIN.ach).map((x) => x.a.title).join(', ') || 'none'}.`);
-  out.push(`Never reached by the scripted players: ${never.join(', ') || 'none'}.`, '');
+  out.push(`Never reached in any simulated life: ${never.join(', ') || 'none'}.`, '');
   const neverEvents = Object.keys(EVENT_BY_ID).filter((id) => !m[`event.${id}`]);
   out.push(`Events seen: ${Object.keys(EVENT_BY_ID).length - neverEvents.length} of ${Object.keys(EVENT_BY_ID).length}. Never fired: ${neverEvents.join(', ') || 'none'}.`, '');
-  out.push('Scripted players never pick hobbies or sports for themselves, invest, buy upgrades, move cities, adopt dogs or date around, so content behind those choices shows as never reached here.', '');
 
+  if (samples) out.push(...exploreSection(m, samples));
   out.push(...extra);
-  if (baseline) out.push(`<sub>Baseline: ${baseline.meta.lives} lives per style from seed ${baseline.meta.seedFrom}, rules ${baseline.meta.rulesVersion}, updated ${baseline.meta.updated}.</sub>`, '');
+  if (baseline) out.push(`<sub>Baseline: ${baseline.meta.scale}× the standard lives from seed ${baseline.meta.seedFrom}, rules ${baseline.meta.rulesVersion}, updated ${baseline.meta.updated}.</sub>`, '');
   return out.join('\n');
 }
 
@@ -124,3 +126,25 @@ export function spreadSection(samples: Record<string, LifeSample[]>): string[] {
   return out;
 }
 
+
+const MILESTONE_LABEL: Record<string, string> = {
+  varsity: 'varsity', full_ride: 'athletic scholarship', went_pro: 'went pro', all_star: 'All-Star', champion: 'champion',
+  tours: 'served', mil_pension: '20-year pension', purple_heart: 'Purple Heart', degree: 'degree', top_degree: 'top degree',
+  ppl: 'pilot license', cpl: 'commercial license', restored_car: 'restored a car', big_catch: 'big catch', blue_ribbon: 'blue ribbon',
+};
+
+/** The explorer styles: how far their first character got, and the achievements only they reach. */
+export function exploreSection(m: Metrics, samples: Record<string, LifeSample[]>): string[] {
+  const ids = Object.keys(samples).filter((id) => !(STRATEGIES as readonly string[]).includes(id));
+  const out = ['## Explorer play styles', '', 'Goal-driven scripted players that chase one part of the game, so every achievement and event gets exercised.', '', '| Style | Lives | First character’s milestones (share of lives) | Achievements only this style reached |', '|---|---:|---|---|'];
+  for (const id of ids) {
+    const lives = samples[id];
+    const ms = Object.keys(MILESTONE_LABEL).map((k) => [k, m[`${id}.first.${k}`] ?? 0] as const).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]).slice(0, 6);
+    const mine = new Set(lives.flatMap((l) => l.achievements));
+    const others = new Set(Object.entries(samples).filter(([k]) => k !== id).flatMap(([, ls]) => ls.flatMap((l) => l.achievements)));
+    const only = ACHIEVEMENTS.filter((a) => mine.has(a.id) && !others.has(a.id)).map((a) => a.title);
+    out.push(`| ${id} | ${lives.length} | ${ms.map(([k, v]) => `${MILESTONE_LABEL[k]} ${fmt('ach.', v)}`).join(', ') || '—'} | ${only.join(', ') || '—'} |`);
+  }
+  out.push('');
+  return out;
+}

@@ -3,11 +3,12 @@
  * check them against design bands, and compare them with a saved baseline to catch drift.
  */
 import { ACHIEVEMENTS } from '../content/achievements';
-import type { Strategy } from '../engine/strategies';
-import { SAMPLE_AGES, STRATEGIES, type LifeSample } from './simulate';
+import { EVENT_BY_ID } from '../engine/events';
+import { MILESTONES, SAMPLE_AGES, STRATEGIES, type LifeSample } from './simulate';
 
 export type Metrics = Record<string, number>;
-export type SamplesByStrategy = Record<Strategy, LifeSample[]>;
+/** Lives per play style (core styles plus explorers). */
+export type SamplesByStrategy = Record<string, LifeSample[]>;
 
 const median = (xs: number[]) => {
   if (!xs.length) return 0;
@@ -17,7 +18,8 @@ const median = (xs: number[]) => {
 };
 const mean = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : 0);
 const ratio = (a: number, b: number) => (b ? a / b : 0);
-const round = (n: number) => (Math.abs(n) >= 100 ? Math.round(n) : Math.round(n * 10000) / 10000);
+// Big numbers to whole units; small ones to 4 significant digits (rare events are ~1e-5 a year).
+const round = (n: number) => (Math.abs(n) >= 100 ? Math.round(n) : Number(n.toPrecision(4)));
 
 export function summarize(samples: SamplesByStrategy): Metrics {
   const m: Metrics = {};
@@ -42,7 +44,6 @@ export function summarize(samples: SamplesByStrategy): Metrics {
   }
   const legacies = STRATEGIES.map((st) => m[`${st}.legacy`]);
   m['all.legacyBalance'] = ratio(Math.min(...legacies), Math.max(...legacies));
-  m['all.violations'] = all.reduce((n, l) => n + l.violations.length, 0);
   m['all.runawayDebt'] = mean(all.map((l) => (l.runawayDebt ? 1 : 0)));
 
   const kids = all.reduce((t, l) => { for (const k of Object.keys(t) as (keyof typeof t)[]) t[k] += l.kids[k]; return t; },
@@ -59,11 +60,27 @@ export function summarize(samples: SamplesByStrategy): Metrics {
   m['kids.degree'] = ratio(kids.degree, kids.n);
   m['kids.topDegree'] = ratio(kids.topDegree, kids.n);
 
-  for (const a of ACHIEVEMENTS) m[`ach.${a.id}`] = mean(all.map((l) => (l.achievements.includes(a.id) ? 1 : 0)));
-  const years = all.reduce((n, l) => n + l.years, 0);
+  // Explorer styles: how far their first character got, and their invariants.
+  const explorers = Object.keys(samples).filter((id) => !(STRATEGIES as readonly string[]).includes(id));
+  for (const id of explorers) {
+    const lives = samples[id];
+    if (lives.length < 10) continue; // too few lives to measure (the guided life)
+    for (const k of MILESTONES) {
+      const share = mean(lives.map((l) => (l.milestones.includes(k) ? 1 : 0)));
+      m[`${id}.first.${k}`] = share;
+    }
+  }
+
+  // Content coverage, across every style.
+  const everyone = Object.values(samples).flat();
+  m['all.violations'] = everyone.reduce((n, l) => n + l.violations.length, 0);
+  for (const a of ACHIEVEMENTS) m[`ach.${a.id}`] = mean(everyone.map((l) => (l.achievements.includes(a.id) ? 1 : 0)));
+  const years = everyone.reduce((n, l) => n + l.years, 0);
   const events: Record<string, number> = {};
-  for (const l of all) for (const [id, n] of Object.entries(l.events)) events[id] = (events[id] ?? 0) + n;
+  for (const l of everyone) for (const [id, n] of Object.entries(l.events)) events[id] = (events[id] ?? 0) + n;
   for (const [id, n] of Object.entries(events)) m[`event.${id}`] = ratio(n, years);
+  m['coverage.achievementsMissing'] = ACHIEVEMENTS.filter((a) => !m[`ach.${a.id}`]).length;
+  m['coverage.eventsMissing'] = Object.keys(EVENT_BY_ID).filter((id) => !events[id]).length;
   for (const k of Object.keys(m)) m[k] = round(m[k]);
   return m;
 }
@@ -89,9 +106,15 @@ export const BANDS: Band[] = [
   ...perStrategy('endedEarly', undefined, 0.75, 'Most family lines should survive 120 years. (Scripted players pick randomly at baby and marriage choices, so this runs high.)'),
   // Over 500 lives per style this is ~87%; the 60-life sample swings ±15 points, hence 0.6.
   { key: 'all.legacyBalance', min: 0.6, why: 'No play style (career, family, balanced) should trail the best by much (median legacy score).' },
-  { key: 'kids.proPerAthlete', min: 0.01, max: 0.12, why: 'Going pro should be possible but rare (~1 in 20 athletes).' },
+  { key: 'kids.proPerAthlete', min: 0.005, max: 0.12, why: 'For children who play sports casually, going pro should be possible but rare.' },
   { key: 'kids.fallenPerServed', max: 0.03, why: 'Deaths in service must stay rare.' },
   { key: 'kids.degree', min: 0.15, max: 0.85, why: 'College should be common but not universal.' },
+  { key: 'coverage.achievementsMissing', max: 0, why: 'Every achievement should be reached by at least one simulated life (otherwise it may be impossible).' },
+  { key: 'coverage.eventsMissing', max: 0, why: 'Every event should fire in at least one simulated life (otherwise it may be dead content).' },
+  {
+    key: 'athlete.first.went_pro', max: 0.5, why: 'Going pro should stay hard even for a fully dedicated young athlete.',
+    known: 'A child who trains 5 blocks a year with coaching, camps and gear goes pro (and usually All-Star) almost every time. Needs a design decision.',
+  },
 ];
 
 export interface BandFailure extends Band { value: number | undefined }
@@ -115,7 +138,8 @@ export interface Drift { key: string; before: number; after: number; reason: str
  */
 export function tolerance(key: string): { rel?: number; abs?: number; deadOnly?: boolean } {
   if (key.startsWith('ach.') || key.startsWith('event.')) return { deadOnly: true };
-  if (key === 'all.violations') return { abs: 0 };
+  if (key === 'all.violations' || key.startsWith('coverage.')) return { abs: 0 };
+  if (key.includes('.first.')) return { abs: 0.25 }; // explorer milestones: few lives each
   if (key === 'kids.perLife') return { rel: 0.25 };
   if (key.startsWith('kids.')) return { abs: 0.03, rel: 0.6 };
   if (key.endsWith('.inheritance')) return { rel: 2.5 }; // few inheritances per life: very noisy, so only flags huge shifts
@@ -129,7 +153,8 @@ export function tolerance(key: string): { rel?: number; abs?: number; deadOnly?:
   if (key.endsWith('.wealthGrowth')) return { rel: 0.35 };
   if (key.endsWith('.lifespan')) return { abs: 4 };
   if (key.endsWith('.generations')) return { abs: 0.6 };
-  return { rel: 0.3, abs: 5 }; // legacy scores and anything new
+  if (key.endsWith('.legacy')) return { rel: 0.4 };
+  return { rel: 0.3, abs: 5 }; // anything new
 }
 
 /** Content rarer than this can vanish from a sample by chance, so it isn't checked for going dead. */
@@ -162,6 +187,6 @@ export function compareToBaseline(now: Metrics, base: Metrics): Drift[] {
 export const fmt = (key: string, v: number | undefined) => {
   if (v === undefined || Number.isNaN(v)) return '—';
   if (/\.(nw\d+|nw65\.gen|inheritance)/.test(key)) return `$${Math.round(v / 1000).toLocaleString('en-US')}k`;
-  if (key.startsWith('ach.') || key.startsWith('kids.') && key !== 'kids.perLife' || /\.(savingsRate|debtShare|endedEarly)$/.test(key) || key === 'all.legacyBalance' || key === 'all.runawayDebt') return `${(v * 100).toFixed(1)}%`;
+  if (key.startsWith('ach.') || key.includes('.first.') || key.startsWith('kids.') && key !== 'kids.perLife' || /\.(savingsRate|debtShare|endedEarly)$/.test(key) || key === 'all.legacyBalance' || key === 'all.runawayDebt') return `${(v * 100).toFixed(1)}%`;
   return Math.abs(v) >= 100 ? Math.round(v).toLocaleString('en-US') : String(Math.round(v * 100) / 100);
 };

@@ -3,10 +3,15 @@ import { describe, expect, it } from 'vitest';
 import { newGame } from '../engine/generate';
 import { checkBands, compareToBaseline, summarize } from './metrics';
 import { checkInvariants, playLife, playLives, seedRange, STRATEGIES } from './simulate';
+import { PLAY_STYLES } from './playstyles';
 
 describe('balance smoke', () => {
   it('a few lives of each play style break no invariants', { timeout: 60_000 }, () => {
     for (const st of STRATEGIES) for (const seed of [11, 12]) expect(playLife(st, seed, 70).violations, `${st} ${seed}`).toEqual([]);
+  });
+
+  it('one short life of each explorer style breaks no invariants', { timeout: 60_000 }, () => {
+    for (const st of PLAY_STYLES.filter((p) => !p.core)) expect(playLife(st, 11, 50).violations, st.id).toEqual([]);
   });
 
   it('invariant checks catch broken money and stats', () => {

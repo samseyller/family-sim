@@ -301,7 +301,7 @@ const EVENTS: EventDef[] = [
     resolve: (c, ch, k) => {
       if (ch === 'advanced') {
         k!.flags.advanced = 1;
-        k!.skills[k!.hobby!] = (k!.skills[k!.hobby!] ?? 0) + 5;
+        k!.skills[k!.hobby!] = Math.min(100, (k!.skills[k!.hobby!] ?? 0) + 5);
         adjustBond(c.s, c.me.id, k!.id, 5, 2);
         return `${k!.firstName} lit up. Practice is now four days a week.`;
       }
