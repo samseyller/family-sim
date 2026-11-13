@@ -52,6 +52,7 @@ export const FLAG_INFO = {
   care_home: 'Lives in a care home',
   care_support: 'Family helps pay for their care home',
   funeral_held: 'Their funeral has been held',
+  archived: 'A long-gone, never-played character pruned to name, dates and portrait (engine/history.ts)',
   // Moving and family
   moved: 'Times they moved out or moved home',
   moved_year: 'Year they last moved city',

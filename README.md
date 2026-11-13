@@ -135,6 +135,11 @@ e2e/              Playwright tests
 
 ## Saves
 
+- **Long family lines stay small:** once a family is 150 years old, relatives you never played who died more than
+  10 years earlier are pruned to their name, dates and portrait (plus their place in the family tree); the same
+  happens to everyone else when the family is memorialized. Played characters, and their bonds (which the memorial
+  scores), are never pruned (`src/engine/history.ts`).
+
 - The game autosaves to the browser (IndexedDB) after every plan change, decision, and year. The previous
   autosave is kept, so starting a new family, importing, or a damaged save can always be undone.
 - **Menu (🌳) → Saves & backups** exports a `.json` save (this game or a full backup). **Import** checks the file

@@ -21,6 +21,7 @@ import { generateEvents, refreshPending, resolveEvent, stillRelevant } from './e
 import { strategyPlan } from './strategies';
 import { applyCushion } from './tutorial';
 import { autoComeOfAge, die, settleEstates } from './family';
+import { pruneHistory } from './history';
 import { active, ageOf, alive, childrenOf, fullName, journal, partnerOf } from './util';
 
 function begin(state: GameState): { s: GameState; rng: Rng } {
@@ -120,6 +121,7 @@ export function nextYear(state: GameState): GameState {
     return s;
   }
   s.year++;
+  pruneHistory(s); // long games only: forget the details of long-gone relatives
   s.phase = 'PLANNING';
   s.recap = undefined;
   s.snapshot = undefined;
@@ -151,6 +153,7 @@ export function chooseHeir(state: GameState, heirId: string | null): GameState {
   const { s, rng } = begin(state);
   if (!heirId || !eligibleHeirs(s).some((h) => h.id === heirId)) {
     s.phase = 'GAME_OVER';
+    pruneHistory(s, true); // the family is memorialized: keep only names, dates and portraits of the rest
     return end(s, rng);
   }
   const prev = active(s);
