@@ -22,8 +22,9 @@ export const SCHEMA_VERSION = 23;
  * 0.24.0: living relationships (connection preferences, memories, family actions, arcs, close people's initiatives).
  * 0.25.0: aspiration and fulfillment.
  * 0.26.0: changing priorities (reflections, life-stage arcs, aspiration history, sibling rivalry, hobby projects).
+ * 0.27.0: career-specific work moments; at most one a year.
  */
-export const RULES_VERSION = '0.26.0';
+export const RULES_VERSION = '0.27.0';
 export const START_YEAR = 2026;
 
 const TRAITS: Trait[] = ['ambitious', 'kind', 'stubborn', 'curious', 'anxious', 'easygoing', 'creative', 'athletic'];

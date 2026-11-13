@@ -1,4 +1,5 @@
 /** Work and learning: promotions, burnout, layoffs, retirement, night school and new credentials. */
+import { workplace } from './careerEvents';
 import { HOBBY_BY_ID, TIME_BUDGET } from '../content/actions';
 import { readiness } from './retirement';
 import { FULL_RETIREMENT_AGE } from '../content/retirement';
@@ -302,8 +303,10 @@ export const LEARNING_EVENTS: EventDef[] = [
   {
     id: 'workplace_credit',
     major: false,
-    cooldown: 4,
-    candidates: (c) => one(settledInJob(c), 1),
+    work: true,
+    cooldown: 6,
+    // Office politics: offices only.
+    candidates: (c) => one(workplace(c) === 'office', 0.5),
     build: () => ({
       title: 'Stolen credit',
       text: 'A coworker presents your idea in a meeting as their own.',

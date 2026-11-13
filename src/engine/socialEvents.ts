@@ -4,7 +4,8 @@ import { afterTogether, canMakeFriends, friendsOf, makeFriend } from './friends'
 import { makeAdultStranger } from './generate';
 import { marry } from './family';
 import { adjustBond, ageOf, getBond, money, partnerOf, stat } from './util';
-import { age, one, settledInJob, wallet, type EventDef } from './eventKit';
+import { age, one, wallet, type EventDef } from './eventKit';
+import { HAS_COWORKERS, workplace } from './careerEvents';
 import { charge, credit, hasCash } from './money';
 
 export const FRIEND_EVENTS: EventDef[] = [
@@ -12,8 +13,10 @@ export const FRIEND_EVENTS: EventDef[] = [
   {
     id: 'coworker_lunch',
     major: false,
-    cooldown: 3,
-    candidates: (c) => one(age(c, c.me) >= 18 && settledInJob(c) && canMakeFriends(c.s, c.me), 1.4),
+    work: true,
+    cooldown: 6,
+    // Only where you have everyday coworkers (not on deployment, on tour, or running your own shop).
+    candidates: (c) => one(age(c, c.me) >= 18 && HAS_COWORKERS.includes(workplace(c) as never) && canMakeFriends(c.s, c.me), 0.3),
     build: () => ({
       title: 'Lunch invitation',
       text: 'A coworker you get along with asks if you want to grab lunch sometime.',

@@ -37,6 +37,8 @@ export interface EventDef {
   stage?: 'adult' | 'child' | 'any';
   /** Harsh events, held back early in the guided first playthrough. */
   severe?: boolean;
+  /** A work moment: at most one comes up a year (see generateEvents and careerEvents.ts). */
+  work?: boolean;
 }
 
 export const wallet = (c: Ctx) => c.s.households[c.me.householdId];

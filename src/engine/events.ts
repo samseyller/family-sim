@@ -19,6 +19,7 @@ import { HEALTH_EVENTS } from './healthEvents';
 import { PERSONALITY_EVENTS } from './personalityEvents';
 import { RELATIONSHIP_EVENTS } from './relationshipEvents';
 import { ASPIRATION_EVENTS } from './aspirationEvents';
+import { CAREER_EVENTS } from './careerEvents';
 import { scriptedPhase, severeGuard } from './tutorial';
 import { makeRng, type Rng } from './rng';
 import type { GameState, PendingEvent } from './types';
@@ -39,6 +40,7 @@ const ALL_EVENTS: EventDef[] = [
   ...PERSONALITY_EVENTS,
   ...RELATIONSHIP_EVENTS,
   ...ASPIRATION_EVENTS,
+  ...CAREER_EVENTS,
 ];
 
 export const EVENT_BY_ID: Record<string, EventDef> = Object.fromEntries(ALL_EVENTS.map((e) => [e.id, e]));
@@ -81,18 +83,21 @@ export function generateEvents(s: GameState, rng: Rng) {
     for (const cand of def.candidates(c)) if (cand.weight > 0) eligible.push({ def, cand });
   }
 
+  // At most one work moment a year: once one is pending, other work events wait.
+  let workUsed = s.pending.some((p) => EVENT_BY_ID[p.eventId]?.work);
+  const allowed = (e: { def: EventDef }) => !(workUsed && e.def.work);
   if (!s.pending.some((p) => p.major)) {
-    const urgent = eligible.filter((e) => e.def.major && e.cand.urgent);
+    const urgent = eligible.filter((e) => e.def.major && e.cand.urgent && allowed(e));
     let pick = rng.weighted(urgent.map((e) => [e, e.cand.weight] as const));
     // Random majors wait until the guided playthrough opens up; scripted and life-stage beats still happen.
     if (!pick && !scriptedPhase(s)) {
       const since = s.year - s.lastMajorYear;
       const chance = since < 3 ? 0 : Math.min(0.9, (since - 2) * 0.3);
       if (rng.chance(chance)) {
-        pick = rng.weighted(eligible.filter((e) => e.def.major).map((e) => [e, e.cand.weight] as const));
+        pick = rng.weighted(eligible.filter((e) => e.def.major && allowed(e)).map((e) => [e, e.cand.weight] as const));
       }
     }
-    if (pick) pushPending(c, pick.def, pick.cand.subject, true);
+    if (pick) { pushPending(c, pick.def, pick.cand.subject, true); if (pick.def.work) workUsed = true; }
   } else {
     // Something major already happened this year; long-overdue news (a promotion earned years
     // ago) still comes, so a run of bad luck can't hold it back forever.
@@ -100,7 +105,7 @@ export function generateEvents(s: GameState, rng: Rng) {
     if (pick) pushPending(c, pick.def, pick.cand.subject, true);
   }
 
-  let minors = eligible.filter((e) => !e.def.major);
+  let minors = eligible.filter((e) => !e.def.major && allowed(e));
   let count = 0;
   while (minors.length && count < MAX_MINOR) {
     const pick = rng.weighted(minors.map((e) => [e, e.cand.weight] as const))!;
@@ -108,6 +113,7 @@ export function generateEvents(s: GameState, rng: Rng) {
     if (!rng.chance(0.55)) continue;
     pushPending(c, pick.def, pick.cand.subject, true);
     count++;
+    if (pick.def.work) { workUsed = true; minors = minors.filter(allowed); }
   }
 }
 

@@ -336,6 +336,15 @@ for random). When your baby is born, a naming event offers suggestions or lets y
 
 ## Jobs and the job market
 
+- **Work moments fit the job** (`src/engine/careerEvents.ts`): every full-time career belongs to a kind of workplace
+  (office, clinic, school, job site, shop floor, the road, first responders, the stage, the military, pro sports, your
+  own business), and work moments only come up where they make sense: a double shift or a grateful patient at the
+  clinic, a breakthrough student or an angry parent at school, a safety call or a rush job on site, a rude customer or
+  the holiday rush on the shop floor, a long haul on the road, a close call for responders, opening night on stage,
+  mail call and your unit in the military, a cash-flow crunch in your own business, crunch time at the office.
+  Coworker lunches only happen where you have coworkers; stolen credit only in offices. Nothing at work in your
+  first year at a new job, and at most one work moment a year.
+
 - **Config:** every job lives in `src/content/careers.ts` (`CAREERS`): id, name, full- or part-time, industry
   (`sector`), base pay (before the city's pay index), expected time blocks, stress, minimum smarts, and any
   requirement (`degree`, `trade_cert`, `top_degree`, or a hobby skill). Salary rises 30% per level
