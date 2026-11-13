@@ -96,6 +96,8 @@ export interface Person {
   education?: { program: Program; progress: number; required: number; startYear: number };
   /** What they want from life right now (chosen at adulthood, or suggested from their interests). */
   aspiration?: Aspiration;
+  /** Earlier aspirations, oldest first (at most four), for memorials and continuity. */
+  pastAspirations?: { aspiration: Aspiration; until: number }[];
   /** 0–100, slow: how well life has been serving their aspiration (set once simulated). */
   fulfillment?: number;
   /** How they most like to be cared for (set once it has changed; otherwise derived: see relationships.ts). */

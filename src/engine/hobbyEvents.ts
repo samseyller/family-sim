@@ -199,14 +199,16 @@ export const HOBBY_EVENTS: EventDef[] = [
     stage: 'any',
     major: false,
     cooldown: 4,
+    // The project car, or an old family car that needs some love (less often).
     candidates: (c) => {
       const car = wallet(c).assets.find((a) => a.gear === 'project_car' && (a.restore ?? 0) < 100);
-      if (!adult(c) || !car) return [];
-      return kidsAtHome(c.s, c.me).filter((k) => ageOf(k, c.s.year) >= 8).slice(0, 1).map((k) => ({ weight: 1.2, subject: k }));
+      const oldCar = wallet(c).assets.some((a) => a.kind === 'car' && !a.broken && (a.age ?? 0) >= 10);
+      if (!adult(c) || (!car && !oldCar)) return [];
+      return kidsAtHome(c.s, c.me).filter((k) => ageOf(k, c.s.year) >= 8).slice(0, 1).map((k) => ({ weight: car ? 1.2 : 0.25, subject: k }));
     },
     build: (_c, kid) => ({
       title: 'A helper in the garage',
-      text: `${kid!.firstName} has been hanging around the garage while you work on the project car, asking what everything does.`,
+      text: `${kid!.firstName} has been hanging around the garage while you work on the ${wallet(_c).assets.some((a) => a.gear === 'project_car' && (a.restore ?? 0) < 100) ? 'project car' : 'old family car'}, asking what everything does.`,
       choices: [
         { id: 'together', label: `Hand ${kid!.firstName} a wrench`, hint: 'Slower work, a lot of talking' },
         { id: 'alone', label: 'Shoo them out; you need to concentrate', hint: 'Faster progress' },

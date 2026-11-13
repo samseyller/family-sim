@@ -50,6 +50,7 @@ export const ProfileSchema = z.object({
           deathYear: z.number().int().optional(),
           title: z.string(),
           knownFor: z.string(),
+          aim: z.string().optional(),
           epitaph: z.string().max(EPITAPH_MAX),
           children: z.number().int().nonnegative(),
           highlights: z.array(z.string()),

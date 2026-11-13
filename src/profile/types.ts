@@ -49,6 +49,8 @@ export interface ArchivedMember {
   deathYear?: number;
   title: string;
   knownFor: string;
+  /** What they sought in life (optional; families archived before aspirations have none). */
+  aim?: string;
   /** Generated at the end of the story; the player can rewrite it. */
   epitaph: string;
   children: number;

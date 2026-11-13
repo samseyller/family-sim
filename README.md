@@ -495,8 +495,20 @@ Traits change how someone *reacts* to what they do, never what they can do or wh
   or a new aspiration (with two years' grace to settle in).
 - **New activities:** share something you made, mentor someone younger in the family, volunteer together, plan a
   modest road trip, and set a household goal. Each is worthwhile whatever your aspiration.
+- **Changing priorities:** after a first child, a loss, a move, ten years at the same job (for achievers), or three
+  years in a row of mostly serving a different aspiration, a "Taking stock" moment asks whether yours still fits:
+  keep it, adapt it (a fresh start), switch to what you've been drifting toward, or choose anew. At most once every
+  six years; never for a single bad year. Changing keeps everything you earned and comes with two years' grace.
+  Earlier aspirations are remembered (at most four).
+- **Life-stage arcs:** an ambitious parent at a work-or-family crossroads (with a look back three years later), a
+  creative teenager choosing their craft or a practical path, and a retiree finding a new purpose (service, mastery
+  or family). Plus sibling rivalry between your kids, and a hobby project together (they pick up some of your skill).
+- **Close people** may change what they want when they become parents or retire (noted in the recap).
+- **Stories across generations:** an heir is introduced with what the last generation sought ("Sam sought
+  connection, and found it"), and memorials show each played character's aim.
 - **Balance:** each core play style's average fulfillment from 22 on stays between 38 and 75 (about 46–48 for scripted
-  players who never chase their aspiration).
+  players who never chase their aspiration). Aspirations change about twice a life at most on average, are spread
+  evenly, and none is a money strategy (`aspirations.nwSpread`, median net worth at 65 by aspiration).
 
 ## Activities, retirement, and the guided first life
 

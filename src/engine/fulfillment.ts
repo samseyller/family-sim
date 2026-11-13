@@ -80,8 +80,7 @@ export interface FulfillmentYear {
 }
 
 /** How well a year served an aspiration: -1 (worked against it) to 1 (fully served it), with the main reason. */
-export function aspirationSignal(s: GameState, p: Person, y: FulfillmentYear): { signal: number; why: string } {
-  const asp = aspirationOf(p);
+export function aspirationSignal(s: GameState, p: Person, y: FulfillmentYear, asp: Aspiration = aspirationOf(p)): { signal: number; why: string } {
   const acts = y.activities.filter(SERVES[asp]).length;
   const age = ageOf(p, s.year);
   const hh = s.households[p.householdId];
@@ -122,6 +121,70 @@ export function aspirationSignal(s: GameState, p: Person, y: FulfillmentYear): {
   }
 }
 
+/**
+ * Change someone's aspiration: the old one goes into a short history (memorials remember it), and a new direction
+ * gets a grace period so admitting an old dream no longer fits never costs fulfillment.
+ */
+export function setAspiration(p: Person, a: Aspiration, year: number, grace = 2) {
+  const old = p.aspiration;
+  if (old === a) return;
+  if (old) {
+    p.pastAspirations = [...(p.pastAspirations ?? []), { aspiration: old, until: year }].slice(-4);
+    p.flags.aspiration_grace = year + grace;
+  }
+  p.aspiration = a;
+}
+
+/** The aspiration a year served best, if it clearly beat the person's own (for noticing a new interest). */
+export function drifting(s: GameState, p: Person, y: FulfillmentYear): Aspiration | undefined {
+  const own = aspirationSignal(s, p, y).signal;
+  if (own > 0) return undefined;
+  const best = ASPIRATIONS.filter((a) => a !== aspirationOf(p)).map((a) => ({ a, v: aspirationSignal(s, p, y, a).signal })).sort((x, z) => z.v - x.v)[0];
+  return best && best.v >= 0.5 ? best.a : undefined;
+}
+
+/** Why a reflection came up (stored as an index in flags.reflect_reason). */
+export const REFLECT_REASONS = ['parenthood', 'loss', 'move', 'plateau', 'drift'] as const;
+export type ReflectReason = (typeof REFLECT_REASONS)[number];
+/** At most one reflection this many years apart. */
+export const REFLECT_GAP = 6;
+
+/**
+ * Should the active character pause and reflect on what they want? After a meaningful change (a first child, a
+ * loss, a move, a long plateau for an achiever) or three years in a row of mostly serving a different aspiration.
+ * Never for a single bad year, and at most once every REFLECT_GAP years. Updates the drift counter (in place).
+ */
+export function reflectionDue(s: GameState, p: Person, y: FulfillmentYear): { reason: ReflectReason; suggest?: Aspiration } | undefined {
+  const d = drifting(s, p, y);
+  if (d) { p.flags.drift_years = (p.flags.drift_years ?? 0) + 1; p.flags.drift_to = ASPIRATIONS.indexOf(d); }
+  else { delete p.flags.drift_years; delete p.flags.drift_to; }
+  if (!p.aspiration || s.year - (p.flags.reflect_year ?? -99) < REFLECT_GAP) return undefined;
+  const kids = childrenOf(s, p.id);
+  const lost = [partnerOfAny(s, p), ...kids, ...parentsOf(s, p)].some((x) => x && x.deathYear === s.year - 1);
+  if (kids.length === 1 && kids[0].birthYear === s.year - 1) return { reason: 'parenthood', suggest: p.aspiration === 'connection' ? undefined : 'connection' };
+  if (lost) return { reason: 'loss', suggest: p.aspiration === 'connection' ? 'service' : 'connection' };
+  if (p.flags.moved_year === s.year - 1) return { reason: 'move', suggest: p.aspiration === 'exploration' ? undefined : 'exploration' };
+  if (p.aspiration === 'achievement' && p.jobYears >= 10) return { reason: 'plateau', suggest: 'mastery' };
+  if ((p.flags.drift_years ?? 0) >= 3) return { reason: 'drift', suggest: ASPIRATIONS[p.flags.drift_to ?? 0] };
+  return undefined;
+}
+
+/** A partner, including one who died (for noticing a loss). */
+const partnerOfAny = (s: GameState, p: Person) => {
+  const ps = [...s.partnerships].reverse().find((x) => (x.a === p.id || x.b === p.id) && (x.status === 'married' || x.status === 'widowed' || x.status === 'dating'));
+  return ps ? s.people[ps.a === p.id ? ps.b : ps.a] : undefined;
+};
+
+/** What someone sought in life, told briefly ("Sought mastery, then connection, and found it"). */
+export function aimText(p: Person): string | undefined {
+  if (!p.aspiration) return undefined;
+  const path = [...(p.pastAspirations ?? []).map((x) => x.aspiration), p.aspiration].filter((a, i, all) => i === 0 || a !== all[i - 1]);
+  const names = path.map((a) => ASPIRATION_INFO[a].label.toLowerCase());
+  const sought = names.length > 1 ? `${names.slice(0, -1).join(', ')}, then ${names[names.length - 1]}` : names[0];
+  const f = p.fulfillment ?? 50;
+  return `Sought ${sought}${f >= 65 ? ', and found it' : f < 40 ? ', though it was hard to find' : ''}.`;
+}
+
 /** Hard circumstances that should temper expectations, not punish them. */
 export function constrained(s: GameState, p: Person): string | undefined {
   if (p.stats.health < 40) return 'your health';
@@ -150,9 +213,17 @@ export function updateFulfillment(s: GameState, p: Person, y: FulfillmentYear): 
 }
 
 /** Close people's fulfillment, from their life rather than a plan (coarser). */
-export function npcFulfillmentYear(s: GameState, people: Person[]) {
+export function npcFulfillmentYear(s: GameState, people: Person[], note?: (text: string) => void) {
   for (const p of people) {
     if (ageOf(p, s.year) < 18) continue;
+    // A life transition can change what someone wants (half the time; stable per person and year).
+    const firstChild = childrenOf(s, p.id).length === 1 && childrenOf(s, p.id)[0].birthYear === s.year;
+    const retiredNow = p.flags.retired_year === s.year;
+    const next: Aspiration | undefined = firstChild ? 'connection' : retiredNow ? (p.traits.includes('kind') ? 'service' : 'connection') : undefined;
+    if (next && aspirationOf(p) !== next && [...`${p.id}:${s.year}:revise`].reduce((a, ch) => (Math.imul(a, 31) + ch.charCodeAt(0)) >>> 0, 7) % 2 === 0) {
+      setAspiration(p, next, s.year);
+      note?.(`${p.firstName} has been rethinking what matters: ${firstChild ? 'with a baby on the way, family comes first now' : 'in retirement, it\'s ' + ASPIRATION_INFO[next].label.toLowerCase()}.`);
+    }
     const before = p.fulfillment ?? initialFulfillment(s, p);
     const asp = aspirationOf(p);
     const partner = partnerOf(s, p.id);

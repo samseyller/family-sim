@@ -1,7 +1,7 @@
 import { CREATIVE_HOBBIES, reaction, scaled, yearTendencies, type Reaction, type Situation } from './personality';
 import { activitySituation } from './activitySituations';
 import { receiverFactor, remember } from './relationships';
-import { ASPIRATION_INFO, aspirationOf, updateFulfillment } from './fulfillment';
+import { ASPIRATION_INFO, ASPIRATIONS, aspirationOf, REFLECT_REASONS, reflectionDue, updateFulfillment } from './fulfillment';
 import { HOBBY_BY_ID } from '../content/actions';
 import { DEBT_RATE, LIFESTYLES, NPC_DEBT_FLOOR, SAVINGS_RATE } from '../content/economy';
 import { charge, credit, payDownDebt } from './money';
@@ -323,13 +323,22 @@ export function applyPlan(s: GameState, rng: Rng): number {
       s.scheduled.push({ dueYear: s.year, eventId: 'choose_aspiration', subjectId: me.id });
     }
     const kids = kidsAtHome(s, me);
-    const f = updateFulfillment(s, me, {
+    const fy = {
       partnerBlocks: g('partner_time'),
       childBlocks: kids.reduce((n, k) => n + g(`child_time:${k.id}`) + g(`homework:${k.id}`), 0),
       outing: g('family_outing'), socialize: g('socialize'), practice: g('practice'), learn: g('learn') + g('study'),
       workSurplus, neglect, activities: thisYear,
-    });
+    };
+    const f = updateFulfillment(s, me, fy);
     if (Math.abs(f.delta) >= 3) journal(s, `${ASPIRATION_INFO[aspirationOf(me)].icon} Fulfillment ${f.delta > 0 ? 'rose' : 'fell'}: ${f.why}.`, 'info');
+    // A meaningful change (or years drifting toward something else) brings a moment to reflect.
+    const due = reflectionDue(s, me, fy);
+    if (due) {
+      me.flags.reflect_year = s.year;
+      me.flags.reflect_reason = REFLECT_REASONS.indexOf(due.reason);
+      me.flags.reflect_suggest = due.suggest ? ASPIRATIONS.indexOf(due.suggest) : -1;
+      s.scheduled.push({ dueYear: s.year, eventId: 'aspiration_reflection', subjectId: me.id });
+    }
   }
 
   // Baseline life pressure.

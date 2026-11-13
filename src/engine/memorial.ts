@@ -1,4 +1,5 @@
 import { jobTitle } from '../content/careers';
+import { aimText } from './fulfillment';
 import type { GameState, JournalEntry, Person } from './types';
 import { ageOf, alive, childrenOf, getBond, membersOf } from './util';
 
@@ -8,6 +9,8 @@ export interface MemorialEntry {
   lifespan: string;
   children: number;
   knownFor: string;
+  /** What they sought in life ("Sought mastery, and found it."), if known. */
+  aim?: string;
   epitaph: string;
   highlights: JournalEntry[];
 }
@@ -59,6 +62,7 @@ export function buildMemorial(s: GameState): Memorial {
       lifespan: `${p.birthYear}–${p.deathYear ?? 'present'} (${ageOf(p, s.year)})`,
       children: childrenOf(s, id).length,
       knownFor: knownFor(s, p),
+      aim: aimText(p),
       epitaph: epitaphFor(s, p, knownFor(s, p)),
       highlights: s.journal.filter((j) => j.who === id && (j.kind === 'major' || j.kind === 'birth')).slice(0, 6),
     };

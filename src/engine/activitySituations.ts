@@ -32,7 +32,7 @@ const SITUATIONS: Record<string, Situation> = {
   // Something new
   try_new_together: 'newThing',
   // Aspiration activities
-  share_creation: 'practice', mentor: 'help', volunteer_together: 'help', road_trip: 'travel', household_goal: 'familyOuting',
+  share_creation: 'practice', hobby_project_together: 'familyOuting', mentor: 'help', volunteer_together: 'help', road_trip: 'travel', household_goal: 'familyOuting',
 };
 
 export const activitySituation = (id: string): Situation | undefined => SITUATIONS[id];

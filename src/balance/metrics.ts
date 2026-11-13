@@ -86,6 +86,21 @@ export function summarize(samples: SamplesByStrategy): Metrics {
   }
   if (traitLegacy.length) m['traits.legacySpread'] = ratio(Math.min(...traitLegacy), Math.max(...traitLegacy));
 
+  // Aspirations: how often they change (not flipping), how they are spread, and that none is a money strategy.
+  const withAsp = core.filter((l) => l.firstAspiration);
+  if (withAsp.length) {
+    m['aspirations.changesPerLife'] = mean(withAsp.map((l) => l.aspirationChanges));
+    m['aspirations.changedShare'] = mean(withAsp.map((l) => (l.aspirationChanges ? 1 : 0)));
+    const nw: number[] = [];
+    for (const a of ['connection', 'mastery', 'achievement', 'exploration', 'security', 'service']) {
+      const lives = withAsp.filter((l) => l.firstAspiration === a);
+      m[`aspirations.${a}.share`] = ratio(lives.length, withAsp.length);
+      const v = lives.flatMap((l) => l.netWorth65.filter(([g]) => g === 1).map(([, x]) => x));
+      if (v.length >= 8) nw.push(median(v));
+    }
+    if (nw.length >= 3) m['aspirations.nwSpread'] = ratio(Math.min(...nw), Math.max(...nw));
+  }
+
   // Hobby careers: the best a dedicated hobbyist earns on their path, against a career-focused player's best pay.
   const hobby = (samples.hobbyist ?? []).map((l) => l.peakHobbyPay).filter((x) => x > 0);
   if (hobby.length) {
@@ -134,6 +149,9 @@ export const BANDS: Band[] = [
   { key: 'coverage.achievementsMissing', max: 0, why: 'Every achievement should be reached by at least one simulated life (otherwise it may be impossible).' },
   { key: 'coverage.eventsMissing', max: 0, why: 'Every event should fire in at least one simulated life (otherwise it may be dead content).' },
   ...perStrategy('fulfillment', 38, 75, 'Fulfillment (average from 22 on) stays reasonable for scripted players who never chase their aspiration, and never maxes out without trying.'),
+  { key: 'aspirations.changesPerLife', max: 2, why: 'Aspirations change for reasons, now and then; they never flip repeatedly (two changes a life at most on average).' },
+  { key: 'aspirations.changedShare', min: 0.05, why: 'Some lives do change direction (otherwise reflection never matters).' },
+  { key: 'aspirations.nwSpread', min: 0.4, why: 'No starting aspiration is a clearly better money strategy (median net worth at 65 by aspiration within 2.5×; small groups, so loose).' },
   { key: 'traits.legacySpread', min: 0.85, why: 'No personality trait should be a clearly better way to live: the weakest trait’s average life (bonds, achievement, wellbeing) stays within 15% of the strongest.' },
   { key: 'hobbyist.hobbyPayVsCareer', min: 0.7, max: 1.5, why: 'A dedicated hobbyist’s best pay on their path should land near a career-focused player’s best (hobby careers are a real alternative to university, with more variance).' },
   { key: 'athlete.first.went_pro', min: 0.03, max: 0.35, why: 'Even a fully dedicated young athlete should only sometimes have the talent to go pro.' },
@@ -163,6 +181,7 @@ export function tolerance(key: string): { rel?: number; abs?: number; deadOnly?:
   if (key === 'all.violations' || key.startsWith('coverage.')) return { abs: 0 };
   if (key.includes('.first.')) return { abs: 0.35 };
   if (key.endsWith('.fulfillment')) return { abs: 6 };
+  if (key.startsWith('aspirations.')) return key.endsWith('.share') ? { abs: 0.12 } : key === 'aspirations.nwSpread' ? { abs: 0.35 } : { abs: 0.6 };
   if (key.startsWith('traits.')) return key === 'traits.legacySpread' ? { abs: 0.2 } : { rel: 0.5 }; // 20–45 lives per trait: noisy // explorer milestones: 20–60 lives each, so noisy
   if (key === 'kids.perLife') return { rel: 0.25 };
   if (key.startsWith('kids.')) return { abs: 0.03, rel: 0.6 };

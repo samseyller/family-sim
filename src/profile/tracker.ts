@@ -36,6 +36,7 @@ export function archiveEntry(s: GameState, now: string): ArchivedFamily {
       deathYear: e.person.deathYear,
       title: e.title,
       knownFor: e.knownFor,
+      ...(e.aim ? { aim: e.aim } : {}),
       epitaph: e.epitaph,
       children: e.children,
       // Told about them ("Joe married Ana"), not "You married Ana".

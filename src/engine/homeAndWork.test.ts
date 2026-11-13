@@ -56,7 +56,7 @@ describe('a full house', () => {
   it('grown children living at home still marry and have children', () => {
     let married = 0;
     let babies = 0;
-    for (let seed = 5200; seed < 5215; seed++) {
+    for (let seed = 5200; seed < 5230; seed++) {
       let s = newGame(seed);
       const kid = kidsAtHome(s, active(s))[0];
       if (!kid) continue;
@@ -70,7 +70,7 @@ describe('a full house', () => {
       if (k.householdId === active(s).householdId && partnerOf(s, k.id)) married++;
       babies += childrenOf(s, k.id).filter((b) => b.householdId === active(s).householdId).length;
     }
-    expect(married).toBeGreaterThan(2);
+    expect(married).toBeGreaterThan(4);
     expect(babies).toBeGreaterThan(0);
   });
 

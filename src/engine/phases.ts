@@ -24,7 +24,7 @@ import { autoComeOfAge, die, settleEstates } from './family';
 import { pruneHistory, trimJournal } from './history';
 import { relationshipsYear } from './relationships';
 import { closePeople, npcIntentions } from './agency';
-import { npcFulfillmentYear } from './fulfillment';
+import { ASPIRATION_INFO, aimText, npcFulfillmentYear } from './fulfillment';
 import { active, ageOf, alive, childrenOf, fullName, journal, partnerOf } from './util';
 
 function begin(state: GameState): { s: GameState; rng: Rng } {
@@ -86,7 +86,7 @@ export function resolveYear(state: GameState): GameState {
   homeLife(s); //                       perks of pools, gyms and the like
   rollMisfortunes(s, rng); //           accidents, fires, floods, bills, family in need
   npcIntentions(s); //                  close people act on intentions of their own
-  npcFulfillmentYear(s, closePeople(s)); // and how their lives are going
+  npcFulfillmentYear(s, closePeople(s), (t) => journal(s, t, 'info')); // and how their lives are going
   if (alive(active(s))) generateEvents(s, rng); // 5 + 7. due consequences and events
 
   if (s.pending.length) s.phase = 'DECISIONS';
@@ -173,7 +173,8 @@ export function chooseHeir(state: GameState, heirId: string | null): GameState {
   // Money rules: the household continues if anyone survives; emptied households
   // were already settled exactly once in settleEstates. Nothing transfers here.
   settleEstates(s);
-  journal(s, `After ${prev.firstName}'s passing, the story continues with ${fullName(heir)}.`, 'major');
+  const sought = aimText(prev);
+  journal(s, `After ${prev.firstName}'s passing, the story continues with ${fullName(heir)}.${sought ? ` ${prev.firstName} ${sought.charAt(0).toLowerCase()}${sought.slice(1)}` : ''}${heir.aspiration ? ` ${heir.firstName} wants ${ASPIRATION_INFO[heir.aspiration].label.toLowerCase()} from life.` : ''}`, 'major');
   s.pending = [];
   s.recap = undefined;
   s.snapshot = undefined;

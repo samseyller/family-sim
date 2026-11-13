@@ -27,6 +27,19 @@ export const HOBBY_ACTIVITIES: ActivityDef[] = [
     run: (c) => earn(c, 'cooking', 800, 32, 'Guests asked for your card', 'chef_kitchen'),
   },
   {
+    id: 'hobby_project_together', category: 'hobby', icon: '🧩', label: 'A hobby project together', who: 'household', min: 1, max: 2, ages: [10, 120],
+    requires: (_s, me) => (me.hobby ? null : 'Pick up a hobby first.'),
+    desc: 'Build, cook, grow or play something together over a few weekends; they pick up some of your skill.',
+    energy: flat(16), cost: flat(100), perYear: 2,
+    run: (c) => {
+      const h = c.me.hobby!;
+      bondAll(c, 5, 3);
+      for (const p of c.people) p.skills[h] = Math.min(100, (p.skills[h] ?? 0) + 3);
+      c.me.skills[h] = Math.min(100, (c.me.skills[h] ?? 0) + 1);
+      return { text: `You and ${names(c.people)} finished it together. It's a little crooked, and everyone is proud of it.`, tone: 'good' };
+    },
+  },
+  {
     id: 'share_creation', category: 'hobby', icon: '🖼️', label: 'Share something you made', who: 'household', min: 0,
     requires: (_s, me) => (me.hobby && (me.skills[me.hobby] ?? 0) >= 20 ? null : 'Make something first: a hobby at skill 20 or more.'),
     desc: 'A song, a painting, a meal, a birdhouse: show the people you love what you’ve been working on.',

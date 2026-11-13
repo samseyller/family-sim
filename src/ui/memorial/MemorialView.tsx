@@ -74,6 +74,7 @@ export function MemorialView({ family, onEpitaph }: { family: ArchivedFamily; on
                   {m.birthYear}–{m.deathYear ?? 'present'}
                   {m.title ? ` · ${m.title}` : ''} · {m.children} child{m.children === 1 ? '' : 'ren'}
                 </div>
+                {m.aim && <div className="hint">{m.aim}</div>}
                 <Epitaph m={m} onSave={onEpitaph ? (t) => onEpitaph(m.id, t) : undefined} />
                 {m.highlights.length > 0 && (
                   <ul className="journal-list memorial-highlights">

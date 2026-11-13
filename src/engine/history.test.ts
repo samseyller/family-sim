@@ -8,6 +8,15 @@ import { buildMemorial } from './memorial';
 import type { GameState } from './types';
 import { alive } from './util';
 
+/** The first of a few lines (tycoon then socialite seeds) that lasts at least `years` (lines can die out). */
+function lastingGame(years: number): GameState {
+  for (const style of ['tycoon', 'socialite']) for (let seed = 501; seed < 515; seed++) {
+    const s = longGame(style, seed, years);
+    if (s.year - START_YEAR >= years - 1 && s.phase !== 'GAME_OVER') return s;
+  }
+  throw new Error(`no line lasted ${years} years`);
+}
+
 /** Play a family line and keep the state from the year before it reaches `years`. */
 function longGame(style: string, seed: number, years: number): GameState {
   let last: GameState | undefined;
@@ -23,7 +32,7 @@ describe('pruning history', () => {
   });
 
   it('in long games, keeps names, dates and portraits of long-dead, never-played people', { timeout: 60_000 }, () => {
-    const s = longGame('tycoon', 504, 200);
+    const s = lastingGame(200);
     expect(s.year - START_YEAR).toBeGreaterThanOrEqual(PRUNE_AFTER_YEARS);
     const archived = Object.values(s.people).filter((p) => p.flags.archived);
     expect(archived.length).toBeGreaterThan(20);
@@ -71,7 +80,7 @@ describe('journal tiers', () => {
   });
 
   it('keeps the first entry of the story and every memorial highlight, and shrinks long saves', { timeout: 60_000 }, () => {
-    const s = longGame('tycoon', 504, 200);
+    const s = lastingGame(200);
     expect(s.journal[0].text).toMatch(/^Your story begins/);
     const oldest = Math.min(...s.journal.filter((j) => j.kind === 'info').map((j) => j.year));
     expect(s.year - oldest).toBeLessThan(JOURNAL_KEEP_YEARS.info);
