@@ -82,6 +82,10 @@ one flat set of metrics (`src/balance/`). Lives run in parallel across CPU cores
   any change that adds a random roll reshuffles every life (four other seed sets show no drift; eight show full
   coverage). When a change is meant to shift the balance, run `npm run balance:update`, review the before/after
   table it prints, and commit the new baseline.
+- **Golden trace** (`src/balance/golden.test.ts`, part of `npm test`): every play style plays two fixed lives for 80
+  years, and the whole game state is fingerprinted each year. It also pins the order of the event and activity
+  registries (event order feeds a weighted random pick). A pure refactor must reproduce every fingerprint exactly.
+  When a change is meant to alter gameplay, update the snapshot with `npx vitest run src/balance/golden.test.ts -u`.
 - **Where it runs:** `npm test` includes a quick smoke (a few short lives of every style must break no invariants).
   `npm run test:balance` is the full gate (~20s): run it before merging gameplay or economy changes.
   `npm run balance` prints the same report. `npm run balance:deep` is the occasional deep check (~2–3 min): about 8×

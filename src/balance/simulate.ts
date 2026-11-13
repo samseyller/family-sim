@@ -68,8 +68,11 @@ export function checkInvariants(s: GameState): string[] {
   return out;
 }
 
-/** Play one family line for up to `maxYears` with a play style; its preferred event choices, else random valid ones. */
-export function playLife(styleId: string | PlayStyle, seed: number, maxYears = 120): LifeSample {
+/**
+ * Play one family line for up to `maxYears` with a play style; its preferred event choices, else random valid ones.
+ * `observe` sees the state at the end of every played year (the golden-trace test fingerprints it).
+ */
+export function playLife(styleId: string | PlayStyle, seed: number, maxYears = 120, observe?: (s: GameState) => void): LifeSample {
   const style = typeof styleId === 'string' ? STYLE_BY_ID[styleId] : styleId;
   const r = makeRng(seed * 31 + 7);
   let s = newGame(seed, style.start);
@@ -120,6 +123,7 @@ export function playLife(styleId: string | PlayStyle, seed: number, maxYears = 1
       return (want.map((id) => ok.find((c) => c.id === id)).find(Boolean) ?? r.pick(ok)).id;
     }));
     for (const v of checkInvariants(s)) violate(v);
+    observe?.(s);
     for (const j of s.journal.slice(journalLen)) {
       const m = /^You inherited \$([\d,]+)/.exec(j.text);
       if (m) sample.inheritances.push(Number(m[1].replace(/,/g, '')));
