@@ -3,7 +3,7 @@
     "scale": 1,
     "seedFrom": 1000,
     "maxYears": 120,
-    "rulesVersion": "0.20.0",
+    "rulesVersion": "0.21.0",
     "updated": "2026-11-14"
   },
   "metrics": {

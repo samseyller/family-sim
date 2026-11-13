@@ -34,7 +34,8 @@ function fnv(text: string): string {
   return (h >>> 0).toString(16).padStart(8, '0');
 }
 
-const fingerprint = (s: GameState) => fnv(canonical(s));
+/** Version stamps are left out: bumping them is bookkeeping, not a change in how the game plays. */
+const fingerprint = ({ schemaVersion: _sv, rulesVersion: _rv, ...s }: GameState) => fnv(canonical(s));
 
 /** One line per life: `style:seed`, then `year=hash` for every played year. */
 function trace(): Record<string, string[]> {

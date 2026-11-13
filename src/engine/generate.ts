@@ -12,7 +12,13 @@ import type { GameState, Household, Looks, Person, Plan, Trait } from './types';
 import { adjustBond, ageOf, alive, cleanName, kidsAtHome, newId, parentsOf, partnerOf, active } from './util';
 
 export const SCHEMA_VERSION = 20;
-export const RULES_VERSION = '0.20.0';
+/**
+ * Bump when content a save can refer to (event ids, choice ids, careers) is removed or renamed, or when rules change
+ * enough that old saves play differently. A save with the current rules version that refers to unknown content is
+ * rejected on load; saves from older rules are repaired instead (see persistence/references.ts).
+ * 0.21.0: investments cover emergencies, debt paydown, audition event, hobby payoffs, new achievements.
+ */
+export const RULES_VERSION = '0.21.0';
 export const START_YEAR = 2026;
 
 const TRAITS: Trait[] = ['ambitious', 'kind', 'stubborn', 'curious', 'anxious', 'easygoing', 'creative', 'athletic'];
