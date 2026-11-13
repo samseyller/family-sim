@@ -53,6 +53,28 @@ export const capacityOf = (hh: Household) => {
 };
 export const upgradeCount = (home: Asset, id: UpgradeId) => (home.upgrades ?? []).filter((u) => u === id).length;
 /** An upgrade's price in a city. */
+/** At most this many renovations a year. */
+export const RENOVATIONS_PER_YEAR = 2;
+/** Rooms a renovation can redo, with how the family takes it. */
+const ROOMS: [string, string][] = [
+  ['kitchen', 'Everyone gathers there now.'],
+  ['bathroom', 'Heated floors. Nobody wants to leave the shower.'],
+  ['living room', 'Movie nights got a lot more comfortable.'],
+  ['main bedroom', 'You sleep like royalty now.'],
+  ['basement', 'It went from storage to everyone\'s favorite hangout.'],
+  ['kids\' rooms', 'New paint, new beds, and a lot less arguing over space.'],
+  ['home office', 'A door that closes and a window with a view.'],
+  ['back porch', 'Summer evenings out back are the best part of the day.'],
+];
+/** Renovations the household's head has done this year. */
+export const renovationsThisYear = (s: GameState) => (active(s).flags.renovation_year === s.year ? active(s).flags.renovations ?? 0 : 0);
+/** Which room the year's nth renovation redoes: varies by family and year, never the same room twice in a year. */
+function roomFor(s: GameState, n: number) {
+  const h = [...`${s.seed}:${s.year}`].reduce((a, ch) => (Math.imul(a, 31) + ch.charCodeAt(0)) >>> 0, 7);
+  const step = 1 + ((h >>> 8) % (ROOMS.length - 1));
+  return ROOMS[(h + n * step) % ROOMS.length];
+}
+
 export const upgradeCost = (id: UpgradeId, city: CityId) => Math.round((HOME_UPGRADES[id].cost * CITIES[city].living) / 500) * 500;
 /** A woodworker at home does the building: renovations and additions cost less with their skill. */
 const diy = (s: GameState, hh: Household, cost: number) => Math.round((cost * diyFactor(bestSkill(s, hh.id, 'woodworking'))) / 500) * 500;
@@ -125,6 +147,7 @@ export function financeBlocker(s: GameState, a: FinanceAction): string | null {
       return !hasCash(hh, GARAGE_BUILD.cost) ? `A garage space costs ${money(GARAGE_BUILD.cost)}.` : null;
     case 'renovate':
       if (!home) return 'You do not own a home.';
+      if (renovationsThisYear(s) >= RENOVATIONS_PER_YEAR) return 'Two renovations a year is plenty. Try again next year.';
       return !hasCash(hh, renovationCost(s, hh)) ? `Renovating costs ${money(renovationCost(s, hh))}.` : null;
     case 'payLoan': {
       const asset = hh.assets.find((x) => x.id === a.assetId);
@@ -243,7 +266,11 @@ export function applyFinance(s: GameState, a: FinanceAction) {
       charge(hh, renovationCost(s, hh));
       home!.value += RENOVATION.valueGain;
       for (const m of membersOf(s, hh.id)) stat(m, 'happiness', RENOVATION.happiness);
-      journal(s, 'You renovated the kitchen. Everyone gathers there now.', 'good');
+      const n = renovationsThisYear(s);
+      const [room, line] = roomFor(s, n);
+      me.flags.renovation_year = s.year;
+      me.flags.renovations = n + 1;
+      journal(s, `You renovated the ${room}. ${line}`, 'good');
       break;
     }
     case 'payLoan': {

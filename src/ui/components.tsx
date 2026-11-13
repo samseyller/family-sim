@@ -54,14 +54,16 @@ export function Stepper({ label, icon, value, onChange, max, hint, disabledPlus 
   );
 }
 
-export function Segmented<T extends string | number>({ options, value, onChange, label }: {
+export function Segmented<T extends string | number>({ options, value, onChange, label, grid }: {
   options: { value: T; label: string }[];
   value: T;
   onChange: (v: T) => void;
   label: string;
+  /** Many options with longer labels: equal-width buttons that wrap by row, each label on one line. */
+  grid?: boolean;
 }) {
   return (
-    <div className="segmented" role="radiogroup" aria-label={label}>
+    <div className={grid ? "segmented grid" : "segmented"} role="radiogroup" aria-label={label}>
       {options.map((o) => (
         <button key={String(o.value)} role="radio" aria-checked={o.value === value} className={o.value === value ? 'on' : ''} onClick={() => onChange(o.value)}>
           {o.label}

@@ -6,6 +6,9 @@ import { distanceOf, type ActivityDef, flat, each, names, bondAll, moodAll, hasH
 import { charge } from './money';
 import { HOMES } from '../content/finance';
 
+/** 5ks of training before the (secret) marathon appears. */
+export const MARATHON_5KS = 16;
+
 /** What a visit takes: across town, a few hours' drive, or a long trip. */
 export const VISIT = { near: { energy: 10, cost: 40 }, drive: { energy: 20, cost: 250 }, far: { energy: 35, cost: 600 } } as const;
 
@@ -98,7 +101,7 @@ export const HOME_ACTIVITIES: ActivityDef[] = [
     },
   },
   {
-    id: 'run_5k', category: 'health', icon: '🏃', label: 'Run a 5k', who: 'solo', ages: [10, 85], perYear: 4, desc: 'A race morning, a bib number, and a free banana at the finish.',
+    id: 'run_5k', category: 'health', icon: '🏃', label: 'Run a 5k', who: 'solo', ages: [10, 85], perYear: 5, desc: 'A race morning, a bib number, and a free banana at the finish.',
     energy: flat(12), cost: flat(40),
     run: (c) => {
       c.me.flags.five_ks = (c.me.flags.five_ks ?? 0) + 1;
@@ -110,9 +113,9 @@ export const HOME_ACTIVITIES: ActivityDef[] = [
     },
   },
   {
-    // Secret: appears once you're very fit and have run five 5ks.
+    // Secret: appears once you're very fit and have trained with MARATHON_5KS 5ks.
     id: 'run_marathon', category: 'health', icon: '🏅', label: 'Run a marathon', who: 'solo', ages: [16, 85], perYear: 1,
-    hidden: (_s, me) => !(me.stats.fitness > 95 && (me.flags.five_ks ?? 0) >= 5),
+    hidden: (_s, me) => !(me.stats.fitness > 95 && (me.flags.five_ks ?? 0) >= MARATHON_5KS),
     desc: '26.2 miles. You have trained for this.',
     energy: flat(30), cost: flat(150),
     run: (c) => {

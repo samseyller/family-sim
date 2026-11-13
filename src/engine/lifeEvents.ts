@@ -198,7 +198,7 @@ export const LIFE_EVENTS: EventDef[] = [
       choices: [
         { id: 'card', label: 'A heartfelt card' },
         priced(c, 'g1', 'A card and $1,000', 1000),
-        priced(c, 'g5', 'A new laptop and $5,000', 5000),
+        priced(c, 'g5', 'A new laptop and $5,000', 6000, 'The laptop is about $1,000'),
         priced(c, 'g20', 'A $20,000 head start', 20000, 'Toward rent, a car, or savings'),
       ],
     }),
@@ -206,6 +206,7 @@ export const LIFE_EVENTS: EventDef[] = [
       if (k!.flags.graduated === c.s.year) k!.flags.grad_gift_college = 1;
       const n = { card: 0, g1: 1000, g5: 5000, g20: 20000 }[ch as 'card'];
       if (n) give(c, k!, n);
+      if (ch === 'g5') pay(c, 1000); // the laptop
       adjustBond(c.s, c.me.id, k!.id, n >= 5000 ? 6 : n ? 4 : 2, 2);
       return n >= 20000 ? `${k!.firstName} hugged you for a full minute.` : `${k!.firstName} grinned for the photos.`;
     },

@@ -87,9 +87,16 @@ export const SOCIAL_ACTIVITIES: ActivityDef[] = [
     desc: 'They live in another city: flights and a hotel, but a big boost to the friendship.',
     energy: flat(22), cost: flat(800),
     run: (c) => {
+      const r = hangOut(c, 12, 8, (who) => `A long weekend with ${who} in ${c.people[0] ? cityName(cityOf(c.s, c.people[0])) : 'their city'}. You didn't stop talking.`);
+      if (r.tone === 'bad') {
+        // They never replied, so the trip was called off (the fare was refundable).
+        credit(c.s.households[c.me.householdId], 800);
+        return { text: `${r.text} You cancelled the trip and got your money back.`, tone: 'bad' };
+      }
+      flag(c.me, 'friend_trip');
       stat(c.me, 'happiness', 6);
       stat(c.me, 'stress', -4);
-      return hangOut(c, 12, 8, (who) => `A long weekend with ${who} in ${c.people[0] ? cityName(cityOf(c.s, c.people[0])) : 'their city'}. You didn't stop talking.`);
+      return r;
     },
   },
 

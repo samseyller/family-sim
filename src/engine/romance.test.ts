@@ -229,11 +229,15 @@ describe('new activities', () => {
     expect(after.lastActivity!.title).toContain(spouse.firstName);
   });
 
-  it('the marathon stays secret until you are very fit and have run five 5ks', () => {
+  it('the marathon stays secret until you are very fit and have trained with sixteen 5ks', () => {
     let s = rich(newGame(8302));
+    active(s).stats.fitness = 96;
     expect(activityBlocker(s, 'run_marathon')).toMatch(/Not available/);
-    for (let i = 0; i < 5; i++) s = performActivity({ ...refill(s), activityLog: [] }, 'run_5k');
-    expect(active(s).flags.five_ks).toBe(5);
+    for (let i = 0; i < 15; i++) s = performActivity({ ...refill(s), activityLog: [] }, 'run_5k');
+    expect(active(s).flags.five_ks).toBe(15);
+    active(s).stats.fitness = 96;
+    expect(activityBlocker(s, 'run_marathon')).toMatch(/Not available/);
+    s = performActivity({ ...refill(s), activityLog: [] }, 'run_5k');
     active(s).stats.fitness = 96;
     expect(activityBlocker(s, 'run_marathon')).toBeNull();
     s = performActivity(refill(s), 'run_marathon');

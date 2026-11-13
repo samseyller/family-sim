@@ -240,6 +240,7 @@ export function PlanTab({ g }: { g: GameState }) {
                 <div className="label">Suggest a hobby</div>
                 <Segmented<Hobby | 'none'>
                   label={`Suggest a hobby to ${k.firstName}`}
+                  grid
                   value={cp.suggestHobby ?? 'none'}
                   onChange={(v) => setCp((c) => { c.suggestHobby = v === 'none' ? undefined : v; })}
                   options={[{ value: 'none', label: 'None' }, ...HOBBIES.map((h) => ({ value: h.id, label: `${h.icon} ${h.label}` }))]}

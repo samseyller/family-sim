@@ -234,6 +234,8 @@ for random). When your baby is born, a naming event offers suggestions or lets y
   old cars get totaled), house fires, break-ins (a security system helps), floods (likely only in flood-prone
   cities like Houston and Miami; covered only by flood insurance), surprise medical bills (pay, negotiate, or a
   payment plan), an adult child in legal trouble, and relatives asking for money (give, lend, or refuse).
+- **Renovations** (Money → Home): up to two a year, each redoing a different room (kitchen, bathroom, living room,
+  bedroom, basement, kids' rooms, office or porch) for value and happiness.
 - **Luxury upgrades** for owned homes: pool, hot tub, home gym, home theater, workshop, security system, and up
   to three additions (+1 capacity each). Each has upkeep and ongoing perks.
 - Achievements: Cannonball!, Room to Grow, Dream Wedding, Glad We Had Insurance, The Bank of Mom and Dad.
@@ -433,7 +435,8 @@ for random). When your baby is born, a naming event offers suggestions or lets y
 ## Activities, retirement, and the guided first life
 
 - **More activities:** *At home:* do your spouse's chores (named for them; tiring, but they notice). *Health:* go
-  hiking, run a 5k, and a secret **marathon** that appears once your fitness passes 95 and you've run five 5ks.
+  hiking, run a 5k (up to five a year), and a secret **marathon** that appears once your fitness passes 95 and you've
+  trained with sixteen 5ks.
   *Learning:* attend a conference (full-time careers that require a degree; your employer pays; work performance
   up). *Family visits:* fly to see a relative in another city (less tiring than driving, a bigger bond boost).
   *Money & luck:* bet on the horse races. *Kid stuff:* ask to have a sleepover (6–14) or go to music camp (8–16; parents may say no to either).

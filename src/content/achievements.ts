@@ -102,7 +102,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     title: 'Worth the Trip',
     desc: 'Travel to see a friend who lives in another city.',
     icon: '✈️',
-    test: (s) => (s.activityLog ?? []).some((x) => x.id === 'visit_friend'),
+    test: (s) => !!active(s).flags.friend_trip,
   },
   {
     id: 'lifelong_friends',
