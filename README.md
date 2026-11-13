@@ -25,10 +25,11 @@ you play in; use **Saves & backups → Export full backup** in the game to keep 
 
 ## Continuous integration and GitHub Pages
 
-`.github/workflows/deploy.yml` runs on every push and pull request: typecheck, unit tests, and the balance suite.
+`.github/workflows/deploy.yml` runs on every push and pull request (Node 26, matching development): typecheck, unit
+tests (including the golden trace), and the balance suite.
 When they pass on `main`, it builds the game and publishes it to GitHub Pages. The build uses the Pages sub-path
 (for example `https://<user>.github.io/<repo>/`) through the `BASE_PATH` variable. Browser tests (`npm run e2e`)
-are run locally.
+are left out of CI to keep it fast; run them locally before merging UI changes.
 
 One-time setup on GitHub: **Settings → Pages → Build and deployment → Source: GitHub Actions**. To build for a
 sub-path locally, run `BASE_PATH=/family-sim/ npm run build`.
@@ -96,7 +97,7 @@ one flat set of metrics (`src/balance/`). Lives run in parallel across CPU cores
 ## Controls
 
 - Mouse / touch: everything is a button.
-- Keyboard: arrow keys move focus, Enter/Space activate, Esc closes, `1`–`5` switch tabs, `E` ends the year (with confirmation).
+- Keyboard: arrow keys move focus, Enter/Space activate, Esc closes, `1`–`6` switch tabs (Home, Plan, Family, Journal, Money, Activities), `E` ends the year (with confirmation).
 - Controller: D-pad or left stick moves, A activates, B backs out, LB/RB switch tabs, Start ends the year, Select opens the menu.
 - Keyboard extras: `[` `]` switch tabs, `M` opens the menu. Shortcuts pause while you type in a text field.
 - `` ` `` (backtick) opens dev tools (skip 10 years, kill the main character), **only** in builds made with the flag below.
@@ -115,13 +116,21 @@ Never set the flag for a release build. `npm run check:devtools` verifies that a
 ## Layout
 
 ```
-src/engine/      pure TypeScript game rules (no React) — phases.ts is the turn loop
-src/content/     careers, actions, names (data)
-src/persistence/ IndexedDB saves via Dexie (current + previous autosave)
-src/store/       Zustand store wrapping the engine
-src/ui/          React screens, SVG avatars, keyboard/gamepad navigation
-scripts/sim.ts   headless balance simulation
-e2e/             Playwright tests
+src/engine/       pure TypeScript game rules (no React or DOM); (state) => new state
+  phases.ts       the turn loop (plan, resolve the year, decisions, recap, succession)
+  systems.ts      the yearly economy, people, bonds and health
+  events.ts       event registry and pacing; eventKit.ts shared helpers; *Events.ts the events themselves
+  activities.ts   activity rules and energy; activityKit.ts helpers; activities*.ts the catalog
+  money.ts        every change to household money; flags.ts every per-person flag
+  strategies.ts   how a sensible player plans a year (scripted players and dev skip)
+src/content/      data: careers, cities, homes, cars, gear, pets, sports, achievements, names
+src/persistence/  IndexedDB saves via Dexie, Zod schema, import/export, repairs for older saves
+src/profile/      settings, achievements, lifetime stats and the family archive
+src/store/        Zustand store: every UI action is one engine function, then a save
+src/ui/           React screens, SVG avatars, family tree, keyboard/gamepad navigation
+src/balance/      scripted play styles, metrics, design bands, baseline, golden trace
+scripts/          balance and economy reports, PWA and dev-tools checks, icon and name builders
+e2e/              Playwright tests
 ```
 
 ## Saves
