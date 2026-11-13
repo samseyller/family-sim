@@ -17,8 +17,9 @@ export const SCHEMA_VERSION = 20;
  * enough that old saves play differently. A save with the current rules version that refers to unknown content is
  * rejected on load; saves from older rules are repaired instead (see persistence/references.ts).
  * 0.21.0: investments cover emergencies, debt paydown, audition event, hobby payoffs, new achievements.
+ * 0.22.0: activities plan (reunions, test results, distance) and hobby paths (food truck, gardening careers).
  */
-export const RULES_VERSION = '0.21.0';
+export const RULES_VERSION = '0.22.0';
 export const START_YEAR = 2026;
 
 const TRAITS: Trait[] = ['ambitious', 'kind', 'stubborn', 'curious', 'anxious', 'easygoing', 'creative', 'athletic'];

@@ -271,9 +271,9 @@ export const ACHIEVEMENTS: AchievementDef[] = [
   {
     id: 'own_boss',
     title: 'Be Your Own Boss',
-    desc: 'Run your own business (contractor, auto shop, restaurant, or charters).',
+    desc: 'Run your own business (contractor, auto shop, restaurant, garden nursery, or charters).',
     icon: '💼',
-    test: (s) => ['contractor', 'shop_owner', 'restaurant_owner', 'charter_captain'].includes(active(s).jobId ?? ''),
+    test: (s) => ['contractor', 'shop_owner', 'restaurant_owner', 'nursery_owner', 'charter_captain'].includes(active(s).jobId ?? ''),
   },
   {
     id: 'varsity_letter',

@@ -40,6 +40,7 @@ export function summarize(samples: SamplesByStrategy): Metrics {
     m[`${p}generations`] = mean(lives.map((l) => l.generations));
     m[`${p}endedEarly`] = mean(lives.map((l) => (l.ended ? 1 : 0)));
     m[`${p}inheritance`] = median(lives.flatMap((l) => l.inheritances));
+    m[`${p}peakPay`] = median(lives.map((l) => l.peakPay).filter((x) => x > 0));
     for (const k of ['total', 'wealth', 'bonds', 'achievement', 'wellbeing'] as const) m[`${p}legacy${k === 'total' ? '' : `.${k}`}`] = median(lives.map((l) => l.legacy[k]));
   }
   const legacies = STRATEGIES.map((st) => m[`${st}.legacy`]);
@@ -69,6 +70,13 @@ export function summarize(samples: SamplesByStrategy): Metrics {
       const share = mean(lives.map((l) => (l.milestones.includes(k) ? 1 : 0)));
       m[`${id}.first.${k}`] = share;
     }
+  }
+
+  // Hobby careers: the best a dedicated hobbyist earns on their path, against a career-focused player's best pay.
+  const hobby = (samples.hobbyist ?? []).map((l) => l.peakHobbyPay).filter((x) => x > 0);
+  if (hobby.length) {
+    m['hobbyist.peakHobbyPay'] = median(hobby);
+    m['hobbyist.hobbyPayVsCareer'] = ratio(median(hobby), m['career.peakPay']);
   }
 
   // Content coverage, across every style.
@@ -111,6 +119,7 @@ export const BANDS: Band[] = [
   { key: 'kids.degree', min: 0.15, max: 0.85, why: 'College should be common but not universal.' },
   { key: 'coverage.achievementsMissing', max: 0, why: 'Every achievement should be reached by at least one simulated life (otherwise it may be impossible).' },
   { key: 'coverage.eventsMissing', max: 0, why: 'Every event should fire in at least one simulated life (otherwise it may be dead content).' },
+  { key: 'hobbyist.hobbyPayVsCareer', min: 0.7, max: 1.5, why: 'A dedicated hobbyist’s best pay on their path should land near a career-focused player’s best (hobby careers are a real alternative to university, with more variance).' },
   { key: 'athlete.first.went_pro', min: 0.03, max: 0.35, why: 'Even a fully dedicated young athlete should only sometimes have the talent to go pro.' },
 ];
 

@@ -109,6 +109,13 @@ export const FLAG_INFO = {
   audition_won: 'Won a big music audition',
   big_catch: 'Landed the big one (fishing)',
   blue_ribbon: 'Won a blue ribbon at the county fair',
+  food_truck_days: 'Weekends run with the food truck',
+  bad_review: 'Got a one-star review as a chef',
+  thanksgiving_host: 'Cooked Thanksgiving for the whole family',
+  impossible_repair: 'Fixed a car three shops gave up on',
+  car_with_parent: 'A child who helped a parent restore a car',
+  treehouse: 'Built the kids a treehouse',
+  shared_harvest: 'Shared their garden harvest with friends and neighbors',
   // Sports
   travel_team: 'Played on a travel team',
   league_year: 'Year they last played in a rec league',

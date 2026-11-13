@@ -3,6 +3,8 @@ import { ownsGear, practiceBoost, restoreProgress } from './hobbies';
 import { active, flag, journal, money, stat } from './util';
 import { type ActivityDef, flat, names, bondAll, moodAll, needSkill, projectCar, earn, hangOut } from './activityKit';
 import { credit } from './money';
+import { gardenHarvest } from './handy';
+import { maybeMeetFriend } from './friends';
 
 export const HOBBY_ACTIVITIES: ActivityDef[] = [
   // 🧰 Hobbies & side gigs: earn by skill, restore, share with family
@@ -23,6 +25,27 @@ export const HOBBY_ACTIVITIES: ActivityDef[] = [
     requires: needSkill('cooking', 35), desc: 'Feed a party of fifty. Pays by skill (more with a chef’s kitchen).',
     energy: flat(14), cost: flat(400),
     run: (c) => earn(c, 'cooking', 800, 32, 'Guests asked for your card', 'chef_kitchen'),
+  },
+  {
+    id: 'run_food_truck', category: 'hobby', icon: '🚚', label: 'Run the food truck', who: 'solo', perYear: 3,
+    requires: (s, me) => (ownsGear(s.households[me.householdId], 'food_truck') ? null : 'Buy a food truck first (Money → Hobby gear).'),
+    desc: 'A weekend at the festival grounds. Pays by cooking skill (more with a chef’s kitchen to prep in).',
+    energy: flat(20), cost: flat(500),
+    run: (c) => { flag(c.me, 'food_truck_days'); return earn(c, 'cooking', 1500, 40, 'The line wrapped around the block', 'chef_kitchen'); },
+  },
+  {
+    id: 'share_harvest', category: 'hobby', icon: '🍅', label: 'Share your harvest', who: 'friends', where: 'near', min: 0, perYear: 1,
+    requires: (s, me) => (gardenHarvest(s, s.households[me.householdId]) > 0 ? null : 'Needs a home garden: gardening as your hobby, and a yard.'),
+    desc: 'Baskets of tomatoes and zucchini for friends and neighbors. (Everyone has too much zucchini.)',
+    energy: flat(8), cost: flat(0),
+    run: (c) => {
+      flag(c.me, 'shared_harvest');
+      bondAll(c, 5, 4);
+      stat(c.me, 'happiness', 3);
+      const met = maybeMeetFriend(c.s, c.rng, c.me, 0.35, 'over the garden fence');
+      if (met) return { text: `${met.firstName} from down the street came back with a pie. You have a new friend.`, tone: 'good' };
+      return { text: c.people.length ? `${names(c.people)} will be eating salads for a week.` : 'The neighbors left thank-you notes on your porch.', tone: 'good' };
+    },
   },
   {
     id: 'fix_cars', category: 'hobby', icon: '🔧', label: 'Fix a neighbor’s car', who: 'solo', perYear: 4,

@@ -77,7 +77,7 @@ const Partnership = z.object({
 const Asset = z.object({
   id,
   kind: z.enum(['house', 'car', 'gear']),
-  gear: z.enum(['plane', 'small_boat', 'bass_boat', 'offshore_boat', 'project_car']).optional(),
+  gear: z.enum(['plane', 'small_boat', 'bass_boat', 'offshore_boat', 'project_car', 'food_truck']).optional(),
   restore: num.optional(),
   name: z.string(),
   value: num,

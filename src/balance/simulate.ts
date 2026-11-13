@@ -4,6 +4,7 @@
  * Pure engine code (no Node APIs), shared by the balance tests and scripts/balance.ts.
  */
 import { estimateYear } from '../engine/budget';
+import { CAREER_BY_ID, salaryOf } from '../content/careers';
 import { netWorth } from '../engine/finance';
 import { newGame } from '../engine/generate';
 import { buildMemorial } from '../engine/memorial';
@@ -46,6 +47,9 @@ export interface LifeSample {
   runawayDebt: boolean;
   /** What the first played character achieved (flags like went_pro, all_star, mil_pension). */
   milestones: string[];
+  /** The first character's best yearly pay in any full-time job, and in a career built on a hobby skill (0 if none). */
+  peakPay: number;
+  peakHobbyPay: number;
   /** Broken invariants (NaN money, stats out of range, events with no possible choice, ...). */
   violations: string[];
 }
@@ -83,7 +87,7 @@ export function playLife(styleId: string | PlayStyle, seed: number, maxYears = 1
   const sample: LifeSample = {
     seed, years: 0, ended: false, generations: 0, legacy: { wealth: 0, bonds: 0, achievement: 0, wellbeing: 0, total: 0 },
     lifespans: [], netWorthAt: {}, netWorth65: [], income: 0, expenses: 0, adultYears: 0, debtYears: 0, inheritances: [],
-    runawayDebt: false, milestones: [], achievements: [], events: {}, kids: { n: 0, athlete: 0, varsity: 0, scholarship: 0, pro: 0, allStar: 0, served: 0, fallen: 0, degree: 0, topDegree: 0 }, violations: [],
+    runawayDebt: false, milestones: [], peakPay: 0, peakHobbyPay: 0, achievements: [], events: {}, kids: { n: 0, athlete: 0, varsity: 0, scholarship: 0, pro: 0, allStar: 0, served: 0, fallen: 0, degree: 0, topDegree: 0 }, violations: [],
   };
   const violate = (v: string) => { if (sample.violations.length < 20) sample.violations.push(`${s.year}: ${v}`); };
   let deepDebt = 0;
@@ -115,6 +119,13 @@ export function playLife(styleId: string | PlayStyle, seed: number, maxYears = 1
     }
     deepDebt = hh.wallet < -1_000_000 ? deepDebt + 1 : 0;
     if (deepDebt === 10) sample.runawayDebt = true;
+    // The first character's career: best pay held, and best pay in a hobby career (not the military or pro sports).
+    if (me.id === s.lineage[0] && me.jobId) {
+      const job = CAREER_BY_ID[me.jobId];
+      const pay = salaryOf(job, me.jobLevel);
+      if (job.hours === 'full') sample.peakPay = Math.max(sample.peakPay, pay);
+      if (job.hours === 'full' && job.skill && !job.military && !job.pro) sample.peakHobbyPay = Math.max(sample.peakHobbyPay, pay);
+    }
     const journalLen = s.journal.length;
     step(autoplayYear(s, (pe) => {
       sample.events[pe.eventId] = (sample.events[pe.eventId] ?? 0) + 1;

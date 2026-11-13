@@ -300,16 +300,24 @@ for random). When your baby is born, a naming event offers suggestions or lets y
   - Session → Touring Musician → Headliner (touring strains family bonds), or School Music Director
   - Commercial Pilot → First Officer → Airline Captain, plus flight instructing
   - Fishing Guide, or Charter Captain (coastal cities, your own offshore boat)
+  - Landscaper → Crew Lead → Landscape Designer, or open a garden nursery ($80k startup)
 
   Businesses cost money to start, and their income swings with skill and luck.
 - **Gear** (Money → Hobby gear): a plane, three boats (trailered boats take a parking spot; offshore needs a
-  coastal city), and a project car you restore in Activities (worth $45k when finished). Gear has upkeep and
+  coastal city), a project car you restore in Activities (worth $45k when finished), and a food truck ($80k; a side
+  business you run on weekends, paid by cooking skill). Gear has upkeep and
   passes down to an heir in the family estate.
 - **Side gigs** (Activities → Hobbies & side gigs): sell furniture, play gigs, cater, fix cars, the farmers
-  market, tournaments, car shows, plus fishing trips, family flights, garden days, and dinner parties.
+  market, tournaments, car shows, the food truck, plus fishing trips, family flights, garden days, dinner parties,
+  sharing your harvest with friends and neighbors (you may make a new friend), and building the kids a treehouse
+  (woodworking 30+, a yard, kids 4–12; once).
 - **Moments:** first solo flight, engine trouble, workshop injuries, a food critic, a song going viral, a big
   audition (a session musician who wins it goes on tour; anyone else plays a paid run of shows), the big catch, a
-  storm at sea, the county fair. Nine achievements.
+  storm at sea, the county fair, a one-star review (reply, invite them back, or ignore it), cooking Thanksgiving for
+  twenty, an "impossible" repair three shops gave up on, and a child who wants to help restore the project car.
+  Nine achievements.
+- **Hobby pay** is checked by the balance suite: a dedicated hobbyist's best pay on their path should be 0.7–1.5×
+  a career-focused player's best (`hobbyist.hobbyPayVsCareer`, about 1.15 today).
 - **Skills that pay off at home** (`src/engine/handy.ts`), using the best skill among the adults at home:
   - **Mechanics:** car repairs cost up to 50% less and breakdowns are up to 30% rarer.
   - **Woodworking:** renovations and home additions cost up to 35% less (you do the carpentry).

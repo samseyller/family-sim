@@ -5,7 +5,7 @@
  */
 import type { Hobby } from '../engine/types';
 
-export type GearId = 'plane' | 'small_boat' | 'bass_boat' | 'offshore_boat' | 'project_car';
+export type GearId = 'plane' | 'small_boat' | 'bass_boat' | 'offshore_boat' | 'project_car' | 'food_truck';
 
 export interface GearDef {
   label: string;
@@ -30,6 +30,7 @@ export const GEAR: Record<GearId, GearDef> = {
   small_boat: { label: 'Small fishing boat', icon: '🚤', hobby: 'fishing', price: 25000, upkeep: 1500, depreciation: 0.08, boost: 1.3, parks: true, desc: 'Trailered; takes a parking spot' },
   bass_boat: { label: 'Bass boat', icon: '🛥️', hobby: 'fishing', price: 60000, upkeep: 3500, depreciation: 0.07, boost: 1.5, parks: true, desc: 'Fast and well equipped; takes a parking spot' },
   offshore_boat: { label: 'Offshore boat', icon: '⛵', hobby: 'fishing', price: 250000, upkeep: 18000, depreciation: 0.06, boost: 1.8, coastal: true, desc: 'Deep-sea fishing and charters. Marina slip included; coastal cities only.' },
+  food_truck: { label: 'Food truck', icon: '🚚', hobby: 'cooking', price: 80000, upkeep: 6000, depreciation: 0.08, boost: 1.2, parks: true, desc: 'A side business: run it on weekends (Activities). Permits and insurance included in upkeep; takes a parking spot' },
   project_car: { label: 'Project car (rusty classic)', icon: '🚙', hobby: 'mechanics', price: 8000, upkeep: 600, depreciation: 0, boost: 1.2, parks: true, desc: 'Restore it over the years; a finished classic is worth $45,000+' },
 };
 

@@ -4,6 +4,7 @@ import { TEST_RESULTS_DELAY } from './healthEvents';
 import { maybeMeetFriend } from './friends';
 import { distanceOf, type ActivityDef, flat, each, names, bondAll, moodAll, hasHobby, professional, kidAges } from './activityKit';
 import { charge } from './money';
+import { HOMES } from '../content/finance';
 
 /** What a visit takes: across town, a few hours' drive, or a long trip. */
 export const VISIT = { near: { energy: 10, cost: 40 }, drive: { energy: 20, cost: 250 }, far: { energy: 35, cost: 600 } } as const;
@@ -135,6 +136,26 @@ export const HOME_ACTIVITIES: ActivityDef[] = [
       stat(c.me, 'health', 2);
       flag(c.me, 'clean_checkups');
       return { text: 'A clean bill of health. The doctor says keep it up.', tone: 'good' };
+    },
+  },
+  {
+    id: 'build_treehouse', category: 'home', icon: '🌳', label: 'Build the kids a treehouse', who: 'kids', min: 1,
+    eligible: (s, p) => kidAges(p, s, 4, 12),
+    requires: (s, me) => {
+      const home = s.households[me.householdId].assets.find((a) => a.kind === 'house');
+      if ((me.skills.woodworking ?? 0) < 30) return 'Needs woodworking skill 30.';
+      if (!home || home.name === HOMES.condo.label) return 'Needs a home with a yard.';
+      return me.flags.treehouse ? 'You already built one.' : null;
+    },
+    desc: 'Lumber, a weekend, and a rope ladder. The kids will talk about it forever.',
+    energy: flat(40), cost: flat(800),
+    run: (c) => {
+      flag(c.me, 'treehouse');
+      bondAll(c, 8, 5);
+      c.people.forEach((k) => stat(k, 'happiness', 8));
+      stat(c.me, 'happiness', 5);
+      c.me.skills.woodworking = Math.min(100, (c.me.skills.woodworking ?? 0) + 3);
+      return { text: `${names(c.people)} declared it a no-grown-ups club. You were allowed in once, as the builder.`, tone: 'good' };
     },
   },
   {

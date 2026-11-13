@@ -2,9 +2,11 @@
 import { CAREER_BY_ID } from '../content/careers';
 import { DEDUCTIBLE } from '../content/economy';
 import type { Ctx, EventDef } from './eventKit';
-import { ownsGear } from './hobbies';
+import { ownsGear, restoreProgress } from './hobbies';
+import { relativesOutside } from './activityKit';
+import { local } from './eventKit';
 import type { Hobby, Person } from './types';
-import { ageOf, flag, journal, money, stat } from './util';
+import { adjustBond, ageOf, flag, journal, kidsAtHome, money, stat } from './util';
 import { charge, credit } from './money';
 
 const wallet = (c: Ctx) => c.s.households[c.me.householdId];
@@ -102,6 +104,126 @@ export const HOBBY_EVENTS: EventDef[] = [
       if (owner) charge(wallet(c), 15000);
       stat(c.me, 'stress', 6);
       return 'Two stars and the word "overambitious." It stung.';
+    },
+  },
+  {
+    id: 'bad_review',
+    major: false,
+    cooldown: 5,
+    candidates: (c) => one(!!job(c) && (job(c)!.id === 'restaurant_owner' || (job(c)!.id === 'chef' && c.me.jobLevel >= 2)), 0.6),
+    build: () => ({
+      title: 'A one-star review',
+      text: 'A furious one-star review is going around: cold soup, a long wait, and a photo that does your best dish no favors.',
+      choices: [
+        { id: 'respond', label: 'Reply publicly and set the record straight', hint: 'Could win people over, or make it worse' },
+        { id: 'fix', label: 'Invite them back and fix what went wrong', hint: 'Humble, slow, usually works' },
+        { id: 'ignore', label: 'Ignore it', hint: 'It will blow over. Probably.' },
+      ],
+    }),
+    resolve: (c, ch) => {
+      const owner = job(c)!.id === 'restaurant_owner';
+      flag(c.me, 'bad_review');
+      if (ch === 'fix') {
+        c.me.skills.cooking = Math.min(100, skill(c.me, 'cooking') + 3);
+        stat(c.me, 'stress', 3);
+        return 'They came back, loved it, and updated the review to four stars. Your kitchen runs tighter now.';
+      }
+      if (ch === 'respond' && c.rng.chance(0.5)) {
+        if (owner) credit(wallet(c), 8000);
+        return 'Your reply was funny and gracious. People came in just to meet you.';
+      }
+      if (owner) charge(wallet(c), ch === 'respond' ? 12000 : 5000);
+      stat(c.me, 'stress', 6);
+      return ch === 'respond' ? 'The reply went viral for the wrong reasons. A slow month followed.' : 'A few slow weeks, then the regulars came back.';
+    },
+  },
+  {
+    id: 'thanksgiving_for_20',
+    major: false,
+    cooldown: 5,
+    candidates: (c) => one(adult(c) && skill(c.me, 'cooking') >= 40 && relativesOutside(c.s, c.me).length >= 3, 0.5),
+    build: (c) => ({
+      title: 'Thanksgiving for twenty',
+      text: 'Word is out that you are the best cook in the family. Everyone wants Thanksgiving at your place this year: all twenty of them.',
+      choices: [
+        { id: 'host', label: `Host it, and cook everything yourself (${money(local(c, 1200))})`, hint: 'A huge day; skill decides how it goes' },
+        { id: 'potluck', label: 'Host a potluck', hint: 'Less work, smaller glory' },
+        { id: 'decline', label: 'Not this year', hint: 'Someone else will do it' },
+      ],
+    }),
+    resolve: (c, ch) => {
+      const family = relativesOutside(c.s, c.me);
+      if (ch === 'decline') return 'Your aunt hosted. The turkey was dry, and everyone mentioned your cooking.';
+      if (ch === 'potluck') {
+        for (const p of family) adjustBond(c.s, c.me.id, p.id, 3, 2);
+        return 'Seven pies, no vegetables, and a very happy family.';
+      }
+      charge(wallet(c), local(c, 1200));
+      flag(c.me, 'thanksgiving_host');
+      c.me.skills.cooking = Math.min(100, skill(c.me, 'cooking') + 2);
+      if (c.rng.chance(skill(c.me, 'cooking') / 110)) {
+        for (const p of family) adjustBond(c.s, c.me.id, p.id, 7, 4);
+        stat(c.me, 'happiness', 8);
+        return 'A golden turkey, six sides, and a standing ovation. Your recipes are family legend now.';
+      }
+      for (const p of family) adjustBond(c.s, c.me.id, p.id, 4, 2);
+      stat(c.me, 'stress', 8);
+      return 'The oven gave out halfway through the turkey. Takeout pizza, lots of laughter, a story for years.';
+    },
+  },
+  {
+    id: 'impossible_repair',
+    major: false,
+    cooldown: 5,
+    candidates: (c) => one(adult(c) && (['mechanic', 'shop_owner'].includes(c.me.jobId ?? '') || skill(c.me, 'mechanics') >= 50), 0.5),
+    build: () => ({
+      title: 'The impossible repair',
+      text: 'A customer tows in a car three shops have given up on. Electrical gremlins, a strange knock, and a very worried owner.',
+      choices: [{ id: 'take', label: 'Take it on', hint: 'Skill decides; it could take weeks' }, { id: 'refer', label: 'Send them to the dealer' }],
+    }),
+    resolve: (c, ch) => {
+      if (ch === 'refer') return 'The dealer quoted them a new engine. They still send you a card at Christmas.';
+      if (c.rng.chance(Math.min(0.9, skill(c.me, 'mechanics') / 100 + 0.1))) {
+        flag(c.me, 'impossible_repair');
+        credit(wallet(c), 1500);
+        c.me.skills.mechanics = Math.min(100, skill(c.me, 'mechanics') + 3);
+        stat(c.me, 'happiness', 6);
+        return 'A corroded ground wire behind the dash. It runs like new, and the owner tells everyone about you.';
+      }
+      stat(c.me, 'stress', 6);
+      return 'Three weekends and no answer. You handed back the keys and a refund, humbled.';
+    },
+  },
+  {
+    id: 'restore_with_kid',
+    stage: 'any',
+    major: false,
+    cooldown: 4,
+    candidates: (c) => {
+      const car = wallet(c).assets.find((a) => a.gear === 'project_car' && (a.restore ?? 0) < 100);
+      if (!adult(c) || !car) return [];
+      return kidsAtHome(c.s, c.me).filter((k) => ageOf(k, c.s.year) >= 10).slice(0, 1).map((k) => ({ weight: 0.8, subject: k }));
+    },
+    build: (_c, kid) => ({
+      title: 'A helper in the garage',
+      text: `${kid!.firstName} has been hanging around the garage while you work on the project car, asking what everything does.`,
+      choices: [
+        { id: 'together', label: `Hand ${kid!.firstName} a wrench`, hint: 'Slower work, a lot of talking' },
+        { id: 'alone', label: 'Shoo them out; you need to concentrate', hint: 'Faster progress' },
+      ],
+    }),
+    resolve: (c, ch, kid) => {
+      const car = wallet(c).assets.find((a) => a.gear === 'project_car' && (a.restore ?? 0) < 100);
+      if (ch === 'alone') {
+        if (car) restoreProgress(car, 8);
+        adjustBond(c.s, c.me.id, kid!.id, -2, 0);
+        return 'You got a lot done. The garage felt a little quiet.';
+      }
+      if (car) restoreProgress(car, 4);
+      adjustBond(c.s, c.me.id, kid!.id, 10, 6);
+      kid!.skills.mechanics = Math.min(100, (kid!.skills.mechanics ?? 0) + 8);
+      flag(kid!, 'car_with_parent');
+      return `Grease up to the elbows, ${kid!.firstName} found the leak you had missed for a month. You will never hear the end of it.`;
     },
   },
   {

@@ -185,12 +185,12 @@ function soldierAct(s: GameState): GameState {
 interface HobbyPath { hobby: Hobby; programs: Program[]; careers: string[]; gear?: GearId[]; upgrade?: UpgradeId; acts: string[]; coastal?: boolean }
 const HOBBY_PATHS: HobbyPath[] = [
   { hobby: 'flying', programs: ['ppl', 'cpl'], careers: ['pilot'], gear: ['plane'], acts: ['scenic_flight', 'hobby_workshop'] },
-  { hobby: 'woodworking', programs: ['carpentry_cert'], careers: ['carpenter', 'contractor'], upgrade: 'workshop', acts: ['sell_furniture', 'hobby_workshop'] },
+  { hobby: 'woodworking', programs: ['carpentry_cert'], careers: ['carpenter', 'contractor'], upgrade: 'workshop', acts: ['sell_furniture', 'build_treehouse', 'hobby_workshop'] },
   { hobby: 'mechanics', programs: ['auto_cert'], careers: ['mechanic', 'shop_owner'], gear: ['project_car'], upgrade: 'garage_lift', acts: ['restore_car', 'fix_cars', 'car_show'] },
-  { hobby: 'cooking', programs: ['culinary_cert'], careers: ['chef', 'restaurant_owner'], upgrade: 'chef_kitchen', acts: ['cater_event', 'cooking_class', 'dinner_party'] },
+  { hobby: 'cooking', programs: ['culinary_cert'], careers: ['chef', 'restaurant_owner'], gear: ['food_truck'], upgrade: 'chef_kitchen', acts: ['cater_event', 'run_food_truck', 'cooking_class', 'dinner_party'] },
   { hobby: 'music', programs: [], careers: ['musician'], upgrade: 'studio', acts: ['play_gig', 'hobby_workshop'] },
   { hobby: 'fishing', programs: ['captains_license'], careers: ['fishing_guide', 'charter_captain'], gear: ['bass_boat', 'offshore_boat'], acts: ['fishing_trip', 'fishing_tournament'], coastal: true },
-  { hobby: 'gardening', programs: [], careers: [], upgrade: 'greenhouse', acts: ['garden_day', 'farmers_market', 'garden'] },
+  { hobby: 'gardening', programs: [], careers: ['landscaper', 'nursery_owner'], upgrade: 'greenhouse', acts: ['garden_day', 'farmers_market', 'share_harvest', 'garden'] },
 ];
 
 // Flying comes up twice as often: the airline-captain path (licenses, then two promotions) is the longest.
@@ -230,6 +230,9 @@ function hobbyistAct(s: GameState, ctx: StyleCtx): GameState {
   if (me(s).hobby !== path.hobby) s = takeUpHobby(s, path.hobby);
   if (age(s) < 18) return s;
   s = buyHome(s, 'family');
+  // A finished classic gets sold once a child is old enough to help with the next one.
+  const done = hh(s).assets.find((x) => x.gear === 'project_car' && (x.restore ?? 0) >= 100);
+  if (done && kidsAtHome(s, me(s)).some((k) => ageOf(k, s.year) >= 8)) s = fin(s, { kind: 'sellGear', assetId: done.id });
   for (const g of path.gear ?? []) {
     if (ownsGear(hh(s), g)) continue;
     if (GEAR[g].coastal && !['los_angeles', 'san_diego', 'miami', 'seattle', 'boston', 'new_york'].includes(cityOfHousehold(hh(s)))) continue;
