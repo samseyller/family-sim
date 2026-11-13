@@ -45,6 +45,7 @@ export const ROMANCE_EVENTS: EventDef[] = [
       const partner = p!;
       const sp = secret(c);
       c.me.flags.sneaking = 0;
+      flag(c.me, 'caught');
       stat(c.me, 'stress', 10);
       if (ch === 'apologize') {
         c.me.secretPartnerId = undefined;

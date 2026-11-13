@@ -381,7 +381,7 @@ for random). When your baby is born, a naming event offers suggestions or lets y
 - **Dating while attached:** dating activities stay open when you're in a relationship, with an orange "You are
   already seeing someone" warning. You may start seeing someone in secret, and every date out raises the chance
   (6%, 12%, 18%... up to 50%) that your partner finds out. Then you can apologize (trust takes a huge hit and they
-  may leave anyway), leave them for the other person, or let them go.
+  may leave anyway), leave them for the other person, or let them go. Hidden achievements: Cheater, Found Out.
 - **🎯 Activities** (key 6): one-off things to do while planning, outside the 12 time blocks. Each costs
   energy (100 a year, less when unhealthy or stressed, never below 50) and usually money.
 - **🏖️ Retirement** (Money tab): early retirement from 55, full at 65. Pension jobs pay 1.5% of best

@@ -192,6 +192,7 @@ describe('dating while attached', () => {
     expect(caughtChance(active(s))).toBeGreaterThan(0.06);
     expect(caught).toBe(true);
     expect(fling).toBe(true);
+    expect(ACHIEVEMENT_BY_ID.cheater.test(s)).toBe(true);
     expect(activePartnership(s, active(s).id)?.status).toBe('married'); // still married until found out
   });
 
@@ -207,6 +208,7 @@ describe('dating while attached', () => {
     resolveEvent(sorry, makeRng(1), pe, 'apologize');
     expect(getBond(sorry, me.id, spouse.id).trust).toBeLessThan(trust - 30);
     expect(active(sorry).secretPartnerId).toBeUndefined();
+    expect(ACHIEVEMENT_BY_ID.found_out.test(sorry)).toBe(true);
     const left = structuredClone(s);
     resolveEvent(left, makeRng(1), pe, 'leave');
     expect(partnerOf(left, me.id)?.id).toBe(fling.id);

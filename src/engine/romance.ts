@@ -8,7 +8,7 @@ import { startDating } from './family';
 import { makeAdultStranger } from './generate';
 import type { Rng } from './rng';
 import type { GameState, Person } from './types';
-import { activePartnership, adjustBond, ageOf, alive, fullName, getBond, journal, partnerOf, stat } from './util';
+import { activePartnership, adjustBond, ageOf, alive, flag, fullName, getBond, journal, partnerOf, stat } from './util';
 
 /** Oldest age at which a pregnancy can happen in the game. */
 export const FERTILE_UNTIL = 44;
@@ -92,6 +92,7 @@ export function dateWhileAttached(s: GameState, rng: Rng, me: Person, chance: nu
   if (me.secretPartnerId || !rng.chance(chance)) return undefined;
   const sp = makeAdultStranger(s, rng, me);
   me.secretPartnerId = sp.id;
+  flag(me, 'cheated');
   adjustBond(s, me.id, sp.id, 35, 10);
   return sp;
 }

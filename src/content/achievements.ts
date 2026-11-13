@@ -154,6 +154,22 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     test: (s) => (s.activityLog ?? []).filter((x) => x.id === 'walk_dogs').length >= 20,
   },
   {
+    id: 'cheater',
+    title: 'Cheater',
+    desc: 'Secretly see someone while in a relationship.',
+    icon: '🤫',
+    hidden: true,
+    test: (s) => !!active(s).flags.cheated,
+  },
+  {
+    id: 'found_out',
+    title: 'Found Out',
+    desc: 'Get caught sneaking around.',
+    icon: '📱',
+    hidden: true,
+    test: (s) => !!active(s).flags.caught,
+  },
+  {
     id: 'cat_person',
     title: 'Cat Person',
     desc: 'Bring a cat into the family.',
