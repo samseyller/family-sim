@@ -202,7 +202,7 @@ export const HOBBY_EVENTS: EventDef[] = [
     candidates: (c) => {
       const car = wallet(c).assets.find((a) => a.gear === 'project_car' && (a.restore ?? 0) < 100);
       if (!adult(c) || !car) return [];
-      return kidsAtHome(c.s, c.me).filter((k) => ageOf(k, c.s.year) >= 10).slice(0, 1).map((k) => ({ weight: 0.8, subject: k }));
+      return kidsAtHome(c.s, c.me).filter((k) => ageOf(k, c.s.year) >= 8).slice(0, 1).map((k) => ({ weight: 1.2, subject: k }));
     },
     build: (_c, kid) => ({
       title: 'A helper in the garage',

@@ -5,7 +5,7 @@ import { homeParents } from './generate';
 import { cityName, cityOf } from './location';
 import { friendsOf, maybeMeetFriend, sawFriend } from './friends';
 import { jobBlurb } from './romance';
-import { type ActivityDef, flat, bondAll, moodAll, working, hangOut } from './activityKit';
+import { type ActivityDef, flat, bondAll, moodAll, names, working, hangOut } from './activityKit';
 import { credit } from './money';
 
 export const SOCIAL_ACTIVITIES: ActivityDef[] = [
@@ -81,6 +81,30 @@ export const SOCIAL_ACTIVITIES: ActivityDef[] = [
     id: 'video_games', category: 'social', icon: '🎮', label: 'Play video games online', who: 'friends', max: 3, where: 'any', desc: 'Headsets on, wherever you all live.',
     energy: flat(4), cost: flat(0),
     run: (c) => { stat(c.me, 'stress', -3); return hangOut(c, 3, 1, (who) => `You and ${who} finally beat the final boss at 2 a.m.`, 'no-answer'); },
+  },
+  {
+    id: 'mentor', category: 'social', icon: '🧑‍🏫', label: 'Mentor someone', who: 'close', max: 1,
+    requires: (_s, me) => (me.jobLevel >= 2 || Object.values(me.skills).some((v) => (v ?? 0) >= 50) ? null : 'Needs experience: a senior job, or real skill at something.'),
+    eligible: (s, p) => p.birthYear > (s.people[s.activeId]?.birthYear ?? 0) + 10,
+    desc: 'Pass on what you know to someone younger in the family.',
+    energy: flat(12), cost: flat(0), perYear: 2,
+    run: (c) => {
+      const [p] = c.people;
+      adjustBond(c.s, c.me.id, p.id, 5, 6);
+      stat(p, 'smarts', 2);
+      stat(c.me, 'happiness', 3);
+      return { text: `You showed ${p.firstName} what took you years to learn. ${p.firstName} took notes.`, tone: 'good' };
+    },
+  },
+  {
+    id: 'volunteer_together', category: 'social', icon: '🫶', label: 'Volunteer together', who: 'household', min: 1, max: 3,
+    desc: 'A food bank shift or a park cleanup, as a family.',
+    energy: flat(12), cost: flat(0), perYear: 2,
+    run: (c) => {
+      bondAll(c, 4, 4);
+      moodAll(c, 'happiness', 4);
+      return { text: `You and ${names(c.people)} sorted cans for three hours and laughed the whole time.`, tone: 'good' };
+    },
   },
   {
     id: 'visit_friend', category: 'social', icon: '✈️', label: 'Plan a trip to see a friend', who: 'friends', max: 1, where: 'far',

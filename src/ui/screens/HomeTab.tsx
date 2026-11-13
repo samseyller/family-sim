@@ -1,4 +1,5 @@
 import { TRAIT_INFO } from '../../engine/personality';
+import { ASPIRATION_INFO, aspirationOf } from '../../engine/fulfillment';
 import type { GameState } from '../../engine/types';
 import { active, ageOf, getBond, journalText, membersOf, money, partnerOf } from '../../engine/util';
 import { jobTitle, CAREER_BY_ID } from '../../content/careers';
@@ -14,6 +15,8 @@ export function HomeTab({ g }: { g: GameState }) {
   const setTab = useGame((s) => s.setTab);
   const job = me.jobId ? CAREER_BY_ID[me.jobId] : undefined;
   const lastYear = g.journal.filter((j) => j.year === g.year - 1 && j.kind !== 'info').slice(-3);
+  // The latest "Fulfillment rose/fell: why" line, for a short explanation under the bar.
+  const fulfilmentWhy = [...g.journal].reverse().find((j) => j.year >= g.year - 1 && / Fulfillment (rose|fell): /.test(j.text))?.text.replace(/^S+ /, '');
 
   return (
     <div className="stack two-col">
@@ -34,6 +37,13 @@ export function HomeTab({ g }: { g: GameState }) {
         <StatBar label="Stress" value={me.stats.stress} invert />
         {job && <StatBar label="Career" value={me.workPerf} />}
         {me.partJobId && <StatBar label="Part-time career" value={me.partPerf} />}
+        {me.fulfillment !== undefined && <StatBar label="Fulfillment" value={me.fulfillment} />}
+        {ageOf(me, g.year) >= 18 && (
+          <p className="hint" title={ASPIRATION_INFO[aspirationOf(me)].desc}>
+            {ASPIRATION_INFO[aspirationOf(me)].icon} Aspiration: {ASPIRATION_INFO[aspirationOf(me)].label}{me.aspiration ? '' : ' (suggested)'}
+            {fulfilmentWhy ? ` · ${fulfilmentWhy}` : ''}
+          </p>
+        )}
       </Section>
 
       <Section title="Household" aside={<span className={hh.wallet < 0 ? 'neg' : ''}>{money(hh.wallet)}</span>}>

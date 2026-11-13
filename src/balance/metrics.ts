@@ -41,6 +41,7 @@ export function summarize(samples: SamplesByStrategy): Metrics {
     m[`${p}endedEarly`] = mean(lives.map((l) => (l.ended ? 1 : 0)));
     m[`${p}inheritance`] = median(lives.flatMap((l) => l.inheritances));
     m[`${p}peakPay`] = median(lives.map((l) => l.peakPay).filter((x) => x > 0));
+    m[`${p}fulfillment`] = mean(lives.map((l) => l.fulfillment).filter((x) => x > 0));
     for (const k of ['total', 'wealth', 'bonds', 'achievement', 'wellbeing'] as const) m[`${p}legacy${k === 'total' ? '' : `.${k}`}`] = median(lives.map((l) => l.legacy[k]));
   }
   const legacies = STRATEGIES.map((st) => m[`${st}.legacy`]);
@@ -132,6 +133,7 @@ export const BANDS: Band[] = [
   { key: 'kids.degree', min: 0.15, max: 0.85, why: 'College should be common but not universal.' },
   { key: 'coverage.achievementsMissing', max: 0, why: 'Every achievement should be reached by at least one simulated life (otherwise it may be impossible).' },
   { key: 'coverage.eventsMissing', max: 0, why: 'Every event should fire in at least one simulated life (otherwise it may be dead content).' },
+  ...perStrategy('fulfillment', 38, 75, 'Fulfillment (average from 22 on) stays reasonable for scripted players who never chase their aspiration, and never maxes out without trying.'),
   { key: 'traits.legacySpread', min: 0.85, why: 'No personality trait should be a clearly better way to live: the weakest trait’s average life (bonds, achievement, wellbeing) stays within 15% of the strongest.' },
   { key: 'hobbyist.hobbyPayVsCareer', min: 0.7, max: 1.5, why: 'A dedicated hobbyist’s best pay on their path should land near a career-focused player’s best (hobby careers are a real alternative to university, with more variance).' },
   { key: 'athlete.first.went_pro', min: 0.03, max: 0.35, why: 'Even a fully dedicated young athlete should only sometimes have the talent to go pro.' },
@@ -160,6 +162,7 @@ export function tolerance(key: string): { rel?: number; abs?: number; deadOnly?:
   if (key.startsWith('ach.') || key.startsWith('event.')) return { deadOnly: true };
   if (key === 'all.violations' || key.startsWith('coverage.')) return { abs: 0 };
   if (key.includes('.first.')) return { abs: 0.35 };
+  if (key.endsWith('.fulfillment')) return { abs: 6 };
   if (key.startsWith('traits.')) return key === 'traits.legacySpread' ? { abs: 0.2 } : { rel: 0.5 }; // 20–45 lives per trait: noisy // explorer milestones: 20–60 lives each, so noisy
   if (key === 'kids.perLife') return { rel: 0.25 };
   if (key.startsWith('kids.')) return { abs: 0.03, rel: 0.6 };

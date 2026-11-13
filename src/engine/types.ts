@@ -17,6 +17,9 @@ export type Hobby = 'music' | 'sports' | 'art' | 'flying' | 'woodworking' | 'fis
 export type Program = 'degree' | 'trade_cert' | 'ppl' | 'cpl' | 'carpentry_cert' | 'auto_cert' | 'culinary_cert' | 'captains_license';
 
 /** Genome for the SVG avatar. Children inherit each gene from a parent. */
+/** What someone wants from life right now (see fulfillment.ts). */
+export type Aspiration = 'connection' | 'mastery' | 'achievement' | 'exploration' | 'security' | 'service';
+
 /** A soft preference for how someone likes to be cared for. */
 export type Connection = 'time' | 'support' | 'experiences' | 'space';
 
@@ -91,6 +94,10 @@ export interface Person {
   stake?: number;
   /** Part-time adult education (night school) in progress. */
   education?: { program: Program; progress: number; required: number; startYear: number };
+  /** What they want from life right now (chosen at adulthood, or suggested from their interests). */
+  aspiration?: Aspiration;
+  /** 0–100, slow: how well life has been serving their aspiration (set once simulated). */
+  fulfillment?: number;
   /** How they most like to be cared for (set once it has changed; otherwise derived: see relationships.ts). */
   connection?: Connection;
   /** A few things they remember about how someone treated them (bounded and fading; see relationships.ts). */

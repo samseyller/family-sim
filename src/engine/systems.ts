@@ -1,6 +1,7 @@
 import { CREATIVE_HOBBIES, reaction, scaled, yearTendencies, type Reaction, type Situation } from './personality';
 import { activitySituation } from './activitySituations';
 import { receiverFactor, remember } from './relationships';
+import { ASPIRATION_INFO, aspirationOf, updateFulfillment } from './fulfillment';
 import { HOBBY_BY_ID } from '../content/actions';
 import { DEBT_RATE, LIFESTYLES, NPC_DEBT_FLOOR, SAVINGS_RATE } from '../content/economy';
 import { charge, credit, payDownDebt } from './money';
@@ -313,6 +314,23 @@ export function applyPlan(s: GameState, rng: Rng): number {
   const felt = [...tendencies].sort((a, b) => Math.abs(b.happiness ?? 0) + Math.abs(b.stress ?? 0) - Math.abs(a.happiness ?? 0) - Math.abs(a.stress ?? 0))[0];
   const line = felt && Math.abs(felt.happiness ?? 0) + Math.abs(felt.stress ?? 0) >= 2 ? { trait: felt.trait, note: felt.note } : notes.find((r) => Math.abs(r.factor - 1) >= 0.1);
   if (line?.note && age >= 18) journal(s, `(${line.trait}) ${line.note}`, 'info');
+
+  // Fulfillment: how well this year served what you want from life (adults).
+  if (age >= 18) {
+    // Asked once you've come of age (after the after-high-school choice, never before it).
+    if (!me.aspiration && me.flags.aspiration_asked === undefined && me.flags.came_of_age) {
+      me.flags.aspiration_asked = s.year;
+      s.scheduled.push({ dueYear: s.year, eventId: 'choose_aspiration', subjectId: me.id });
+    }
+    const kids = kidsAtHome(s, me);
+    const f = updateFulfillment(s, me, {
+      partnerBlocks: g('partner_time'),
+      childBlocks: kids.reduce((n, k) => n + g(`child_time:${k.id}`) + g(`homework:${k.id}`), 0),
+      outing: g('family_outing'), socialize: g('socialize'), practice: g('practice'), learn: g('learn') + g('study'),
+      workSurplus, neglect, activities: thisYear,
+    });
+    if (Math.abs(f.delta) >= 3) journal(s, `${ASPIRATION_INFO[aspirationOf(me)].icon} Fulfillment ${f.delta > 0 ? 'rose' : 'fell'}: ${f.why}.`, 'info');
+  }
 
   // Baseline life pressure.
   stat(me, 'stress', 5);

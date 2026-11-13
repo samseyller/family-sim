@@ -27,6 +27,17 @@ export const HOBBY_ACTIVITIES: ActivityDef[] = [
     run: (c) => earn(c, 'cooking', 800, 32, 'Guests asked for your card', 'chef_kitchen'),
   },
   {
+    id: 'share_creation', category: 'hobby', icon: '🖼️', label: 'Share something you made', who: 'household', min: 0,
+    requires: (_s, me) => (me.hobby && (me.skills[me.hobby] ?? 0) >= 20 ? null : 'Make something first: a hobby at skill 20 or more.'),
+    desc: 'A song, a painting, a meal, a birdhouse: show the people you love what you’ve been working on.',
+    energy: flat(8), cost: flat(0), perYear: 2,
+    run: (c) => {
+      stat(c.me, 'happiness', 4);
+      bondAll(c, 3, 2);
+      return { text: c.people.length ? `${names(c.people)} loved it, and asked for another.` : 'You posted it online. A stranger said it made their day.', tone: 'good' };
+    },
+  },
+  {
     id: 'run_food_truck', category: 'hobby', icon: '🚚', label: 'Run the food truck', who: 'solo', perYear: 3,
     requires: (s, me) => (ownsGear(s.households[me.householdId], 'food_truck') ? null : 'Buy a food truck first (Money → Hobby gear).'),
     desc: 'A weekend at the festival grounds. Pays by cooking skill (more with a chef’s kitchen to prep in).',

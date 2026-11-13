@@ -23,7 +23,8 @@ import { applyCushion } from './tutorial';
 import { autoComeOfAge, die, settleEstates } from './family';
 import { pruneHistory, trimJournal } from './history';
 import { relationshipsYear } from './relationships';
-import { npcIntentions } from './agency';
+import { closePeople, npcIntentions } from './agency';
+import { npcFulfillmentYear } from './fulfillment';
 import { active, ageOf, alive, childrenOf, fullName, journal, partnerOf } from './util';
 
 function begin(state: GameState): { s: GameState; rng: Rng } {
@@ -85,6 +86,7 @@ export function resolveYear(state: GameState): GameState {
   homeLife(s); //                       perks of pools, gyms and the like
   rollMisfortunes(s, rng); //           accidents, fires, floods, bills, family in need
   npcIntentions(s); //                  close people act on intentions of their own
+  npcFulfillmentYear(s, closePeople(s)); // and how their lives are going
   if (alive(active(s))) generateEvents(s, rng); // 5 + 7. due consequences and events
 
   if (s.pending.length) s.phase = 'DECISIONS';

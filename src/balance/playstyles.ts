@@ -240,7 +240,9 @@ function hobbyistAct(s: GameState, ctx: StyleCtx): GameState {
     if (cash(s) > GEAR[g].price + 60_000) s = fin(s, { kind: 'buyGear', gear: g });
   }
   if (path.upgrade) s = upgrade(s, path.upgrade, 60_000);
-  s = doAll(s, path.acts);
+  // With a child old enough to help, leave the project car for a moment together (the restore_with_kid event).
+  const helper = kidsAtHome(s, me(s)).some((k) => ageOf(k, s.year) >= 8);
+  s = doAll(s, path.acts.filter((id) => !(helper && id === 'restore_car')));
   // Chase the next job on the path: move where it's hiring once qualified (a few times a life).
   const p = me(s);
   const next = nextCareer(p, path);

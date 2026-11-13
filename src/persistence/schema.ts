@@ -58,6 +58,8 @@ const Person = z.object({
   pensionSalary: num.optional(),
   retirementSavings: num.optional(),
   stake: num.optional(),
+  aspiration: z.enum(['connection', 'mastery', 'achievement', 'exploration', 'security', 'service']).optional(),
+  fulfillment: num.optional(),
   connection: z.enum(['time', 'support', 'experiences', 'space']).optional(),
   memories: z.array(z.object({ kind: z.enum(['missed', 'pressure', 'support', 'promise_kept', 'promise_broken']), of: id, year: int })).optional(),
   householdId: id,

@@ -479,6 +479,25 @@ Traits change how someone *reacts* to what they do, never what they can do or wh
   boundary after you pushed too hard. Stable rolls, at most one decision a year, each person at most every four
   years; nobody spends household money without your decision. Children you invited home don't leave on their own.
 
+## Aspiration and fulfillment
+
+- **Aspiration** (`src/engine/fulfillment.ts`): what someone wants from life now: connection, mastery, achievement,
+  exploration, security or service. As an adult you choose one (a suggestion from your traits and interests comes
+  first); heirs choose their own; everyone else gets one from their interests.
+- **Fulfillment** (0–100, Home tab) moves slowly toward how well each year served that aspiration: time with family
+  for connection, practice and learning for mastery, progress at work for achievement, travel and firsts for
+  exploration, savings and a home for security, helping and caring for service. Doing nothing special lands around
+  the middle; real effort reaches the 70s and 80s. Illness, a new baby, caring for a parent, retirement's first year
+  or looking for work soften a poor year instead of counting against you. The recap says why it moved.
+- **Small reach:** about two happiness points a year either way, and a little less stress when you're fulfilled. It
+  never touches income, skills, health, fertility or survival.
+- **When it runs low** (under 32), "Something's missing" offers a fresh start next year, a talk with someone close,
+  or a new aspiration (with two years' grace to settle in).
+- **New activities:** share something you made, mentor someone younger in the family, volunteer together, plan a
+  modest road trip, and set a household goal. Each is worthwhile whatever your aspiration.
+- **Balance:** each core play style's average fulfillment from 22 on stays between 38 and 75 (about 46–48 for scripted
+  players who never chase their aspiration).
+
 ## Activities, retirement, and the guided first life
 
 - **More activities:** *At home:* do your spouse's chores (named for them; tiring, but they notice). *Health:* go

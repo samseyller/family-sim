@@ -52,6 +52,8 @@ export interface LifeSample {
   peakHobbyPay: number;
   /** The first character's traits (for by-trait comparisons). */
   firstTraits: string[];
+  /** The first character's average fulfillment from 22 on (0 if never measured). */
+  fulfillment: number;
   /** Broken invariants (NaN money, stats out of range, events with no possible choice, ...). */
   violations: string[];
 }
@@ -89,10 +91,12 @@ export function playLife(styleId: string | PlayStyle, seed: number, maxYears = 1
   const sample: LifeSample = {
     seed, years: 0, ended: false, generations: 0, legacy: { wealth: 0, bonds: 0, achievement: 0, wellbeing: 0, total: 0 },
     lifespans: [], netWorthAt: {}, netWorth65: [], income: 0, expenses: 0, adultYears: 0, debtYears: 0, inheritances: [],
-    runawayDebt: false, milestones: [], peakPay: 0, peakHobbyPay: 0, firstTraits: [], achievements: [], events: {}, kids: { n: 0, athlete: 0, varsity: 0, scholarship: 0, pro: 0, allStar: 0, served: 0, fallen: 0, degree: 0, topDegree: 0 }, violations: [],
+    runawayDebt: false, milestones: [], peakPay: 0, peakHobbyPay: 0, firstTraits: [], fulfillment: 0, achievements: [], events: {}, kids: { n: 0, athlete: 0, varsity: 0, scholarship: 0, pro: 0, allStar: 0, served: 0, fallen: 0, degree: 0, topDegree: 0 }, violations: [],
   };
   const violate = (v: string) => { if (sample.violations.length < 20) sample.violations.push(`${s.year}: ${v}`); };
   let deepDebt = 0;
+  let fSum = 0;
+  let fN = 0;
   const step = (next: GameState) => { profile = track(profile, s, next, '').profile; s = next; };
 
   let y = 0;
@@ -121,6 +125,7 @@ export function playLife(styleId: string | PlayStyle, seed: number, maxYears = 1
     }
     deepDebt = hh.wallet < -1_000_000 ? deepDebt + 1 : 0;
     if (deepDebt === 10) sample.runawayDebt = true;
+    if (me.id === s.lineage[0] && age >= 22 && me.fulfillment !== undefined) { fSum += me.fulfillment; fN++; }
     // The first character's career: best pay held, and best pay in a hobby career (not the military or pro sports).
     if (me.id === s.lineage[0] && me.jobId) {
       const job = CAREER_BY_ID[me.jobId];
@@ -151,6 +156,7 @@ export function playLife(styleId: string | PlayStyle, seed: number, maxYears = 1
   const first = s.people[s.lineage[0]];
   sample.milestones = MILESTONES.filter((k) => first?.flags[k]);
   sample.firstTraits = first ? [...first.traits] : [];
+  sample.fulfillment = fN ? fSum / fN : 0;
   for (const p of Object.values(s.people)) {
     if (p.birthYear < startYear || (alive(p) && ageOf(p, s.year) < 25)) continue;
     const k = sample.kids;

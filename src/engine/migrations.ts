@@ -100,6 +100,8 @@ const STEPS: Record<number, Step> = {
   19: (s) => s,
   // v20 → v21: connection preferences and memories (optional; derived when missing). Nothing to rewrite.
   20: (s) => s,
+  // v21 → v22: aspiration and fulfillment (optional; started from current circumstances when first needed).
+  21: (s) => s,
   10: (s) => {
     const garages: Record<string, number> = { 'Starter home': 0, 'Family home': 2, 'Large home': 2 };
     for (const hh of isObj(s.households) ? Object.values(s.households).filter(isObj) : []) {

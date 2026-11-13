@@ -190,6 +190,27 @@ export const HOME_ACTIVITIES: ActivityDef[] = [
     },
   },
   {
+    id: 'household_goal', category: 'home', icon: '📋', label: 'Set a household goal', who: 'household', min: 1,
+    desc: 'Sit down together and agree on one thing to work toward this year: savings, a trip, a project.',
+    energy: flat(6), cost: flat(0), perYear: 1,
+    run: (c) => {
+      bondAll(c, 3, 3);
+      stat(c.me, 'stress', -2);
+      return { text: `You and ${names(c.people)} agreed on a goal and stuck it to the fridge.`, tone: 'good' };
+    },
+  },
+  {
+    id: 'road_trip', category: 'leisure', icon: '🚙', label: 'Plan a modest road trip', who: 'household', min: 0,
+    desc: 'A few days somewhere new within driving distance. Cheap motels, good snacks.',
+    energy: flat(25), cost: each(300, 100), perYear: 1,
+    run: (c) => {
+      moodAll(c, 'happiness', 6);
+      moodAll(c, 'stress', -6);
+      bondAll(c, 5, 3);
+      return { text: c.people.length ? `Car games, a flat tire, and a lake none of you knew existed. ${names(c.people)} want to go again.` : 'Just you, the open road, and a playlist. Exactly what you needed.', tone: 'good' };
+    },
+  },
+  {
     id: 'try_new_together', category: 'home', icon: '🎨', label: 'Try something new together', who: 'household', min: 1, max: 3, ages: [10, 120],
     desc: 'A pottery class, an escape room, a cooking challenge: something none of you have done before.',
     energy: flat(15), cost: each(0, 60),
