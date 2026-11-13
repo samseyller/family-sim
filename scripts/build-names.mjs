@@ -3,7 +3,6 @@
 import { readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 const [ssaDir, censusCsv, out] = process.argv.slice(2);
-const EXCLUDE = new Set(['Samuel', 'Sam']); // never use the project owner's name
 const files = readdirSync(ssaDir).filter((f) => /^yob\d{4}\.txt$/.test(f));
 const share = { F: new Map(), M: new Map() };
 const raw = { F: new Map(), M: new Map() };
@@ -19,7 +18,7 @@ for (const f of files) {
 }
 function top(sx, k) {
   const other = sx === 'F' ? 'M' : 'F';
-  return [...share[sx]].filter(([n]) => !EXCLUDE.has(n))
+  return [...share[sx]]
     .filter(([n]) => (raw[sx].get(n) ?? 0) / ((raw[sx].get(n) ?? 0) + (raw[other].get(n) ?? 0)) >= 0.8)
     .sort((a, b) => b[1] - a[1]).slice(0, k).map(([n]) => n);
 }
