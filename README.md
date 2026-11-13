@@ -152,7 +152,8 @@ for random). When your baby is born, a naming event offers suggestions or lets y
 - **Family tab options:** open a person's **Options** for actions that fit them: break up with someone you're dating
   (if you live together they move out with half the savings), separate from a spouse (they move out with half;
   the divorce follows) and file for divorce, ask parents or grown children living with you to find their own
-  place, invite relatives to move in, and call, meet or visit friends. Friends you've drifted apart from can be
+  place, ask a grown brother or sister living in a home you run to move out (they may refuse; asking costs trust,
+  more so if they say no; once a year), invite relatives to move in, and call, meet or visit friends. Friends you've drifted apart from can be
   let go for good.
 - Grown children (and anyone else) living with you can still marry, with the spouse moving in, and have children.
   When the home holds more people than it fits, a **full house** prompt offers an addition, a bigger home or

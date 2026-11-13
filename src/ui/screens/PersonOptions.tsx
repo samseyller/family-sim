@@ -4,7 +4,7 @@ import { separatedFrom } from '../../engine/family';
 import { friendship, isDistant } from '../../engine/friends';
 import { householdBlocker, invitable, type HouseholdAction } from '../../engine/household';
 import { isNear } from '../../engine/location';
-import { relationBlocker, type RelationAction } from '../../engine/relations';
+import { isSibling, relationBlocker, siblingLeaveChance, type RelationAction } from '../../engine/relations';
 import type { GameState, Person } from '../../engine/types';
 import { active, activePartnership, ageOf } from '../../engine/util';
 import { useGame } from '../../store/gameStore';
@@ -39,6 +39,10 @@ export function PersonOptions({ g, p }: { g: GameState; p: Person }) {
   if (isChild && adult && atHome) {
     hh({ kind: 'askToLeave', personId: p.id, gift: 'share' }, 'leaveShare', `🚪 Ask ${p.firstName} to move out (with their share)`, 'Their partner and kids go too', 'Confirm: ask them to leave');
     hh({ kind: 'askToLeave', personId: p.id, gift: 5000 }, 'leaveGift', `🚪 Ask ${p.firstName} to move out (with $5,000)`, 'A smaller send-off', 'Confirm: ask them to leave');
+  }
+  if (isSibling(me, p) && adult && atHome) {
+    const odds = Math.round(siblingLeaveChance(g, me, p) * 100);
+    rel({ kind: 'askSiblingToLeave', personId: p.id }, `🚪 Ask ${p.firstName} to move out`, `About ${odds}% chance they agree; asking hurts their trust either way (more if they refuse)`, 'Confirm: ask them to leave');
   }
   if (!atHome && invitable(g).some((x) => x.id === p.id)) hh({ kind: 'invite', personId: p.id }, 'invite', `🏡 Invite ${p.firstName} to live with you`, 'Everyone in their home moves in; their home is sold');
 

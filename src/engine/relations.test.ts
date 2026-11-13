@@ -46,3 +46,51 @@ describe('ending relationships from the Family tab', () => {
     expect(friendshipsOf(s1).length).toBe(friendshipsOf(s0).length - 1);
   });
 });
+
+describe('asking a sibling to move out', () => {
+  /** A player who runs a home their adult brother or sister lives in. */
+  function withSibling(seed: number) {
+    const s = newGame(seed, 'child');
+    const me = active(s);
+    me.birthYear = s.year - 30;
+    const sib = Object.values(s.people).find((p) => p.id !== me.id && p.biologicalParents.some((id) => me.biologicalParents.includes(id)));
+    if (!sib) return undefined;
+    sib.birthYear = s.year - 27;
+    sib.householdId = me.householdId;
+    s.households[me.householdId].headId = me.id;
+    return { s, me, sib };
+  }
+
+  it('works only for grown siblings at home, in a home you run, once a year', () => {
+    let x;
+    for (let seed = 6200; seed < 6260 && !x; seed++) x = withSibling(seed);
+    const { s, sib } = x!;
+    expect(relationBlocker(s, { kind: 'askSiblingToLeave', personId: sib.id })).toBeNull();
+    const notHead = structuredClone(s);
+    notHead.households[active(s).householdId].headId = sib.id;
+    expect(relationBlocker(notHead, { kind: 'askSiblingToLeave', personId: sib.id })).toMatch(/runs the home/);
+    const after = relationAction(s, { kind: 'askSiblingToLeave', personId: sib.id });
+    if (after.people[sib.id].householdId === active(after).householdId) {
+      expect(relationBlocker(after, { kind: 'askSiblingToLeave', personId: sib.id })).toMatch(/already asked/);
+    }
+  });
+
+  it('sometimes they refuse, and trust always takes a hit (more when they refuse)', () => {
+    let agreed = 0;
+    let refused = 0;
+    const lost = { agreed: 0, refused: 0 };
+    for (let seed = 6300; seed < 6400; seed++) {
+      const x = withSibling(seed);
+      if (!x) continue;
+      x.s.rngState = seed;
+      const before = getBond(x.s, x.me.id, x.sib.id).trust;
+      const after = relationAction(x.s, { kind: 'askSiblingToLeave', personId: x.sib.id });
+      const drop = before - getBond(after, x.me.id, x.sib.id).trust;
+      expect(drop).toBeGreaterThan(0);
+      if (after.people[x.sib.id].householdId !== active(after).householdId) { agreed++; lost.agreed += drop; } else { refused++; lost.refused += drop; }
+    }
+    expect(agreed).toBeGreaterThan(0);
+    expect(refused).toBeGreaterThan(0);
+    expect(lost.refused / refused).toBeGreaterThan(lost.agreed / agreed);
+  });
+});
