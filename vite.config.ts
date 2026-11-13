@@ -4,6 +4,8 @@ import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig({
+  // Served from a sub-path on GitHub Pages (e.g. /family-sim/); the deploy workflow sets BASE_PATH.
+  base: process.env.BASE_PATH || '/',
   plugins: [
     react(),
     VitePWA({

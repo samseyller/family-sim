@@ -4,7 +4,34 @@ A turn-based family life simulator. Each turn is one year: split your limited ti
 between work, yourself, and your family, guide your children, face life events, and
 when your character dies, continue as your spouse, child, or grandchild.
 
-Done so far: **Stage 1** (family loop), **Stage 2** (reliable saves), **Stage 3** (profile & data format), **Stage 4** (dating & divorce, night school, a fuller household), **Stage 5** (aging avatars, family tree, memorials).
+## Setup
+
+You need [Node.js](https://nodejs.org/) 22.12 or newer (npm comes with it).
+
+```sh
+npm install        # install dependencies
+npm run dev        # play at http://localhost:5173
+npm test           # unit tests
+```
+
+The browser tests (`npm run e2e`) run in Microsoft Edge through Playwright. Install its driver once:
+
+```sh
+npx playwright install msedge
+```
+
+The game saves to the browser's IndexedDB, so there is no server or database to set up. Saves stay in the browser
+you play in; use **Saves & backups → Export full backup** in the game to keep a copy.
+
+## Continuous integration and GitHub Pages
+
+`.github/workflows/deploy.yml` runs on every push and pull request: typecheck, unit tests, and the balance suite.
+When they pass on `main`, it builds the game and publishes it to GitHub Pages. The build uses the Pages sub-path
+(for example `https://<user>.github.io/<repo>/`) through the `BASE_PATH` variable. Browser tests (`npm run e2e`)
+are run locally.
+
+One-time setup on GitHub: **Settings → Pages → Build and deployment → Source: GitHub Actions**. To build for a
+sub-path locally, run `BASE_PATH=/family-sim/ npm run build`.
 
 ## Commands
 
