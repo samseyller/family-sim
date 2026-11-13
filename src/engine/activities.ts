@@ -18,6 +18,7 @@ import { HOBBY_ACTIVITIES } from './activitiesHobbies';
 import { PET_ACTIVITIES } from './activitiesPets';
 import { ROMANCE_ACTIVITIES } from './activitiesRomance';
 import { SOCIAL_ACTIVITIES } from './activitiesSocial';
+import { charge, hasCash } from './money';
 
 export { CATEGORIES, distanceOf, relativesOutside } from './activityKit';
 export type { ActivityCtx, ActivityDef, Category, Who } from './activityKit';
@@ -96,7 +97,7 @@ export function activityBlocker(s: GameState, id: string, ids: string[] = []): s
   const e = def.energy(s, people);
   if (e > left) return `Needs ${e} energy (${left} left).`;
   const cost = def.cost(s, people);
-  if (cost > 0 && s.households[me.householdId].wallet < cost) return `Costs ${money(cost)}.`;
+  if (cost > 0 && !hasCash(s.households[me.householdId], cost)) return `Costs ${money(cost)}.`;
   return null;
 }
 
@@ -126,7 +127,7 @@ export function performActivity(state: GameState, id: string, ids: string[] = []
     stat(me, 'happiness', -2);
     result = { text: 'You asked nicely. Your parents said "maybe next year."', tone: 'neutral' };
   } else {
-    hh.wallet -= cost;
+    charge(hh, cost);
     result = def.run({ s, rng, me, people });
   }
 

@@ -1,7 +1,7 @@
 /** Sports moments: tryouts, big games, injuries, the draft, contracts, and retirement. */
 import { CAREER_BY_ID } from '../content/careers';
 import { PRO_SKILL, SPORTS, TRAVEL_TEAM_COST } from '../content/sports';
-import { canCover, coverHint, payEmergency } from './emergency';
+import { canCover, coverHint, credit, payEmergency } from './money';
 import type { Ctx, EventDef } from './eventKit';
 import { goPro, isPro, retireFromPro } from './sports';
 import type { Person } from './types';
@@ -185,11 +185,11 @@ export const SPORTS_EVENTS: EventDef[] = [
     resolve: (c, ch) => {
       const pay = CAREER_BY_ID[c.me.jobId!].levelPay![c.me.jobLevel - 1];
       if (ch === 'stay') {
-        wallet(c).wallet += Math.round(pay * 0.2);
+        credit(wallet(c), Math.round(pay * 0.2));
         return 'Handshakes, a press conference, and the same locker.';
       }
       if (c.rng.chance(0.6)) {
-        wallet(c).wallet += Math.round(pay * 0.45);
+        credit(wallet(c), Math.round(pay * 0.45));
         stat(c.me, 'happiness', 6);
         return 'A bidding war! You signed a much bigger deal.';
       }

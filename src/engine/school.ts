@@ -15,6 +15,7 @@
 import type { Rng } from './rng';
 import type { GameState, Household, Person } from './types';
 import { ageOf, clamp, money } from './util';
+import { credit } from './money';
 
 export type CollegeTier = 'top' | 'state' | 'trade';
 
@@ -133,7 +134,7 @@ export function enroll(s: GameState, rng: Rng, p: Person, tier: CollegeTier, pay
     notes.push(`a ${Math.round(sch * 100)}% scholarship`);
   } else delete p.flags.scholarship;
   if (p.fund > 0) {
-    payer.wallet += p.fund;
+    credit(payer, p.fund);
     p.fund = 0;
   }
   const where = `${COLLEGE_LABEL[got]}${notes.length ? ` (${notes.join('; ')})` : ''}`;

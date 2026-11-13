@@ -6,6 +6,7 @@ import { CAT_BREEDS, CAT_SHELTER_FEE } from '../content/cats';
 import { maybeMeetFriend } from './friends';
 import { isSingle, meetSomeone } from './romance';
 import { type ActivityDef, flat, bondAll, moodAll, hasDog, myDogs, hasCat, myCats, dogNames } from './activityKit';
+import { charge, hasCash } from './money';
 
 export const PET_ACTIVITIES: ActivityDef[] = [
   // 🐈 Cats (everything here includes all your cats)
@@ -58,8 +59,8 @@ export const PET_ACTIVITIES: ActivityDef[] = [
       stat(c.me, 'happiness', 4);
       stat(c.me, 'stress', -3);
       const hh = c.s.households[c.me.householdId];
-      if (ageOf(c.me, c.s.year) >= 18 && catsOf(hh).length < maxCats(hh) && hh.wallet >= CAT_SHELTER_FEE && c.rng.chance(0.15)) {
-        hh.wallet -= CAT_SHELTER_FEE;
+      if (ageOf(c.me, c.s.year) >= 18 && catsOf(hh).length < maxCats(hh) && hasCash(hh, CAT_SHELTER_FEE) && c.rng.chance(0.15)) {
+        charge(hh, CAT_SHELTER_FEE);
         const cat = adoptCatInto(c.s, c.rng, 'tabby', '', c.rng.int(1, 6), 'shelter');
         return { text: `${cat.name} climbed into your lap and refused to leave. You signed the adoption papers.`, tone: 'good' };
       }

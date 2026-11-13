@@ -2,6 +2,7 @@
 import { ownsGear, practiceBoost, restoreProgress } from './hobbies';
 import { active, flag, journal, money, stat } from './util';
 import { type ActivityDef, flat, names, bondAll, moodAll, needSkill, projectCar, earn, hangOut } from './activityKit';
+import { credit } from './money';
 
 export const HOBBY_ACTIVITIES: ActivityDef[] = [
   // 🧰 Hobbies & side gigs: earn by skill, restore, share with family
@@ -60,7 +61,7 @@ export const HOBBY_ACTIVITIES: ActivityDef[] = [
     desc: 'Polish, park, and hope for a trophy.', energy: flat(6), cost: flat(50),
     run: (c) => {
       if (c.rng.chance(0.3 + (c.me.skills.mechanics ?? 0) / 300)) {
-        c.s.households[c.me.householdId].wallet += 2000;
+        credit(c.s.households[c.me.householdId], 2000);
         flag(c.me, 'car_show_win');
         return { text: 'Best in Show and a $2,000 prize!', tone: 'good' };
       }
@@ -87,7 +88,7 @@ export const HOBBY_ACTIVITIES: ActivityDef[] = [
       const odds = ((c.me.skills.fishing ?? 0) / 160) * practiceBoost(c.s, c.me, 'fishing');
       if (c.rng.chance(Math.min(0.8, odds))) {
         const prize = c.rng.pick([500, 1000, 2500, 5000].filter((_, i) => i <= Math.floor(odds * 4)));
-        c.s.households[c.me.householdId].wallet += prize;
+        credit(c.s.households[c.me.householdId], prize);
         return { text: `You placed! ${money(prize)} in prize money.`, tone: 'good' };
       }
       return { text: 'Skunked. Next time.', tone: 'neutral' };

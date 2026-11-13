@@ -1,6 +1,6 @@
 import { HOBBY_BY_ID } from '../content/actions';
 import { DEBT_RATE, LIFESTYLES, NPC_DEBT_FLOOR, SAVINGS_RATE } from '../content/economy';
-import { payDownDebt } from './emergency';
+import { charge, credit, payDownDebt } from './money';
 import { CAREER_BY_ID, PART_TIME_MAX, PROGRAMS, TWO_JOB_STRESS, qualifies, requiredBlocks } from '../content/careers';
 import { assignJob, canWorkFullTime, homeParents, makeAdultStranger, makeBaby, pickCareer } from './generate';
 import { fullTimePay, householdBudget, partTimePay } from './budget';
@@ -60,7 +60,7 @@ export function applyPlan(s: GameState, rng: Rng): number {
       me.flags.hired_year = s.year; // workplace events wait until you've settled in
       if (c.hours === 'full') me.retired = false;
       if (c.startup) {
-        s.households[me.householdId].wallet -= c.startup;
+        charge(s.households[me.householdId], c.startup);
         journal(s, `You opened your own business: ${c.name} (${money(c.startup)} to get started).`, 'major');
       } else journal(s, `You were hired as a ${c.name}${c.hours === 'part' ? ' (part-time)' : ''}!`, 'good');
     } else if (c) {
@@ -274,7 +274,7 @@ export function runEconomy(s: GameState, activePay: number, rng?: Rng) {
       for (const kid of kidsAtHome(s, me)) kid.fund += fundRoom(kid, s.plan.children[kid.id]?.fundContribution ?? 0);
     }
     for (const p of mem) if (p.fund > 0) p.fund = Math.round(ageOf(p, s.year) < 18 ? Math.min(COLLEGE_FUND_CAP, p.fund * 1.04) : p.fund * 1.04);
-    hh.wallet += budget.net;
+    credit(hh, budget.net);
     // Cars age (value, upkeep, repairs, and eventually dying for good).
     ageCars(s, hh, rng, hh.id === me.householdId);
     ageGear(hh);

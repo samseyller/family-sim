@@ -11,6 +11,7 @@ import { admitChance, collegeChoice, gpaText, TUITION } from './school';
 import { SCHOLARSHIP_SKILL, SPORTS } from '../content/sports';
 import type { GameState, Hobby, Person } from './types';
 import { adjustBond, ageOf, alive, clamp, flag, getBond, journal, money, parentsOf, partnerOf, stat } from './util';
+import { charge } from './money';
 
 /** Living parents who share the active character's home. */
 export const parentsAtHome = (s: GameState, p: Person) => parentsOf(s, p).filter((x) => alive(x) && x.householdId === p.householdId);
@@ -316,7 +317,7 @@ export const CHILD_EVENTS: EventDef[] = [
       }
       const gift = parentGift(c);
       const home = c.s.households[c.me.householdId];
-      home.wallet -= gift;
+      charge(home, gift);
       moveOut(c.s, c.me, gift);
       bondParents(c, 4, 2);
       journal(c.s, 'You moved into your own place.', 'major');

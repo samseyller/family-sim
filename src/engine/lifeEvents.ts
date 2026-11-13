@@ -13,7 +13,7 @@
 import { CITIES } from '../content/cities';
 import { DEDUCTIBLE } from '../content/economy';
 import { makeCar, parkingFree, workingCars } from './cars';
-import { canCover, coverHint, payEmergency } from './emergency';
+import { canCover, charge, coverHint, credit, hasCash, payEmergency } from './money';
 import { pushPending, type Ctx, type EventDef } from './eventKit';
 import { homeOf, upgradeCount } from './finance';
 import { cityOfHousehold } from './location';
@@ -28,7 +28,7 @@ const wallet = (c: Ctx) => c.s.households[c.me.householdId];
 const age = (c: Ctx, p: Person) => ageOf(p, c.s.year);
 /** Prices scale with the city's everyday costs, rounded to $50. */
 const local = (c: Ctx, n: number) => Math.round((n * CITIES[cityOfHousehold(wallet(c))].living) / 50) * 50;
-const pay = (c: Ctx, n: number) => { wallet(c).wallet -= n; };
+const pay = (c: Ctx, n: number) => { charge(wallet(c), n); };
 /** Pay for an emergency fix: cash first, then investments. */
 const payE = (c: Ctx, n: number) => { payEmergency(wallet(c), n); };
 const isMine = (me: Person, k: Person) => k.biologicalParents.includes(me.id) || k.adoptiveParents.includes(me.id);
@@ -36,12 +36,12 @@ const isMine = (me: Person, k: Person) => k.biologicalParents.includes(me.id) ||
 function give(c: Ctx, to: Person, n: number) {
   payE(c, n);
   if (to.householdId === c.me.householdId && age(c, to) < 18) to.fund += n;
-  else c.s.households[to.householdId].wallet += n;
+  else credit(c.s.households[to.householdId], n);
   flag(c.me, 'given_to_family', n);
 }
 /** Choice helper: a priced option that's disabled when you can't pay. */
 const priced = (c: Ctx, id: string, label: string, cost: number, hint?: string) =>
-  ({ id, label: cost ? `${label} (${money(cost)})` : label, hint, disabled: cost > 0 && wallet(c).wallet < cost });
+  ({ id, label: cost ? `${label} (${money(cost)})` : label, hint, disabled: cost > 0 && !hasCash(wallet(c), cost) });
 /** Choice helper for an emergency fix: investments can cover what cash can't (pay it with payE). */
 const emergency = (c: Ctx, id: string, label: string, cost: number, hint?: string) =>
   ({ id, label: `${label} (${money(cost)})`, hint: coverHint(wallet(c), cost, hint), disabled: !canCover(wallet(c), cost) });
@@ -78,7 +78,7 @@ export const LIFE_EVENTS: EventDef[] = [
       const help = ch === 'courthouse' ? 0 : parentsHelp(c);
       const cost = Math.max(0, local(c, WEDDING[ch as keyof typeof WEDDING]) - help);
       pay(c, cost);
-      if (help) for (const par of parentsOf(c.s, c.me).filter(alive)) c.s.households[par.householdId].wallet -= help / Math.max(1, parentsOf(c.s, c.me).filter(alive).length);
+      if (help) for (const par of parentsOf(c.s, c.me).filter(alive)) charge(c.s.households[par.householdId], help / Math.max(1, parentsOf(c.s, c.me).filter(alive).length));
       const joy = { courthouse: 3, small: 8, big: 10, dream: 12 }[ch as keyof typeof WEDDING];
       stat(c.me, 'happiness', joy);
       adjustBond(c.s, c.me.id, p!.id, joy / 2, 3);
@@ -292,7 +292,7 @@ export const LIFE_EVENTS: EventDef[] = [
       }
       if (totaled && ch === 'claim') {
         hh.assets = hh.assets.filter((a) => a !== car);
-        hh.wallet += Math.max(0, car!.value - DEDUCTIBLE.car - car!.mortgage);
+        credit(hh, Math.max(0, car!.value - DEDUCTIBLE.car - car!.mortgage));
         return 'You signed the papers and watched the tow truck drive off. Time to shop for a car.';
       }
       if (ch === 'claim') {
@@ -495,7 +495,7 @@ export const LIFE_EVENTS: EventDef[] = [
     resolve: (c, _ch, p) => {
       if (c.rng.chance(0.6)) {
         const back = askAmount(c, p!);
-        wallet(c).wallet += back;
+        credit(wallet(c), back);
         return `${p!.firstName} paid you back in full, with a thank-you card.`;
       }
       adjustBond(c.s, c.me.id, p!.id, -3, -5);

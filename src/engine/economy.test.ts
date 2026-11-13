@@ -168,7 +168,7 @@ describe('investments in an emergency', () => {
   });
 
   it('only sells what cash cannot cover, and never more than is invested', async () => {
-    const { payEmergency, canCover } = await import('./emergency');
+    const { payEmergency, canCover } = await import('./money');
     const hh = { ...hhOf(newGame(4411)), wallet: 3000, investments: 10_000 };
     expect(canCover(hh, 13_000)).toBe(true);
     expect(canCover(hh, 13_001)).toBe(false);
@@ -189,7 +189,7 @@ describe('investments in an emergency', () => {
   it('pays 10% of cash debt from investments each year, before interest', async () => {
     const { runEconomy } = await import('./systems');
     const { DEBT_PAYDOWN } = await import('../content/economy');
-    const { payDownDebt } = await import('./emergency');
+    const { payDownDebt } = await import('./money');
     const hh = { ...hhOf(newGame(4413)), wallet: -100_000, investments: 500_000 };
     expect(payDownDebt(hh)).toBe(100_000 * DEBT_PAYDOWN);
     expect(hh.wallet).toBe(-90_000);

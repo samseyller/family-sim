@@ -3,7 +3,7 @@ import { CAT_BREEDS, CAT_TREE_COST, type CatBreed } from '../content/cats';
 import { adoptCatInto, catAge, catsOf, catStage, frailestCat, maxCats } from './cats';
 import { dogsOf } from './dogs';
 import { hash } from './jobMarket';
-import { canCover, coverHint, payEmergency } from './emergency';
+import { canCover, charge, coverHint, hasCash, payEmergency } from './money';
 import type { Ctx, EventDef } from './eventKit';
 import type { Cat } from './types';
 import { ageOf, clamp, flag, money, stat } from './util';
@@ -58,19 +58,19 @@ export const CAT_EVENTS: EventDef[] = [
         title: 'The couch has seen better days',
         text: `${cat?.name ?? 'The cat'} has been using the arm of the couch as a scratching post. Reupholstering: $300.`,
         choices: [
-          { id: 'tree', label: `Pay, and buy a cat tree (${money(300 + CAT_TREE_COST)})`, hint: 'Somewhere better to scratch', disabled: hh(c).wallet < 300 + CAT_TREE_COST },
+          { id: 'tree', label: `Pay, and buy a cat tree (${money(300 + CAT_TREE_COST)})`, hint: 'Somewhere better to scratch', disabled: !hasCash(hh(c), 300 + CAT_TREE_COST) },
           { id: 'pay', label: 'Pay and throw a blanket over it ($300)' },
         ],
       };
     },
     resolve: (c, ch) => {
       if (ch === 'tree') {
-        hh(c).wallet -= 300 + CAT_TREE_COST;
+        charge(hh(c), 300 + CAT_TREE_COST);
         hh(c).catTree = true;
         for (const x of catsOf(hh(c))) x.bond = clamp(x.bond + 5, 0, 100);
         return 'The cat tree was ignored for one day, then claimed forever. The couch is safe.';
       }
-      hh(c).wallet -= 300;
+      charge(hh(c), 300);
       return 'A blanket now lives on the couch. The cat now lives under the blanket.';
     },
   },
@@ -91,7 +91,7 @@ export const CAT_EVENTS: EventDef[] = [
     }),
     resolve: (c, ch) => {
       if (ch === 'adopt') {
-        hh(c).wallet -= 150;
+        charge(hh(c), 150);
         const breed: CatBreed = c.rng.chance(0.85) ? 'tabby' : c.rng.pick(Object.keys(CAT_BREEDS) as CatBreed[]);
         const cat = adoptCatInto(c.s, c.rng, breed, '', c.rng.int(1, 5), 'stray');
         return `You named them ${cat.name}. They claimed the best chair within the hour.`;

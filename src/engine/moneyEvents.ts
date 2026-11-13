@@ -1,7 +1,7 @@
 /** Home and car: a house for sale, and car trouble. */
 import { annuityPayment, HOMES, MORTGAGE_RATE, MORTGAGE_YEARS, SCRAP_VALUE } from '../content/finance';
 import { breakdownChance, carAge, conditionOf, garagedIds, repairCost, shakiestCar } from './cars';
-import { canCover, coverHint, payEmergency } from './emergency';
+import { canCover, charge, coverHint, credit, hasCash, payEmergency } from './money';
 import { bestSkill } from './handy';
 import { homePriceIn, homeUpfront, makeHome } from './finance';
 import { cityName, myCity } from './location';
@@ -15,7 +15,7 @@ export const HOUSE_EVENTS: EventDef[] = [
     id: 'house_for_sale',
     major: true,
     cooldown: 4,
-    candidates: (c) => one(!wallet(c).assets.some((a) => a.kind === 'house') && wallet(c).wallet >= homeUpfront('family', 0.1, myCity(c.s)), 3),
+    candidates: (c) => one(!wallet(c).assets.some((a) => a.kind === 'house') && hasCash(wallet(c), homeUpfront('family', 0.1, myCity(c.s))), 3),
     build: (c) => {
       const city = myCity(c.s);
       const price = homePriceIn('family', city);
@@ -32,7 +32,7 @@ export const HOUSE_EVENTS: EventDef[] = [
     resolve: (c, ch) => {
       if (ch !== 'buy') return 'You kept renting. The savings stay in the bank.';
       const city = myCity(c.s);
-      wallet(c).wallet -= homeUpfront('family', 0.1, city);
+      charge(wallet(c), homeUpfront('family', 0.1, city));
       wallet(c).assets.push(makeHome(c.s, 'family', city, 0.1));
       for (const m of [c.me, ...kidsAtHome(c.s, c.me)]) stat(m, 'happiness', 6);
       journal(c.s, 'You bought a family home.', 'major');
@@ -79,7 +79,7 @@ export const CAR_EVENTS: EventDef[] = [
       }
       if (ch === 'scrap' && car) {
         hh.assets = hh.assets.filter((a) => a !== car);
-        hh.wallet += SCRAP_VALUE;
+        credit(hh, SCRAP_VALUE);
         journal(c.s, `You scrapped the ${car.name}.`, 'info');
         return 'The tow truck hauled it away. Time to go car shopping.';
       }

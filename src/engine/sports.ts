@@ -13,6 +13,7 @@ import { isCloseKin } from './family';
 import type { Rng } from './rng';
 import type { GameState, Person } from './types';
 import { active, ageOf, alive, clamp, flag, journal, money, stat } from './util';
+import { charge } from './money';
 
 export const proSport = (p: Person): SportId | undefined => (p.jobId ? CAREER_BY_ID[p.jobId]?.pro : undefined);
 export const isPro = (p: Person) => !!proSport(p);
@@ -125,7 +126,7 @@ export function sportsAction(state: GameState, a: SportsAction): GameState {
   const sp = SPORTS[me.sport!];
   const hh = s.households[me.householdId];
   if (a.kind === 'gear') {
-    hh.wallet -= sp.gear.price;
+    charge(hh, sp.gear.price);
     me.flags[`gear_${me.sport}`] = 1;
     journal(s, `You bought ${sp.gear.label.toLowerCase()}.`, 'info');
   } else if (a.join) {

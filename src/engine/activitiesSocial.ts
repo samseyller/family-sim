@@ -6,6 +6,7 @@ import { cityName, cityOf } from './location';
 import { friendsOf, maybeMeetFriend, sawFriend } from './friends';
 import { jobBlurb } from './romance';
 import { type ActivityDef, flat, bondAll, moodAll, working, hangOut } from './activityKit';
+import { credit } from './money';
 
 export const SOCIAL_ACTIVITIES: ActivityDef[] = [
   // 🎉 Social
@@ -99,8 +100,8 @@ export const SOCIAL_ACTIVITIES: ActivityDef[] = [
     run: (c) => {
       const hh = c.s.households[c.me.householdId];
       const r = c.rng.next();
-      if (r < 0.05) { hh.wallet += 1600; flag(c.me, 'longshot'); stat(c.me, 'happiness', 8); return { text: 'Your 15-to-1 longshot came from nowhere on the final turn. You won $1,600!', tone: 'good' }; }
-      if (r < 0.3) { hh.wallet += 260; stat(c.me, 'happiness', 3); return { text: 'The favorite came through. A small win, and a great afternoon.', tone: 'good' }; }
+      if (r < 0.05) { credit(hh, 1600); flag(c.me, 'longshot'); stat(c.me, 'happiness', 8); return { text: 'Your 15-to-1 longshot came from nowhere on the final turn. You won $1,600!', tone: 'good' }; }
+      if (r < 0.3) { credit(hh, 260); stat(c.me, 'happiness', 3); return { text: 'The favorite came through. A small win, and a great afternoon.', tone: 'good' }; }
       stat(c.me, 'happiness', -2);
       return { text: c.rng.pick(['Your horse stopped to look at a bird. Truly.', 'Neck and neck to the line, then a nose short.', 'You picked by name. The name was a lie.']), tone: 'bad' };
     },
@@ -111,8 +112,8 @@ export const SOCIAL_ACTIVITIES: ActivityDef[] = [
     run: (c) => {
       const r = c.rng.next();
       const hh = c.s.households[c.me.householdId];
-      if (r < 0.0005) { hh.wallet += 250000; flag(c.me, 'lottery_win'); return { text: 'JACKPOT. $250,000. You had to sit down.', tone: 'good' }; }
-      if (r < 0.02) { hh.wallet += 100; return { text: 'Three numbers! You won $100.', tone: 'good' }; }
+      if (r < 0.0005) { credit(hh, 250000); flag(c.me, 'lottery_win'); return { text: 'JACKPOT. $250,000. You had to sit down.', tone: 'good' }; }
+      if (r < 0.02) { credit(hh, 100); return { text: 'Three numbers! You won $100.', tone: 'good' }; }
       return { text: 'Not a single number. Maybe next time.', tone: 'neutral' };
     },
   },
@@ -122,8 +123,8 @@ export const SOCIAL_ACTIVITIES: ActivityDef[] = [
     run: (c) => {
       const r = c.rng.next();
       const hh = c.s.households[c.me.householdId];
-      if (r < 0.1) { hh.wallet += 3500; stat(c.me, 'happiness', 8); return { text: 'Hot streak at the blackjack table: you walked out $2,500 up.', tone: 'good' }; }
-      if (r < 0.35) { hh.wallet += 1000; return { text: 'You broke even. A fun weekend for the price of the hotel.', tone: 'neutral' }; }
+      if (r < 0.1) { credit(hh, 3500); stat(c.me, 'happiness', 8); return { text: 'Hot streak at the blackjack table: you walked out $2,500 up.', tone: 'good' }; }
+      if (r < 0.35) { credit(hh, 1000); return { text: 'You broke even. A fun weekend for the price of the hotel.', tone: 'neutral' }; }
       stat(c.me, 'happiness', -3);
       return { text: 'The house won. It always seems to.', tone: 'bad' };
     },
@@ -131,12 +132,12 @@ export const SOCIAL_ACTIVITIES: ActivityDef[] = [
   {
     id: 'side_gig', category: 'risk', icon: '🧰', label: 'Weekend side gig', who: 'solo', ages: [16, 120], desc: 'Odd jobs for extra cash.',
     energy: flat(20), cost: flat(0),
-    run: (c) => { const pay = c.rng.int(600, 1800); c.s.households[c.me.householdId].wallet += pay; stat(c.me, 'stress', 5); return { text: `You earned ${money(pay)} assembling furniture for strangers.`, tone: 'good' }; },
+    run: (c) => { const pay = c.rng.int(600, 1800); credit(c.s.households[c.me.householdId], pay); stat(c.me, 'stress', 5); return { text: `You earned ${money(pay)} assembling furniture for strangers.`, tone: 'good' }; },
   },
   {
     id: 'garage_sale', category: 'risk', icon: '🏷️', label: 'Garage sale', who: 'solo', perYear: 1, desc: 'Turn clutter into cash.',
     energy: flat(15), cost: flat(0),
-    run: (c) => { const pay = c.rng.int(200, 900); c.s.households[c.me.householdId].wallet += pay; stat(c.me, 'happiness', 2); return { text: `The old exercise bike finally went. ${money(pay)} richer.`, tone: 'good' }; },
+    run: (c) => { const pay = c.rng.int(200, 900); credit(c.s.households[c.me.householdId], pay); stat(c.me, 'happiness', 2); return { text: `The old exercise bike finally went. ${money(pay)} richer.`, tone: 'good' }; },
   },
 
   // ⚠️ Vices — feel good now, cost later

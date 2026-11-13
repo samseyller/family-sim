@@ -13,6 +13,7 @@ import { applyFinance, capacityOf, homeOf, homeUpfront, homeUpgradeCost, rentTie
 import { cityOfHousehold } from './location';
 import type { Household, Person } from './types';
 import { adjustBond, ageOf, childrenOf, membersOf, money, partnerOf, stat } from './util';
+import { hasCash } from './money';
 
 /** Debt deeper than this, with interest outrunning any surplus, prompts the downsizing talk. */
 export const DEBT_WARNING = 25_000;
@@ -73,7 +74,7 @@ export const HOME_EVENTS: EventDef[] = [
         title: 'A full house',
         text: `${n} people live under one roof built for ${capacityOf(h)}. Lines for the bathroom, bunk beds in the den, and tempers running short.`,
         choices: [
-          ...(canAdd ? [{ id: 'expand', label: `Build an addition (${money(addCost)})`, hint: 'One more bedroom', disabled: h.wallet < addCost }] : []),
+          ...(canAdd ? [{ id: 'expand', label: `Build an addition (${money(addCost)})`, hint: 'One more bedroom', disabled: !hasCash(h, addCost) }] : []),
           ...(rental && rental !== rentTierOf(h) ? [{ id: 'rent_bigger', label: `Rent a bigger place (${RENTALS[rental].label.toLowerCase()})`, hint: `Room for ${RENTALS[rental].capacity}` }] : []),
           ...(bigger || (!home && !rental) ? [{ id: 'move_up', label: `Move everyone to a ${HOMES[tier].label.toLowerCase()}`, hint: `${money(upfront)} up front${home ? ' after selling this one' : ''}; room for ${HOMES[tier].capacity}`, disabled: h.wallet + equity(h) < upfront }] : []),
           ...(leaver ? [{ id: 'move_out', label: `Help ${leaver.firstName}${partnerOf(c.s, leaver.id) ? ' and their family' : ''} find their own place`, hint: 'They may feel pushed out' }] : []),

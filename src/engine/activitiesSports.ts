@@ -4,6 +4,7 @@ import { chooseSport, trainSport } from './sports';
 import { active, ageOf, flag, journal, money, stat } from './util';
 import { maybeMeetFriend } from './friends';
 import { type ActivityDef, flat, names, bondAll, moodAll, needSport, hangOut } from './activityKit';
+import { credit } from './money';
 
 export const SPORTS_ACTIVITIES: ActivityDef[] = [
   // 🏅 Sports
@@ -51,7 +52,7 @@ export const SPORTS_ACTIVITIES: ActivityDef[] = [
       }
       if (c.rng.chance(skill / 140)) {
         const prize = Math.round((200 + skill * skill * 0.8) / 50) * 50;
-        c.s.households[c.me.householdId].wallet += prize;
+        credit(c.s.households[c.me.householdId], prize);
         flag(c.me, 'champion');
         return { text: `You won the ${sp.event}! ${money(prize)} in prize money.`, tone: 'good' };
       }

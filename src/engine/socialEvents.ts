@@ -5,6 +5,7 @@ import { makeAdultStranger } from './generate';
 import { marry } from './family';
 import { adjustBond, ageOf, getBond, money, partnerOf, stat } from './util';
 import { age, one, settledInJob, wallet, type EventDef } from './eventKit';
+import { charge, credit, hasCash } from './money';
 
 export const FRIEND_EVENTS: EventDef[] = [
   // ── Friends ───────────────────────────────────────────────────────
@@ -78,19 +79,19 @@ export const FRIEND_EVENTS: EventDef[] = [
       title: 'A friend in need',
       text: `${f!.firstName} lost their job and is embarrassed to ask, but could you lend them $2,000 for rent?`,
       choices: [
-        { id: 'lend', label: 'Lend the money', hint: 'Friends remember this', disabled: wallet(c).wallet < 2000 },
+        { id: 'lend', label: 'Lend the money', hint: 'Friends remember this', disabled: !hasCash(wallet(c), 2000) },
         { id: 'help', label: 'Help them job-hunt instead', hint: 'Time, not money' },
         { id: 'no', label: 'Say you can’t right now' },
       ],
     }),
     resolve: (c, ch, f) => {
       if (ch === 'lend') {
-        wallet(c).wallet -= 2000;
+        charge(wallet(c), 2000);
         adjustBond(c.s, c.me.id, f!.id, 12, 12);
         afterTogether(c.s, c.me, f!);
         // Half the time it comes back with interest in gratitude.
         if (c.rng.chance(0.5)) {
-          wallet(c).wallet += 2000;
+          credit(wallet(c), 2000);
           return `${f!.firstName} found work two months later and paid you back with a thank-you dinner.`;
         }
         return `${f!.firstName} is still getting back on their feet. You never mention the money.`;
@@ -118,7 +119,7 @@ export const FRIEND_EVENTS: EventDef[] = [
         title: `${f!.firstName} is getting married!`,
         text: `${f!.firstName} wants you there for the big day${far ? ` in ${cityName(cityOf(c.s, f!))}` : ''}.`,
         choices: [
-          { id: 'go', label: `Go to the wedding (${money(cost)}${far ? ' with travel' : ''})`, disabled: wallet(c).wallet < cost },
+          { id: 'go', label: `Go to the wedding (${money(cost)}${far ? ' with travel' : ''})`, disabled: !hasCash(wallet(c), cost) },
           { id: 'gift', label: 'Send a gift and your regrets ($150)' },
           { id: 'skip', label: 'Skip it' },
         ],
@@ -128,14 +129,14 @@ export const FRIEND_EVENTS: EventDef[] = [
       const spouse = makeAdultStranger(c.s, c.rng, f!);
       marry(c.s, f!, spouse);
       if (ch === 'go') {
-        wallet(c).wallet -= isNear(c.s, f!) ? 300 : 1200;
+        charge(wallet(c), isNear(c.s, f!) ? 300 : 1200);
         adjustBond(c.s, c.me.id, f!.id, 10, 6);
         afterTogether(c.s, c.me, f!);
         stat(c.me, 'happiness', 5);
         return `You gave a toast that made ${f!.firstName} cry (the good kind).`;
       }
       if (ch === 'gift') {
-        wallet(c).wallet -= 150;
+        charge(wallet(c), 150);
         adjustBond(c.s, c.me.id, f!.id, 2, 1);
         return `${f!.firstName} sent a sweet thank-you card.`;
       }

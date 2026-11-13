@@ -12,6 +12,7 @@ import { bestSkill, breakdownFactor, repairFactor } from './handy';
 import type { Rng } from './rng';
 import type { Asset, GameState, Household } from './types';
 import { journal, money, newId } from './util';
+import { charge } from './money';
 
 /** The model of a car (older saves only knew "Used car" and "New car"). */
 export const carModel = (a: Asset): CarKind => a.model ?? (a.name === 'New car' ? 'new' : 'used');
@@ -114,7 +115,7 @@ export function ageCars(s: GameState, hh: Household, rng?: Rng, isMine = false) 
       if (isMine) journal(s, `The ${a.name} died for good after ${a.age} years. Scrap it in the Money tab.`, 'bad');
     } else if (rng.chance(breakdownChance(a, garaged.has(a.id), mechanic) * 0.6)) {
       const cost = repairCost(a, mechanic);
-      hh.wallet -= cost;
+      charge(hh, cost);
       if (isMine) journal(s, `The ${a.name} needed ${money(cost)} in repairs${mechanic >= 20 ? ' (less, since you did the work yourselves)' : ''}.`, 'info');
     }
   }

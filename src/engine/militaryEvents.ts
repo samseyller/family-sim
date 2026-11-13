@@ -5,6 +5,7 @@ import {
   DISABILITY_PAY, PENSION_YEARS, REENLIST_BONUS, TOUR_YEARS, enlist, isActiveDuty, leaveService, promote, retireFromService, serviceYears,
 } from './military';
 import { adjustBond, ageOf, flag, journal, kidsAtHome, membersOf, money, stat } from './util';
+import { credit } from './money';
 
 const wallet = (c: Ctx) => c.s.households[c.me.householdId];
 const family = (c: Ctx) => membersOf(c.s, c.me.householdId).filter((p) => p.id !== c.me.id);
@@ -40,7 +41,7 @@ export const MILITARY_EVENTS: EventDef[] = [
         promote(me);
         me.flags.tour_end = c.s.year + TOUR_YEARS;
         me.flags.tours = (me.flags.tours ?? 0) + 1;
-        wallet(c).wallet += REENLIST_BONUS;
+        credit(wallet(c), REENLIST_BONUS);
         journal(c.s, `You re-enlisted and were promoted to ${titleOf(CAREER_BY_ID[me.jobId!], me.jobLevel)}.`, 'major');
         return 'Another tour. New stripes, and a bonus in the bank.';
       }

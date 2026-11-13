@@ -15,6 +15,7 @@ import type { Rng } from './rng';
 import { unlockedTabs } from './tutorial';
 import type { Asset, GameState, Hobby, Household, Person } from './types';
 import { active, adjustBond, ageOf, clamp, journal, membersOf, money, newId, stat } from './util';
+import { credit, hasCash } from './money';
 
 /** Home upgrades that speed up practice for a hobby. */
 export const HOME_BOOST: Partial<Record<Hobby, { upgrade: UpgradeId; boost: number }>> = {
@@ -89,7 +90,7 @@ export function gearBlocker(s: GameState, id: GearId, parkingFree: number): stri
   const g = GEAR[id];
   if (g.coastal && !isCoastal(cityOfHousehold(hh))) return 'Offshore boats need a coastal city.';
   if (g.parks && parkingFree <= 0) return 'No parking spot free.';
-  return hh.wallet < g.price ? `Costs ${money(g.price)}.` : null;
+  return !hasCash(hh, g.price) ? `Costs ${money(g.price)}.` : null;
 }
 
 /** Restoration progress on a project car: value climbs toward a restored classic. */
@@ -124,7 +125,7 @@ export function jobExtraBlocker(s: GameState, p: Person, c: Career): string | nu
   const hh = s.households[p.householdId];
   if (c.needsGear && !ownsGear(hh, c.needsGear)) return `Needs your own ${GEAR[c.needsGear].label.toLowerCase()}`;
   if (c.formerPro && !p.flags.former_pro) return 'Only for former pro athletes';
-  if (c.startup && hh.wallet < c.startup) return `Needs ${money(c.startup)} to start`;
+  if (c.startup && !hasCash(hh, c.startup)) return `Needs ${money(c.startup)} to start`;
   return null;
 }
 
@@ -147,7 +148,7 @@ export function hobbyCareerYear(s: GameState, hh: Household, rng: Rng) {
       const skill = c.skill ? p.skills[c.skill] ?? 0 : 50;
       const swing = (rng.next() * 2 - 1) * c.variance + (skill - 75) / 100;
       const delta = Math.round(c.salary * swing);
-      hh.wallet += delta;
+      credit(hh, delta);
       if (p.id === me.id && Math.abs(delta) >= 5000) {
         journal(s, delta > 0 ? `A great year for your business: ${money(delta)} more than usual.` : `A tough year for your business: ${money(-delta)} less than usual.`, delta > 0 ? 'good' : 'bad');
       }

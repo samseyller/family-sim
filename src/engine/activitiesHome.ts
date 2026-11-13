@@ -2,6 +2,7 @@
 import { activePartnership, adjustBond, ageOf, flag, getBond, membersOf, partnerOf, stat } from './util';
 import { maybeMeetFriend } from './friends';
 import { distanceOf, type ActivityDef, flat, each, names, bondAll, moodAll, hasHobby, professional, kidAges } from './activityKit';
+import { charge } from './money';
 
 export const HOME_ACTIVITIES: ActivityDef[] = [
   // 🏡 At home — cheap, repeatable, great for bonds with anyone in the household (any age)
@@ -59,7 +60,7 @@ export const HOME_ACTIVITIES: ActivityDef[] = [
     run: (c) => {
       const [t] = c.people;
       if (c.rng.chance(0.12)) {
-        c.s.households[c.me.householdId].wallet -= 1500;
+        charge(c.s.households[c.me.householdId], 1500);
         adjustBond(c.s, c.me.id, t.id, 2, 4);
         return { text: `${t.firstName} met a mailbox. $1,500 later, you both laughed about it.`, tone: 'neutral' };
       }
@@ -216,7 +217,7 @@ export const HOME_ACTIVITIES: ActivityDef[] = [
       moodAll(c, 'happiness', 10);
       moodAll(c, 'stress', -18);
       bondAll(c, 9, 6);
-      if (c.rng.chance(0.12)) { c.s.households[c.me.householdId].wallet -= 400; return { text: 'The airline lost a suitcase, but the beach was perfect.', tone: 'neutral' }; }
+      if (c.rng.chance(0.12)) { charge(c.s.households[c.me.householdId], 400); return { text: 'The airline lost a suitcase, but the beach was perfect.', tone: 'neutral' }; }
       return { text: 'Sandcastles, sunsets, and a family photo worth framing.', tone: 'good' };
     },
   },

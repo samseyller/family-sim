@@ -13,6 +13,7 @@ import {
   active, activePartnership, adjustBond, ageOf, alive, childrenOf, clamp, fullName, getBond,
   journal, membersOf, money, newId, partnerOf, stat,
 } from './util';
+import { charge, clearMoney, credit, mergeMoney, takeInvestments, transfer } from './money';
 
 /** Is this person close enough to the player to show up in the journal? */
 export function isCloseKin(s: GameState, p: Person) {
@@ -44,11 +45,8 @@ export function mergeHouseholds(s: GameState, fromId: string, intoId: string) {
   const from = s.households[fromId];
   const into = s.households[intoId];
   if (!from || !into || from.settled) return;
-  into.wallet += from.wallet;
+  mergeMoney(from, into);
   into.assets.push(...from.assets);
-  from.wallet = 0;
-  into.investments = (into.investments ?? 0) + (from.investments ?? 0);
-  from.investments = 0;
   from.assets = [];
   into.dogs = [...(into.dogs ?? []), ...(from.dogs ?? [])];
   from.dogs = [];
@@ -107,9 +105,9 @@ export function separate(s: GameState, a: Person, b: Person) {
   if (ps) ps.status = 'separated';
   const old = s.households[a.householdId];
   const half = Math.max(0, Math.round(old.wallet / 2));
-  old.wallet -= half;
+  charge(old, half);
   const halfInv = Math.round((old.investments ?? 0) / 2);
-  old.investments = (old.investments ?? 0) - halfInv;
+  takeInvestments(old, halfInv);
   const hh = makeHousehold(s, half, old.city);
   hh.investments = halfInv;
   hh.headId = b.id;
@@ -140,8 +138,7 @@ export function divorce(s: GameState, a: Person, b: Person) {
     ps.endYear = s.year;
   }
   const share = homeEquityShare(s, a);
-  s.households[a.householdId].wallet -= share;
-  s.households[b.householdId].wallet += share;
+  transfer(s.households[a.householdId], s.households[b.householdId], share);
   return share;
 }
 
@@ -159,7 +156,7 @@ export function reconcile(s: GameState, a: Person, b: Person) {
  */
 export function moveOut(s: GameState, p: Person, gift: number) {
   const hh = splitOff(s, moverGroup(s, p), 0, 0);
-  hh.wallet += gift;
+  credit(hh, gift);
   for (const m of membersOf(s, hh.id)) if (ageOf(m, s.year) >= 18) m.stake = Math.max(1, (m.stake ?? 0) + gift / Math.max(1, membersOf(s, hh.id).length));
 }
 
@@ -183,7 +180,7 @@ export function die(s: GameState, p: Person, cause: string) {
   }
   // Their retirement savings pass to the household (and on through the estate).
   if ((p.retirementSavings ?? 0) > 0) {
-    s.households[p.householdId].wallet += p.retirementSavings!;
+    credit(s.households[p.householdId], p.retirementSavings!);
     p.retirementSavings = 0;
   }
   const ps = activePartnership(s, p.id);
@@ -232,7 +229,7 @@ function probateShare(s: GameState, p: Person): { cash: number; invest: number; 
 function distributeEstate(s: GameState, p: Person, e: { cash: number; invest: number; kids: Person[] }) {
   const hh = s.households[p.householdId];
   // Retirement savings join the household first, then the estate is divided.
-  hh.wallet += p.retirementSavings ?? 0;
+  credit(hh, p.retirementSavings ?? 0);
   p.retirementSavings = 0;
   const total = e.cash + e.invest;
   const tax = estateTax(total);
@@ -241,11 +238,11 @@ function distributeEstate(s: GameState, p: Person, e: { cash: number; invest: nu
   // Paid out of cash first, then investments.
   let owed = Math.round(share * away.length + tax); // the whole estate tax is paid now
   const fromCash = Math.min(owed, Math.max(0, hh.wallet));
-  hh.wallet -= fromCash;
+  charge(hh, fromCash);
   owed -= fromCash;
-  hh.investments = Math.max(0, (hh.investments ?? 0) - owed);
+  takeInvestments(hh, owed);
   for (const k of away) {
-    s.households[k.householdId].wallet += Math.round(share);
+    credit(s.households[k.householdId], Math.round(share));
     if (isCloseKin(s, k)) journal(s, `${k.id === s.activeId ? 'You' : fullName(k)} inherited ${money(Math.round(share))} from ${p.firstName}.`, 'good');
   }
 }
@@ -265,15 +262,14 @@ export function settleEstates(s: GameState) {
     // Hobby gear (the family boat, plane, project car) passes down to one heir rather than being sold.
     passDownGear(s, hh, [...heirs.values()]);
     hh.settled = true;
-    hh.wallet = 0;
-    hh.investments = 0;
+    clearMoney(hh);
     hh.assets = [];
     if (!heirs.size || estate <= 0) continue;
     const tax = estateTax(estate);
     if (tax && [...heirs.values()].some((h) => isCloseKin(s, h))) journal(s, `Estate tax took ${money(tax)} of the inheritance.`, 'info');
     const share = Math.round((estate - tax) / heirs.size);
     for (const h of heirs.values()) {
-      s.households[h.householdId].wallet += share;
+      credit(s.households[h.householdId], share);
       if (isCloseKin(s, h)) journal(s, `${h.id === s.activeId ? 'You' : fullName(h)} inherited ${money(share)}.`, 'good');
     }
   }

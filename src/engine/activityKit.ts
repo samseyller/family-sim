@@ -10,6 +10,7 @@ import { catsOf } from './cats';
 import { isNear } from './location';
 import { afterTogether, willJoin } from './friends';
 import { dateWhileAttached, isSingle, jobBlurb, meetSomeone } from './romance';
+import { credit } from './money';
 
 /** Living relatives who don't share the player's home. */
 export function relativesOutside(s: GameState, me: Person): Person[] {
@@ -115,7 +116,7 @@ export function earn(c: ActivityCtx, hobby: Hobby, base: number, perSkill: numbe
   const skill = c.me.skills[hobby] ?? 0;
   const hasSetup = c.s.households[c.me.householdId].assets.some((a) => a.kind === 'house' && (a.upgrades ?? []).includes(setup));
   const pay = Math.round(((base + skill * perSkill) * (hasSetup ? 1.3 : 1) * (0.7 + c.rng.next() * 0.6)) / 10) * 10;
-  c.s.households[c.me.householdId].wallet += pay;
+  credit(c.s.households[c.me.householdId], pay);
   c.me.skills[hobby] = Math.min(100, skill + 1);
   flag(c.me, 'side_income', pay);
   return { text: `${good}: ${money(pay)}.`, tone: 'good' };

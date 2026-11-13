@@ -5,6 +5,7 @@ import type { Ctx, EventDef } from './eventKit';
 import { ownsGear } from './hobbies';
 import type { Hobby, Person } from './types';
 import { ageOf, flag, journal, money, stat } from './util';
+import { charge, credit } from './money';
 
 const wallet = (c: Ctx) => c.s.households[c.me.householdId];
 const skill = (p: Person, h: Hobby) => p.skills[h] ?? 0;
@@ -54,7 +55,7 @@ export const HOBBY_EVENTS: EventDef[] = [
         return 'A textbook emergency landing. The farmer brought you lemonade while you waited.';
       }
       stat(c.me, 'health', -12);
-      wallet(c).wallet -= ownsGear(wallet(c), 'plane') ? 15000 : DEDUCTIBLE.home;
+      charge(wallet(c), ownsGear(wallet(c), 'plane') ? 15000 : DEDUCTIBLE.home);
       return 'A hard landing, a broken wrist, and a bent plane. You were lucky.';
     },
   },
@@ -71,7 +72,7 @@ export const HOBBY_EVENTS: EventDef[] = [
     }),
     resolve: (c, ch) => {
       if (ch === 'er') {
-        wallet(c).wallet -= 1500;
+        charge(wallet(c), 1500);
         stat(c.me, 'health', -4);
         return 'Six stitches. You bought proper safety glasses on the way home.';
       }
@@ -93,12 +94,12 @@ export const HOBBY_EVENTS: EventDef[] = [
       const owner = job(c)!.id === 'restaurant_owner';
       if (ch === 'safe') return '"Competent," the review said. Business as usual.';
       if (c.rng.chance(skill(c.me, 'cooking') / 110)) {
-        wallet(c).wallet += owner ? 25000 : 3000;
+        credit(wallet(c), owner ? 25000 : 3000);
         flag(c.me, 'rave_review');
         journal(c.s, 'A rave review! The phone hasn’t stopped ringing.', 'good');
         return 'Four stars. There is a line out the door.';
       }
-      if (owner) wallet(c).wallet -= 15000;
+      if (owner) charge(wallet(c), 15000);
       stat(c.me, 'stress', 6);
       return 'Two stars and the word "overambitious." It stung.';
     },
@@ -117,7 +118,7 @@ export const HOBBY_EVENTS: EventDef[] = [
       flag(c.me, 'viral');
       if (ch === 'quiet') { stat(c.me, 'happiness', 6); return 'You read every comment. Then you wrote another song.'; }
       const pay = 5000 + skill(c.me, 'music') * 250;
-      wallet(c).wallet += pay;
+      credit(wallet(c), pay);
       stat(c.me, 'stress', 6);
       return `A whirlwind month: ${money(pay)} and a lot of airports.`;
     },
@@ -152,7 +153,7 @@ export const HOBBY_EVENTS: EventDef[] = [
         return 'You nailed it. Pack a bag: you are a touring musician now.';
       }
       const pay = 3000 + skill(c.me, 'music') * 60;
-      wallet(c).wallet += pay;
+      credit(wallet(c), pay);
       journal(c.s, `You won the audition and played a run of shows (${money(pay)}).`, 'good');
       return `You nailed it. A month of shows, ${money(pay)}, and your name on a poster.`;
     },
@@ -170,7 +171,7 @@ export const HOBBY_EVENTS: EventDef[] = [
     resolve: (c, ch) => {
       flag(c.me, 'big_catch');
       stat(c.me, 'happiness', 8);
-      if (ch === 'mount') { wallet(c).wallet -= 800; return 'It hangs over the fireplace. Everyone hears the story.'; }
+      if (ch === 'mount') { charge(wallet(c), 800); return 'It hangs over the fireplace. Everyone hears the story.'; }
       return 'It swam off with a flick of its tail. The photo is your phone background forever.';
     },
   },
@@ -188,10 +189,10 @@ export const HOBBY_EVENTS: EventDef[] = [
     resolve: (c, ch) => {
       if (ch === 'back') return 'You made it in just as the rain hit. Smart call.';
       if (c.rng.chance(skill(c.me, 'fishing') / 120)) {
-        wallet(c).wallet += 3000;
+        credit(wallet(c), 3000);
         return 'You rode it out and came back with a full cooler. Legendary.';
       }
-      wallet(c).wallet -= 15000;
+      charge(wallet(c), 15000);
       stat(c.me, 'stress', 8);
       return 'A rogue wave smashed the electronics. $15,000 in repairs.';
     },
@@ -215,7 +216,7 @@ export const HOBBY_EVENTS: EventDef[] = [
       const best = Math.max(skill(c.me, 'gardening'), skill(c.me, 'cooking'), skill(c.me, 'woodworking'));
       if (c.rng.chance(best / 110)) {
         flag(c.me, 'blue_ribbon');
-        wallet(c).wallet += 250;
+        credit(wallet(c), 250);
         return 'Blue ribbon! And $250.';
       }
       return 'Honorable mention. Next year.';

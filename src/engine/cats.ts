@@ -11,6 +11,7 @@ import { makeRng, type Rng } from './rng';
 import { unlockedTabs } from './tutorial';
 import type { Cat, GameState, Household } from './types';
 import { active, ageOf, clamp, flag, journal, membersOf, money, newId, stat } from './util';
+import { charge, hasCash } from './money';
 
 export const catsOf = (hh: Household) => (hh.cats ?? []).filter((c) => c.deathYear === undefined);
 export const catAge = (c: Cat, year: number) => year - c.birthYear;
@@ -59,11 +60,11 @@ export function catBlocker(s: GameState, a: CatAction): string | null {
   if (a.kind === 'catTree') {
     if (hh.catTree) return 'You already have one.';
     if (!catsOf(hh).length) return 'Get a cat first.';
-    return hh.wallet < CAT_TREE_COST ? `Needs ${money(CAT_TREE_COST)}.` : null;
+    return !hasCash(hh, CAT_TREE_COST) ? `Needs ${money(CAT_TREE_COST)}.` : null;
   }
   if (catsOf(hh).length >= maxCats(hh)) return maxCats(hh) === SMALL_RENTAL_CATS ? 'A small apartment allows only two cats.' : `${MAX_CATS} cats is plenty.`;
   const price = a.kind === 'adoptKitten' ? CAT_BREEDS[a.breed].price : CAT_SHELTER_FEE;
-  return hh.wallet < price ? `Needs ${money(price)}.` : null;
+  return !hasCash(hh, price) ? `Needs ${money(price)}.` : null;
 }
 
 /** Bring a cat into the active household. */
@@ -86,15 +87,15 @@ export function catAction(state: GameState, a: CatAction): GameState {
   const me = active(s);
   const hh = s.households[me.householdId];
   if (a.kind === 'adoptKitten') {
-    hh.wallet -= CAT_BREEDS[a.breed].price;
+    charge(hh, CAT_BREEDS[a.breed].price);
     adoptCatInto(s, rng, a.breed, a.name, 0, 'breeder');
   } else if (a.kind === 'adoptShelterCat') {
-    hh.wallet -= CAT_SHELTER_FEE;
+    charge(hh, CAT_SHELTER_FEE);
     // Shelters are mostly domestic shorthairs, with the odd purebred.
     const breed = rng.chance(0.7) ? 'tabby' : rng.pick(Object.keys(CAT_BREEDS) as CatBreed[]);
     adoptCatInto(s, rng, breed, a.name, rng.int(1, 8), 'shelter');
   } else if (a.kind === 'catTree') {
-    hh.wallet -= CAT_TREE_COST;
+    charge(hh, CAT_TREE_COST);
     hh.catTree = true;
     for (const c of catsOf(hh)) c.bond = clamp(c.bond + 5, 0, 100);
     journal(s, 'You bought a cat tree. It was ignored for a day, then claimed forever.', 'good');

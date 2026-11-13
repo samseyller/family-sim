@@ -19,6 +19,7 @@ import type { GameState, Household, Person } from './types';
 import {
   active, adjustBond, ageOf, alive, childrenOf, fullName, getBond, journal, membersOf, money, parentsOf, partnerOf, stat,
 } from './util';
+import { charge, credit, hasCash, mergeMoney, takeInvestments } from './money';
 
 /** Parents at this age or older can be asked to let you take over, or to move. */
 export const ELDERLY_AGE = 70;
@@ -119,8 +120,8 @@ const rentTierFor = (n: number): RentTier =>
  */
 export function splitOff(s: GameState, group: Person[], cash: number, invest: number): Household {
   const from = s.households[group[0].householdId];
-  from.wallet -= cash;
-  from.investments = Math.max(0, (from.investments ?? 0) - invest);
+  charge(from, cash);
+  takeInvestments(from, invest);
   const adults = group.filter((p) => isAdultIn(s, p));
   const savings = adults.reduce((sum, p) => sum + Math.max(0, p.fund), 0);
   const hh = makeHousehold(s, cash + savings, from.city); // a move within the same city
@@ -249,7 +250,7 @@ export function householdBlocker(s: GameState, a: HouseholdAction): string | nul
     case 'parentsOut': {
       if (!runs) return 'You need to run the household first.';
       if (!parentsHere(s).length) return 'No parents live with you.';
-      if (a.buy && hh.wallet < homeUpfrontCash(a.buy, cityOfHousehold(hh))) return `Needs ${money(homeUpfrontCash(a.buy, cityOfHousehold(hh)))} in cash.`;
+      if (a.buy && !hasCash(hh, homeUpfrontCash(a.buy, cityOfHousehold(hh)))) return `Needs ${money(homeUpfrontCash(a.buy, cityOfHousehold(hh)))} in cash.`;
       return null;
     }
     case 'askToLeave': {
@@ -286,7 +287,7 @@ export function householdAction(state: GameState, a: HouseholdAction): GameState
       const stayers = membersOf(s, hh.id).filter((p) => !group.includes(p));
       const take = a.take === 'share' ? shareAmounts(s, hh.id, group) : { cash: 0, invest: 0 };
       splitOff(s, group, take.cash, take.invest);
-      s.households[me.householdId].wallet -= MOVING_COST;
+      charge(s.households[me.householdId], MOVING_COST);
       for (const p of stayers) {
         if (!isAdultIn(s, p)) continue;
         if (a.take === 'savings') adjustBond(s, me.id, p.id, 4, 3);
@@ -310,7 +311,7 @@ export function householdAction(state: GameState, a: HouseholdAction): GameState
       const take = shareAmounts(s, hh.id, group);
       if (a.buy) {
         const cost = homeUpfrontCash(a.buy, cityOfHousehold(hh));
-        hh.wallet -= cost;
+        charge(hh, cost);
       }
       const theirs = splitOff(s, group, take.cash, take.invest);
       if (a.buy) {
@@ -356,7 +357,7 @@ export function householdAction(state: GameState, a: HouseholdAction): GameState
       // Their home is sold; the money and cars come along.
       const home = theirs.assets.find((x) => x.kind === 'house');
       if (home) {
-        theirs.wallet += Math.round(home.value * (1 - SELL_COSTS) - home.mortgage);
+        credit(theirs, Math.round(home.value * (1 - SELL_COSTS) - home.mortgage));
         theirs.assets = theirs.assets.filter((x) => x !== home);
       }
       // Keep stakes comparable: each side's stakes are scaled to what it brings.
@@ -367,11 +368,8 @@ export function householdAction(state: GameState, a: HouseholdAction): GameState
       };
       scale(membersOf(s, hh.id), wealthOf(hh));
       scale(movers, wealthOf(theirs));
-      hh.wallet += theirs.wallet;
-      hh.investments = (hh.investments ?? 0) + (theirs.investments ?? 0);
+      mergeMoney(theirs, hh);
       hh.assets.push(...theirs.assets);
-      theirs.wallet = 0;
-      theirs.investments = 0;
       theirs.assets = [];
       hh.dogs = [...(hh.dogs ?? []), ...(theirs.dogs ?? [])];
       theirs.dogs = [];

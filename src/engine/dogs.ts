@@ -11,6 +11,7 @@ import { makeRng, type Rng } from './rng';
 import { unlockedTabs } from './tutorial';
 import type { Dog, GameState, Household } from './types';
 import { active, ageOf, clamp, flag, journal, membersOf, money, newId, stat } from './util';
+import { charge, hasCash } from './money';
 
 export const dogsOf = (hh: Household) => (hh.dogs ?? []).filter((d) => d.deathYear === undefined);
 export const dogAge = (d: Dog, year: number) => year - d.birthYear;
@@ -57,7 +58,7 @@ export function dogBlocker(s: GameState, a: DogAction): string | null {
   if (a.kind === 'rehome') return dogsOf(hh).some((d) => d.id === a.dogId) ? null : 'No such dog.';
   if (dogsOf(hh).length >= maxDogs(hh)) return maxDogs(hh) === 1 ? 'A small apartment allows only one dog.' : `${MAX_DOGS} dogs is a full pack.`;
   const price = a.kind === 'adoptPuppy' ? BREEDS[a.breed].price : SHELTER_FEE;
-  return hh.wallet < price ? `Needs ${money(price)}.` : null;
+  return !hasCash(hh, price) ? `Needs ${money(price)}.` : null;
 }
 
 /** Adopt a dog into the active household. */
@@ -79,10 +80,10 @@ export function dogAction(state: GameState, a: DogAction): GameState {
   const me = active(s);
   const hh = s.households[me.householdId];
   if (a.kind === 'adoptPuppy') {
-    hh.wallet -= BREEDS[a.breed].price;
+    charge(hh, BREEDS[a.breed].price);
     adoptInto(s, rng, a.breed, a.name, 0, false);
   } else if (a.kind === 'adoptShelter') {
-    hh.wallet -= SHELTER_FEE;
+    charge(hh, SHELTER_FEE);
     const breed = rng.pick(Object.keys(BREEDS) as DogBreed[]);
     adoptInto(s, rng, breed, a.name, rng.int(2, 6), true);
   } else {

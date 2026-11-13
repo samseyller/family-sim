@@ -1,5 +1,5 @@
 /** Dogs: illness, mischief, and the kids asking for one. */
-import { canCover, coverHint, payEmergency } from './emergency';
+import { canCover, charge, coverHint, hasCash, payEmergency } from './money';
 import { adoptInto, dogsOf, dogStage, frailestDog, maxDogs } from './dogs';
 import { BREEDS, DOG_YEARLY, SHELTER_FEE, type DogBreed } from '../content/dogs';
 import type { Dog } from './types';
@@ -60,7 +60,7 @@ export const DOG_EVENTS: EventDef[] = [
         title: 'Who did this?',
         text: `You come home to couch stuffing everywhere. ${d?.name ?? 'The dog'} looks very innocent. Replacing the cushions: $400.`,
         choices: [
-          { id: 'class', label: 'Pay, and sign up for obedience class ($700 total)', disabled: wallet(c).wallet < 700 },
+          { id: 'class', label: 'Pay, and sign up for obedience class ($700 total)', disabled: !hasCash(wallet(c), 700) },
           { id: 'pay', label: 'Pay and laugh it off ($400)' },
         ],
       };
@@ -68,11 +68,11 @@ export const DOG_EVENTS: EventDef[] = [
     resolve: (c, ch) => {
       const dogs = dogsOf(wallet(c)).filter((x) => !x.trained);
       if (ch === 'class') {
-        wallet(c).wallet -= 700;
+        charge(wallet(c), 700);
         dogs.forEach((d) => { d.trained = true; d.bond = Math.min(100, d.bond + 5); });
         return 'Six weeks later: sit, stay, and a lot less shredding.';
       }
-      wallet(c).wallet -= 400;
+      charge(wallet(c), 400);
       stat(c.me, 'happiness', 1);
       return 'New cushions. The photo of the crime scene is now your phone background.';
     },
@@ -92,8 +92,8 @@ export const DOG_EVENTS: EventDef[] = [
         title: 'Please, please, PLEASE',
         text: `${kids.map((k) => k.firstName).join(' and ')} ${kids.length > 1 ? 'have' : 'has'} made a slideshow titled "Why We Need A Dog." It's pretty convincing.`,
         choices: [
-          { id: 'shelter', label: `Adopt from the shelter (${money(SHELTER_FEE)})`, hint: 'An older dog who needs a home', disabled: wallet(c).wallet < SHELTER_FEE },
-          { id: 'puppy', label: 'Get a puppy (about $1,500)', hint: 'Lots of energy, lots of chewing', disabled: wallet(c).wallet < 1500 },
+          { id: 'shelter', label: `Adopt from the shelter (${money(SHELTER_FEE)})`, hint: 'An older dog who needs a home', disabled: !hasCash(wallet(c), SHELTER_FEE) },
+          { id: 'puppy', label: 'Get a puppy (about $1,500)', hint: 'Lots of energy, lots of chewing', disabled: !hasCash(wallet(c), 1500) },
           { id: 'no', label: 'Not right now' },
         ],
       };
@@ -106,7 +106,7 @@ export const DOG_EVENTS: EventDef[] = [
       }
       const rescue = ch === 'shelter';
       const breed = rescue ? c.rng.pick(Object.keys(BREEDS) as DogBreed[]) : c.rng.pick(['labrador', 'beagle', 'golden'] as DogBreed[]);
-      wallet(c).wallet -= rescue ? SHELTER_FEE : BREEDS[breed].price;
+      charge(wallet(c), rescue ? SHELTER_FEE : BREEDS[breed].price);
       const d = adoptInto(c.s, c.rng, breed, '', rescue ? c.rng.int(2, 6) : 0, rescue);
       kids.forEach((k) => { stat(k, 'happiness', 8); adjustBond(c.s, c.me.id, k.id, 5, 3); });
       return `The kids named ${rescue ? 'her' : 'the puppy'} ${d.name}. Nobody has stopped smiling.`;

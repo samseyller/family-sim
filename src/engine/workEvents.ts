@@ -9,6 +9,7 @@ import { retire } from './family';
 import type { Person } from './types';
 import { adjustBond, flag, journal, kidsAtHome, money, stat } from './util';
 import { age, one, settledInJob, wallet, type Ctx, type EventDef } from './eventKit';
+import { charge, credit } from './money';
 
 /**
  * Promotions: after PROMO.years at a level with good performance (65+), or PROMO.stressedYears if
@@ -126,7 +127,7 @@ export const WORK_EVENTS: EventDef[] = [
     resolve: (c, ch) => {
       const job = c.me.jobId ? CAREER_BY_ID[c.me.jobId] : undefined;
       if (ch === 'sabbatical') {
-        wallet(c).wallet -= job ? Math.round(salaryOf(job, c.me.jobLevel) / 2) : 0;
+        charge(wallet(c), job ? Math.round(salaryOf(job, c.me.jobLevel) / 2) : 0);
         stat(c.me, 'stress', -35);
         stat(c.me, 'happiness', 6);
         return 'Months of rest. You came back with color in your face and some lost savings.';
@@ -158,7 +159,7 @@ export const WORK_EVENTS: EventDef[] = [
       ],
     }),
     resolve: (c, ch) => {
-      wallet(c).wallet -= 8000;
+      charge(wallet(c), 8000);
       if (ch === 'vow') {
         c.me.flags.health_vow = 1;
         stat(c.me, 'stress', -10);
@@ -186,7 +187,7 @@ export const WORK_EVENTS: EventDef[] = [
     resolve: (c, ch) => {
       const sal = salaryOf(CAREER_BY_ID[c.me.jobId!], c.me.jobLevel);
       if (ch === 'take') {
-        wallet(c).wallet += Math.round(sal / 2);
+        credit(wallet(c), Math.round(sal / 2));
         c.me.jobId = undefined;
         return 'You signed the papers and cleared out your desk. Time to look for something new.';
       }

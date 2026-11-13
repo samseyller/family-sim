@@ -15,6 +15,7 @@ import type { GameState, Person } from './types';
 import { activePartnership, adjustBond, ageOf, alive, childrenOf, cleanName, flag, fullName, getBond, journal, kidsAtHome, NAME_MAX, membersOf, money, parentsOf, partnerOf, stat } from './util';
 import { LIFE_EVENTS } from './lifeEvents';
 import { age, one, pushPending, wallet, type Ctx, type EventDef } from './eventKit';
+import { charge, hasCash, transfer } from './money';
 
 /** Where a job offer would take the family (stable for the event: depends on who and when). */
 function offerCity(c: { s: GameState }, p: Person): CityId {
@@ -220,8 +221,8 @@ export const RAISING_EVENTS: EventDef[] = [
       text: `${k!.firstName} is ready to start out on their own. They take their college fund (${money(k!.fund)}). Will you add a gift, or ask them to stay a while?`,
       choices: [
         { id: '0', label: 'A hug and good luck', hint: 'No money' },
-        { id: '5000', label: 'Give $5,000', disabled: wallet(c).wallet < 5000 },
-        { id: '15000', label: 'Give $15,000', disabled: wallet(c).wallet < 15000 },
+        { id: '5000', label: 'Give $5,000', disabled: !hasCash(wallet(c), 5000) },
+        { id: '15000', label: 'Give $15,000', disabled: !hasCash(wallet(c), 15000) },
         { id: 'stay', label: 'Stay home for now', hint: 'They live with you; their living costs stay with your household' },
       ],
     }),
@@ -232,7 +233,7 @@ export const RAISING_EVENTS: EventDef[] = [
         return `${k!.firstName} unpacked the boxes. Their room stays theirs a little longer.`;
       }
       const gift = Number(ch);
-      wallet(c).wallet -= gift;
+      charge(wallet(c), gift);
       adjustBond(c.s, c.me.id, k!.id, gift >= 15000 ? 10 : gift > 0 ? 5 : 0, gift > 0 ? 3 : 0);
       moveOut(c.s, k!, gift);
       return gift ? `${k!.firstName} hugged you tight at the door.` : `${k!.firstName} waved from the car. The house feels bigger now.`;
@@ -255,13 +256,13 @@ export const PARTNERSHIP_EVENTS: EventDef[] = [
       title: 'Anniversary',
       text: `Your anniversary with ${p!.firstName} is coming up.`,
       choices: [
-        { id: 'trip', label: 'A weekend away ($2,000)', disabled: wallet(c).wallet < 2000 },
+        { id: 'trip', label: 'A weekend away ($2,000)', disabled: !hasCash(wallet(c), 2000) },
         { id: 'dinner', label: 'Dinner at home', hint: 'Simple and sweet' },
       ],
     }),
     resolve: (c, ch, p) => {
       if (ch === 'trip') {
-        wallet(c).wallet -= 2000;
+        charge(wallet(c), 2000);
         adjustBond(c.s, c.me.id, p!.id, 10, 4);
         stat(c.me, 'happiness', 5);
         return 'Two days without alarms. You remembered why you fell for each other.';
@@ -283,14 +284,14 @@ export const PARTNERSHIP_EVENTS: EventDef[] = [
       title: 'Strangers at dinner',
       text: `You and ${p!.firstName} have barely talked in months. One night, ${p!.firstName} asks if this is still working.`,
       choices: [
-        { id: 'counsel', label: 'Couples counseling ($3,000)', hint: 'Usually helps', disabled: wallet(c).wallet < 3000 },
+        { id: 'counsel', label: 'Couples counseling ($3,000)', hint: 'Usually helps', disabled: !hasCash(wallet(c), 3000) },
         { id: 'talk', label: 'Talk it out tonight', hint: 'Depends on the trust you have left' },
         { id: 'separate', label: 'Separate', hint: `${p!.firstName} moves out with half the savings; divorce is decided later` },
       ],
     }),
     resolve: (c, ch, p) => {
       if (ch === 'counsel') {
-        wallet(c).wallet -= 3000;
+        charge(wallet(c), 3000);
         const ok = c.rng.chance(0.65);
         adjustBond(c.s, c.me.id, p!.id, ok ? 25 : 6, ok ? 15 : 3);
         return ok ? 'It was hard work, but you found your way back to each other.' : 'Progress was slow. At least you are talking again.';
@@ -401,7 +402,7 @@ export const PARTNERSHIP_EVENTS: EventDef[] = [
         text: `You've been dating ${p!.firstName} for ${c.s.year - activePartnership(c.s, c.me.id)!.startYear} year(s). ${odds} Marrying means moving in together and combining finances (${p!.firstName} has ${money(savings)}).`,
         choices: [
           { id: 'propose', label: 'Propose (no ring, just the words)', hint: 'They might say no if the bond is weak' },
-          ...RINGS.map((r) => ({ id: r.id, label: `Propose with ${r.label} (${money(r.cost)})`, hint: r.hint, disabled: wallet(c).wallet < r.cost })),
+          ...RINGS.map((r) => ({ id: r.id, label: `Propose with ${r.label} (${money(r.cost)})`, hint: r.hint, disabled: !hasCash(wallet(c), r.cost) })),
           { id: 'wait', label: 'Not yet', hint: 'Keep dating' },
           { id: 'end', label: 'End it', hint: 'This is not the one' },
         ],
@@ -416,7 +417,7 @@ export const PARTNERSHIP_EVENTS: EventDef[] = [
       }
       const b = getBond(c.s, c.me.id, p!.id);
       const ring = RINGS.find((r) => r.id === ch);
-      if (ring) wallet(c).wallet -= ring.cost; // the ring is bought either way
+      if (ring) charge(wallet(c), ring.cost); // the ring is bought either way
       // In the guided first playthrough, the answer is always yes.
       if (guidedPerson(c.s)?.id === c.me.id || c.rng.chance(0.3 + (b.affinity + b.trust) / 200 + (ring?.boost ?? 0))) {
         marry(c.s, c.me, p!);
@@ -571,7 +572,7 @@ export const PARTNERSHIP_EVENTS: EventDef[] = [
         text: `${p!.firstName} asks whether it's time to grow your family.`,
         choices: [
           { id: 'yes', label: 'Start trying for a baby', hint: canBirth ? 'A baby costs time and money' : 'Not possible for you two', disabled: !canBirth },
-          { id: 'adopt', label: 'Adopt a child ($10,000)', hint: 'Usually a young child, 0–6', disabled: wallet(c).wallet < 10000 },
+          { id: 'adopt', label: 'Adopt a child ($10,000)', hint: 'Usually a young child, 0–6', disabled: !hasCash(wallet(c), 10000) },
           { id: 'no', label: 'Not right now' },
         ],
       };
@@ -579,7 +580,7 @@ export const PARTNERSHIP_EVENTS: EventDef[] = [
     resolve: (c, ch, p) => {
       if (ch === 'no') return 'You agreed to talk about it again later.';
       if (ch === 'adopt') {
-        wallet(c).wallet -= 10000;
+        charge(wallet(c), 10000);
         const kid = makePerson(c.s, c.rng, {
           birthYear: c.s.year - c.rng.int(0, 6),
           lastName: c.me.lastName,
@@ -623,7 +624,7 @@ export const FULL_HOUSE_EVENTS: EventDef[] = [
         text: `${k!.firstName} is ${money(debt)} in debt and can't make rent. They ask, quietly, whether they could move back home.`,
         choices: [
           { id: 'home', label: 'Of course, come home', hint: `Their debt (${money(debt)}) becomes your household's` },
-          { id: 'help', label: 'Send $5,000 instead', disabled: wallet(c).wallet < 5000 },
+          { id: 'help', label: 'Send $5,000 instead', disabled: !hasCash(wallet(c), 5000) },
           { id: 'no', label: 'They need to figure it out', hint: 'Tough love' },
         ],
       };
@@ -637,8 +638,7 @@ export const FULL_HOUSE_EVENTS: EventDef[] = [
         return `${k!.firstName}'s old room fills up with boxes again.`;
       }
       if (ch === 'help') {
-        wallet(c).wallet -= 5000;
-        c.s.households[k!.householdId].wallet += 5000;
+        transfer(wallet(c), c.s.households[k!.householdId], 5000);
         adjustBond(c.s, c.me.id, k!.id, 6, 4);
         return `${k!.firstName} thanked you three times on the phone.`;
       }
@@ -661,7 +661,7 @@ export const FULL_HOUSE_EVENTS: EventDef[] = [
       text: `${k!.firstName} is ${age(c, k!)}, living at home, and hasn't found work.`,
       choices: [
         { id: 'push', label: 'Push them to find a job', hint: 'Likely works; they may resent it' },
-        { id: 'school', label: 'Pay for trade school ($6,000)', hint: '2 years, then steady work', disabled: wallet(c).wallet < 6000 },
+        { id: 'school', label: 'Pay for trade school ($6,000)', hint: '2 years, then steady work', disabled: !hasCash(wallet(c), 6000) },
         { id: 'patience', label: 'Be patient', hint: 'Everyone moves at their own pace' },
       ],
     }),
@@ -676,7 +676,7 @@ export const FULL_HOUSE_EVENTS: EventDef[] = [
         return `${k!.firstName} applied everywhere. Nothing yet.`;
       }
       if (ch === 'school') {
-        wallet(c).wallet -= 6000;
+        charge(wallet(c), 6000);
         startPath(c.s, k!, 'trade');
         adjustBond(c.s, c.me.id, k!.id, 6, 6);
         return `${k!.firstName} started trade school with real energy.`;
