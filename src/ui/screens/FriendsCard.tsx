@@ -5,6 +5,7 @@ import type { GameState } from '../../engine/types';
 import { active, ageOf, getBond } from '../../engine/util';
 import { Avatar } from '../Avatar';
 import { Section } from '../components';
+import { PersonOptions } from './PersonOptions';
 
 /** Your friends: who they are, where they live, and how close you still are. */
 export function FriendsCard({ g }: { g: GameState }) {
@@ -42,6 +43,7 @@ export function FriendsCard({ g }: { g: GameState }) {
                 <span className="hint">{b.affinity}</span>
               </div>
               {fs.distant && <div className="hint">They may not answer. Reach out anyway: a call or coffee could bring you back together.</div>}
+              <PersonOptions g={g} p={p} />
             </div>
           </article>
         );

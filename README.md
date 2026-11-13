@@ -149,6 +149,11 @@ for random). When your baby is born, a naming event offers suggestions or lets y
 - Running your own home you can buy your parents a home of their own (or ask them to leave), ask grown children
   to move out (with a gift or their share), and invite grown children or parents to live with you when you're
   close enough. Their whole household moves in and their home is sold. Invited children don't leave on their own.
+- **Family tab options:** open a person's **Options** for actions that fit them: break up with someone you're dating
+  (if you live together they move out with half the savings), separate from a spouse (they move out with half;
+  the divorce follows) and file for divorce, ask parents or grown children living with you to find their own
+  place, invite relatives to move in, and call, meet or visit friends. Friends you've drifted apart from can be
+  let go for good.
 - Grown children (and anyone else) living with you can still marry, with the spouse moving in, and have children.
   When the home holds more people than it fits, a **full house** prompt offers an addition, a bigger home or
   rental for everyone, helping a grown child's family into their own place, or squeezing in (more stress).
@@ -335,6 +340,10 @@ for random). When your baby is born, a naming event offers suggestions or lets y
 - Achievements: Best Friend, Rescue Hero, Pack Leader (3 dogs), Who's a Good Walker? (20 walks), Good Old Dog (14).
 
 ## Homes and cars
+
+- The Money tab stays compact: car details, car shopping, home improvements, insurance, mortgage payments, moving
+  and hobby gear open on demand. You can buy a different home while you own one: it's sold first and its equity
+  counts toward the new place.
 
 - Seven home types (condo → $15M mansion for 18 people and 24 cars, with achievements for buying and filling it) with different prices, sizes and garages. Every home has 2 parking
   spots plus its garage spaces; owners can add garage spaces (up to 4). Cars beyond your spots pay for street parking.

@@ -10,6 +10,7 @@ import { Section, Segmented } from '../components';
 import { FamilyTree } from '../tree/FamilyTree';
 import { DogsCard } from './DogsCard';
 import { FriendsCard } from './FriendsCard';
+import { PersonOptions } from './PersonOptions';
 import { cityName, cityOf } from '../../engine/location';
 import { gpaOf } from '../../engine/school';
 
@@ -87,6 +88,7 @@ function FamilyList({ g }: { g: GameState }) {
             </>
           )}
           {isMinorChild && <div className="hint">{receptivenessLabel(receptiveness(g, me, p))}</div>}
+          {alive(p) && <PersonOptions g={g} p={p} />}
         </div>
       </article>
     );

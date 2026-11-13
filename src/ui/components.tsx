@@ -116,3 +116,24 @@ export function Reveal({ label, openLabel, children, summary }: { label: string;
     </div>
   );
 }
+
+/** A choice button that explains why it's disabled, with an optional second tap to confirm. */
+export function ActionButton({ label, hint, blocker, confirm, onClick }: { label: string; hint?: string; blocker?: string | null; confirm?: string; onClick: () => void }) {
+  const [armed, setArmed] = useState(false);
+  useEffect(() => {
+    if (!armed) return;
+    const id = setTimeout(() => setArmed(false), 4000);
+    return () => clearTimeout(id);
+  }, [armed]);
+  return (
+    <button className={`choice money-act${armed ? ' armed' : ''}`} disabled={!!blocker} title={blocker ?? undefined}
+      onClick={() => {
+        if (confirm && !armed) return setArmed(true);
+        setArmed(false);
+        onClick();
+      }}>
+      <span>{armed ? `✔ ${confirm}` : label}</span>
+      <span className="hint">{blocker ?? hint}</span>
+    </button>
+  );
+}
