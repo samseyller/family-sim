@@ -1,6 +1,7 @@
 import { journalText } from '../../engine/util';
 import type { GameState, JournalEntry } from '../../engine/types';
 import { Section } from '../components';
+import { JOURNAL_KEEP_YEARS } from '../../engine/history';
 
 const ICON: Record<JournalEntry['kind'], string> = { info: '•', major: '⭐', birth: '👶', death: '🕯️', good: '✅', bad: '⚠️' };
 
@@ -19,6 +20,10 @@ export function JournalTab({ g }: { g: GameState }) {
           </ul>
         </Section>
       ))}
+      <p className="hint center">
+        Older pages fade: everyday notes after {JOURNAL_KEEP_YEARS.info} years, good and bad news after {JOURNAL_KEEP_YEARS.good}. Milestones, births and
+        deaths are kept forever.
+      </p>
     </div>
   );
 }

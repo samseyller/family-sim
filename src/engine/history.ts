@@ -9,7 +9,7 @@
  * legacy score uses.
  */
 import { START_YEAR } from './generate';
-import type { GameState, Person } from './types';
+import type { GameState, JournalKind, Person } from './types';
 import { alive } from './util';
 
 /** Pruning starts once a family line is this many years old. */
@@ -83,4 +83,24 @@ export function pruneHistory(s: GameState, memorial = false): number {
   }
   if (s.friends) s.friends = s.friends.filter((f) => !pruned.has(f.id) && !pruned.has(f.of));
   return pruned.size;
+}
+
+// ── Journal ──────────────────────────────────────────────────────────
+
+/**
+ * How long journal entries are kept, by importance. Milestones (major moments, births, deaths) stay forever (the
+ * memorial's highlights come from them); notable good and bad news fades after 40 years; routine entries
+ * (activity results, small news) after 10. The very first entry ("Your story begins...") is always kept.
+ */
+export const JOURNAL_KEEP_YEARS: Record<JournalKind, number> = {
+  major: Infinity, birth: Infinity, death: Infinity,
+  good: 40, bad: 40,
+  info: 10,
+};
+
+/** Drop journal entries older than their tier allows (in place). Returns how many were removed. */
+export function trimJournal(s: GameState): number {
+  const before = s.journal.length;
+  s.journal = s.journal.filter((j, i) => i === 0 || s.year - j.year < JOURNAL_KEEP_YEARS[j.kind]);
+  return before - s.journal.length;
 }

@@ -21,7 +21,7 @@ import { generateEvents, refreshPending, resolveEvent, stillRelevant } from './e
 import { strategyPlan } from './strategies';
 import { applyCushion } from './tutorial';
 import { autoComeOfAge, die, settleEstates } from './family';
-import { pruneHistory } from './history';
+import { pruneHistory, trimJournal } from './history';
 import { active, ageOf, alive, childrenOf, fullName, journal, partnerOf } from './util';
 
 function begin(state: GameState): { s: GameState; rng: Rng } {
@@ -122,6 +122,7 @@ export function nextYear(state: GameState): GameState {
   }
   s.year++;
   pruneHistory(s); // long games only: forget the details of long-gone relatives
+  trimJournal(s); // older entries fade by importance (routine first, milestones never)
   s.phase = 'PLANNING';
   s.recap = undefined;
   s.snapshot = undefined;

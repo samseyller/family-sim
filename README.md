@@ -139,6 +139,9 @@ e2e/              Playwright tests
   10 years earlier are pruned to their name, dates and portrait (plus their place in the family tree); the same
   happens to everyone else when the family is memorialized. Played characters, and their bonds (which the memorial
   scores), are never pruned (`src/engine/history.ts`).
+- **The journal fades by importance:** everyday entries (activity results, small news) after 10 years, good and bad
+  news after 40; major moments, births and deaths are kept forever, as is the first entry. A 220-year family's save
+  went from about 680 KB to about 310 KB.
 
 - The game autosaves to the browser (IndexedDB) after every plan change, decision, and year. The previous
   autosave is kept, so starting a new family, importing, or a damaged save can always be undone.

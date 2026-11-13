@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { playLife } from '../balance/simulate';
 import { checkGame } from '../persistence/exportImport';
 import { START_YEAR } from './generate';
-import { PRUNE_AFTER_YEARS, PRUNE_DEAD_FOR, pruneHistory } from './history';
+import { JOURNAL_KEEP_YEARS, PRUNE_AFTER_YEARS, PRUNE_DEAD_FOR, pruneHistory, trimJournal } from './history';
 import { buildMemorial } from './memorial';
 import type { GameState } from './types';
 import { alive } from './util';
@@ -56,5 +56,26 @@ describe('pruning history', () => {
     expect(JSON.stringify(t).length).toBeLessThan(JSON.stringify(s).length);
     const res = checkGame(JSON.parse(JSON.stringify(t)), 'test');
     expect(res.ok, res.ok ? '' : res.error).toBe(true);
+  });
+});
+
+describe('journal tiers', () => {
+  it('routine entries fade first, good and bad news later, milestones never', () => {
+    const s = longGame('family', 507, 1);
+    s.year = 2200;
+    const at = (age: number, kind: GameState['journal'][number]['kind']) => ({ year: s.year - age, text: `${kind} ${age}`, kind, who: s.activeId });
+    s.journal = [at(170, 'major'), at(5, 'info'), at(10, 'info'), at(39, 'good'), at(40, 'bad'), at(150, 'birth'), at(150, 'death'), at(150, 'major')];
+    expect(trimJournal(s)).toBe(2);
+    expect(s.journal.map((j) => j.text)).toEqual(['major 170', 'info 5', 'good 39', 'birth 150', 'death 150', 'major 150']);
+    expect(JOURNAL_KEEP_YEARS.major).toBe(Infinity);
+  });
+
+  it('keeps the first entry of the story and every memorial highlight, and shrinks long saves', { timeout: 60_000 }, () => {
+    const s = longGame('tycoon', 504, 200);
+    expect(s.journal[0].text).toMatch(/^Your story begins/);
+    const oldest = Math.min(...s.journal.filter((j) => j.kind === 'info').map((j) => j.year));
+    expect(s.year - oldest).toBeLessThan(JOURNAL_KEEP_YEARS.info);
+    expect(s.journal.filter((j) => j.kind === 'major' && j.year < s.year - 100).length).toBeGreaterThan(5);
+    expect(JSON.stringify(s.journal).length).toBeLessThan(150_000);
   });
 });
