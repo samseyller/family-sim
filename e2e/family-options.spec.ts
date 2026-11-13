@@ -42,6 +42,11 @@ test('family options: visit a parent who lives elsewhere', async ({ page }, info
   const affinity = parent.getByRole("meter", { name: "Affinity" });
   const before = Number(await affinity.getAttribute("aria-valuenow"));
   await visit.click();
+  // The result shows right here on the Family tab.
+  const result = page.getByRole("dialog");
+  await expect(result.getByText(/Energy -/)).toBeVisible();
+  await result.getByRole("button", { name: "Nice" }).click();
+  await expect(result).toHaveCount(0);
   await expect.poll(async () => Number(await affinity.getAttribute("aria-valuenow"))).toBeGreaterThan(before);
   expect(errors).toEqual([]);
 });

@@ -8,7 +8,7 @@ import { PlanTab } from './PlanTab';
 import { FamilyTab } from './FamilyTab';
 import { JournalTab } from './JournalTab';
 import { MoneyTab } from './MoneyTab';
-import { ActivitiesTab } from './ActivitiesTab';
+import { ActivitiesTab, ActivityResultCard } from './ActivitiesTab';
 import { ConfirmEndYear, DevPanel, EventModal, MemorialScreen, RecapModal, SuccessionScreen } from './Overlays';
 import { GameMenu, SavesPanel } from './SavesPanel';
 import { isTyping } from '../input';
@@ -98,6 +98,7 @@ export function Game() {
         : g.phase === 'RECAP' ? <RecapModal g={g} />
         : g.phase === 'SUCCESSION' ? <SuccessionScreen g={g} />
         : confirmEnd ? <ConfirmEndYear g={g} /> : null}
+      {g.lastActivity && <ActivityResultCard g={g} />}
       {panel === 'menu' && <GameMenu />}
       {panel === 'saves' && <SavesPanel />}
       {panel === 'settings' && <SettingsPanel />}

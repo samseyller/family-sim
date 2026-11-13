@@ -91,7 +91,8 @@ function ActivitySheet({ g, def, onClose }: { g: GameState; def: ActivityDef; on
   );
 }
 
-function ResultCard({ g }: { g: GameState }) {
+/** The outcome of the last activity. Shown by Game.tsx on any tab (Family tab options start activities too). */
+export function ActivityResultCard({ g }: { g: GameState }) {
   const dismiss = useGame((s) => s.dismissActivity);
   const r = g.lastActivity!;
   return (
@@ -152,7 +153,6 @@ export function ActivitiesTab({ g }: { g: GameState }) {
         })}
       </div>
       {open && !g.lastActivity && <ActivitySheet g={g} def={open} onClose={() => setOpen(null)} />}
-      {g.lastActivity && <ResultCard g={g} />}
     </div>
   );
 }
