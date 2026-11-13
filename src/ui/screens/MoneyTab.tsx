@@ -3,7 +3,7 @@ import { COLLEGE_FUND_CAP, GARAGE_BUILD, HOME_UPGRADES, type UpgradeId, HOMES, I
 import { estimateYear } from '../../engine/budget';
 import { capacityOf, carsOf, financeBlocker, homeEquity, homeOf, homeUpfront, netWorth, rentTierOf, upgradeCost, upgradeCount, type FinanceAction } from '../../engine/finance';
 import { CITIES } from '../../content/cities';
-import { FLOOD_INSURANCE } from '../../content/economy';
+import { DEBT_PAYDOWN, DEBT_RATE, FLOOD_INSURANCE } from '../../content/economy';
 import type { GameState } from '../../engine/types';
 import { active, ageOf, kidsAtHome, membersOf, money } from '../../engine/util';
 import { useGame } from '../../store/gameStore';
@@ -206,6 +206,10 @@ export function MoneyTab({ g }: { g: GameState }) {
 
       <Section title="📊 Investments" aside={<strong>{money(hh.investments ?? 0)}</strong>}>
         <p className="hint">Grows about {Math.round(INVEST_RETURN * 1000) / 10}% a year on average, but some years it falls. Cash in the bank earns 1.5%.</p>
+        <p className="hint">Emergencies can be paid from investments when cash runs short. While you're in debt, {Math.round(DEBT_PAYDOWN * 100)}% of it is paid from investments each year; the rest costs {Math.round(DEBT_RATE * 100)}% interest.</p>
+        {hh.wallet < 0 && (hh.investments ?? 0) > 0 && (
+          <Act g={g} action={{ kind: 'withdraw', amount: Math.min(hh.investments!, -hh.wallet) }} label={`Pay off debt from investments (${money(Math.min(hh.investments!, -hh.wallet))})`} />
+        )}
         <div className="money-grid">
           {[1000, 5000, 25000, 50000].map((n) => <Act key={n} g={g} action={{ kind: 'invest', amount: n }} label={`Invest ${money(n)}`} />)}
         </div>

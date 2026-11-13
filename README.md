@@ -180,6 +180,10 @@ for random). When your baby is born, a naming event offers suggestions or lets y
 - **Debt spirals:** when you owe more than $25,000 and the interest outruns what you can put aside, a prompt
   offers a way out: sell the house and rent, buy a smaller home, move to a cheaper rental, or switch to a frugal
   lifestyle. Ignoring it is allowed (some retirees in a house they can no longer afford do go under).
+- **Investments in an emergency:** a flood, medical bill, car repair, legal bill, sick pet, sports injury or a
+  relative asking for help can be paid from investments when cash runs short (the choice says how much it sells).
+  Everyday spending stays cash-only. While you are in cash debt, 10% of it is paid from investments each year
+  before the 8% interest; the Money tab offers a button to pay off the rest.
 - **Everyday costs:** progressive income tax plus payroll tax (7.65% of wages), health insurance by age,
   late-life care from 80 (or when very unwell), daycare for under-5s when every adult works, home or renters
   insurance, car insurance (30% higher for 3 years after a claim), optional flood insurance.

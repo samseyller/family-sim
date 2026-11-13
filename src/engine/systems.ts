@@ -1,5 +1,6 @@
 import { HOBBY_BY_ID } from '../content/actions';
 import { DEBT_RATE, LIFESTYLES, NPC_DEBT_FLOOR, SAVINGS_RATE } from '../content/economy';
+import { payDownDebt } from './emergency';
 import { CAREER_BY_ID, PART_TIME_MAX, PROGRAMS, TWO_JOB_STRESS, qualifies, requiredBlocks } from '../content/careers';
 import { assignJob, canWorkFullTime, homeParents, makeAdultStranger, makeBaby, pickCareer } from './generate';
 import { fullTimePay, householdBudget, partTimePay } from './budget';
@@ -297,6 +298,9 @@ export function runEconomy(s: GameState, activePay: number, rng?: Rng) {
         p.retirementSavings = Math.round(p.retirementSavings! * (1 + r));
       }
     }
+    // In debt with investments: a share of the debt is paid from them before interest.
+    const paid = payDownDebt(hh);
+    if (paid > 0 && hh.id === me.householdId) journal(s, `Sold ${money(paid)} of investments to pay down your debt.`, 'info');
     hh.wallet = Math.round(hh.wallet * (hh.wallet > 0 ? 1 + SAVINGS_RATE : 1 + DEBT_RATE));
     if (hh.id !== me.householdId && hh.wallet < -NPC_DEBT_FLOOR) hh.wallet = -NPC_DEBT_FLOOR;
     // Investments swing year to year around their average return.

@@ -13,6 +13,7 @@
 import { CITIES } from '../content/cities';
 import { DEDUCTIBLE } from '../content/economy';
 import { makeCar, parkingFree, workingCars } from './cars';
+import { canCover, coverHint, payEmergency } from './emergency';
 import type { Ctx, EventDef } from './events';
 /** Queue a follow-up decision this year; registered by events.ts (avoids a circular import). */
 let enqueue: (c: Ctx, id: string, subject?: Person) => void = () => {};
@@ -31,10 +32,12 @@ const age = (c: Ctx, p: Person) => ageOf(p, c.s.year);
 /** Prices scale with the city's everyday costs, rounded to $50. */
 const local = (c: Ctx, n: number) => Math.round((n * CITIES[cityOfHousehold(wallet(c))].living) / 50) * 50;
 const pay = (c: Ctx, n: number) => { wallet(c).wallet -= n; };
+/** Pay for an emergency fix: cash first, then investments. */
+const payE = (c: Ctx, n: number) => { payEmergency(wallet(c), n); };
 const isMine = (me: Person, k: Person) => k.biologicalParents.includes(me.id) || k.adoptiveParents.includes(me.id);
 /** Give money to someone: into a child's fund at home, otherwise their household. */
 function give(c: Ctx, to: Person, n: number) {
-  pay(c, n);
+  payE(c, n);
   if (to.householdId === c.me.householdId && age(c, to) < 18) to.fund += n;
   else c.s.households[to.householdId].wallet += n;
   flag(c.me, 'given_to_family', n);
@@ -42,6 +45,9 @@ function give(c: Ctx, to: Person, n: number) {
 /** Choice helper: a priced option that's disabled when you can't pay. */
 const priced = (c: Ctx, id: string, label: string, cost: number, hint?: string) =>
   ({ id, label: cost ? `${label} (${money(cost)})` : label, hint, disabled: cost > 0 && wallet(c).wallet < cost });
+/** Choice helper for an emergency fix: investments can cover what cash can't (pay it with payE). */
+const emergency = (c: Ctx, id: string, label: string, cost: number, hint?: string) =>
+  ({ id, label: `${label} (${money(cost)})`, hint: coverHint(wallet(c), cost, hint), disabled: !canCover(wallet(c), cost) });
 
 /** A parent of the player who died this year or last and hasn't had a funeral yet. */
 const recentlyDeceasedParent = (c: Ctx) =>
@@ -275,8 +281,8 @@ export const LIFE_EVENTS: EventDef[] = [
           ? `Someone ran a red light and hit the ${car.name}. Nobody was badly hurt.${totaled ? ' The insurer says it’s totaled.' : ''}`
           : 'You were in a fender-bender.',
         choices: totaled
-          ? [{ id: 'claim', label: `Take the insurance payout (${money(Math.max(0, car!.value - DEDUCTIBLE.car))})`, hint: 'The car is gone' }, { id: 'self', label: 'Fix it yourself anyway', hint: money(local(c, 4000)), disabled: wallet(c).wallet < local(c, 4000) }]
-          : [{ id: 'claim', label: `File a claim (${money(DEDUCTIBLE.car)} deductible)`, hint: 'Your premium goes up for 3 years' }, priced(c, 'self', 'Pay for repairs yourself', local(c, 3500), 'Keep your premium low')],
+          ? [{ id: 'claim', label: `Take the insurance payout (${money(Math.max(0, car!.value - DEDUCTIBLE.car))})`, hint: 'The car is gone' }, emergency(c, 'self', 'Fix it yourself anyway', local(c, 4000))]
+          : [{ id: 'claim', label: `File a claim (${money(DEDUCTIBLE.car)} deductible)`, hint: 'Your premium goes up for 3 years' }, emergency(c, 'self', 'Pay for repairs yourself', local(c, 3500), 'Keep your premium low')],
       };
     },
     resolve: (c, ch) => {
@@ -297,7 +303,7 @@ export const LIFE_EVENTS: EventDef[] = [
         c.me.flags.car_claim_year = c.s.year;
         return 'Insurance covered the rest. Your next renewal notice will sting.';
       }
-      pay(c, local(c, totaled ? 4000 : 3500));
+      payE(c, local(c, totaled ? 4000 : 3500));
       return 'Good as new, and your premium stays put.';
     },
   },
@@ -384,8 +390,8 @@ export const LIFE_EVENTS: EventDef[] = [
         choices: home && hh.floodInsurance
           ? [{ id: 'claim', label: `Flood claim (${money(DEDUCTIBLE.home)} deductible)` }]
           : home
-            ? [priced(c, 'repair', 'Pay for full repairs', damage), { id: 'patch', label: `Patch what you can (${money(Math.round(damage / 3))})`, hint: 'The house loses value' }]
-            : [priced(c, 'replace', 'Replace everything', damage), { id: 'make_do', label: 'Make do', hint: 'Everyone is unhappy for a while' }],
+            ? [emergency(c, 'repair', 'Pay for full repairs', damage), { id: 'patch', label: `Patch what you can (${money(Math.round(damage / 3))})`, hint: 'The house loses value' }]
+            : [emergency(c, 'replace', 'Replace everything', damage), { id: 'make_do', label: 'Make do', hint: 'Everyone is unhappy for a while' }],
       };
     },
     resolve: (c, ch) => {
@@ -394,7 +400,7 @@ export const LIFE_EVENTS: EventDef[] = [
       const damage = home ? Math.round(home.value * 0.18) : local(c, 4000);
       for (const m of membersOf(c.s, hh.id)) stat(m, 'stress', 6);
       if (ch === 'claim') { pay(c, DEDUCTIBLE.home); flag(c.me, 'insured_claim'); return 'The insurance check came. Best money you ever spent.'; }
-      if (ch === 'repair' || ch === 'replace') { pay(c, damage); return 'Fans, dehumidifiers, new drywall. Expensive, but fixed.'; }
+      if (ch === 'repair' || ch === 'replace') { payE(c, damage); return 'Fans, dehumidifiers, new drywall. Expensive, but fixed.'; }
       if (ch === 'patch' && home) { pay(c, Math.round(damage / 3)); home.value = Math.round(home.value * 0.9); return 'It works, mostly. A buyer would notice.'; }
       for (const m of membersOf(c.s, hh.id)) stat(m, 'happiness', -5);
       return 'You salvaged what you could.';
@@ -411,7 +417,7 @@ export const LIFE_EVENTS: EventDef[] = [
         title: 'A surprise medical bill',
         text: `${p!.id === c.me.id ? 'You' : p!.firstName} needed an emergency surgery. After insurance, you owe ${money(bill)}.`,
         choices: [
-          priced(c, 'pay', 'Pay it', bill),
+          emergency(c, 'pay', 'Pay it', bill),
           { id: 'negotiate', label: 'Negotiate with the hospital', hint: 'Might cut it in half; stressful' },
           { id: 'plan', label: 'Payment plan', hint: `${money(Math.round(bill * 1.2))} over time, stressful` },
         ],
@@ -420,7 +426,7 @@ export const LIFE_EVENTS: EventDef[] = [
     resolve: (c, ch, p) => {
       const bill = local(c, p!.id === c.me.id ? 6000 : 4500);
       stat(p!, 'health', -5);
-      if (ch === 'pay') { pay(c, bill); return 'Paid. Back to normal.'; }
+      if (ch === 'pay') { payE(c, bill); return 'Paid. Back to normal.'; }
       stat(c.me, 'stress', 6);
       if (ch === 'negotiate') {
         if (c.rng.chance(0.5)) { pay(c, Math.round(bill / 2)); return 'After two hours on hold, they cut it in half.'; }
@@ -440,14 +446,14 @@ export const LIFE_EVENTS: EventDef[] = [
       title: `${k!.firstName} is in trouble`,
       text: `${k!.firstName} called you from the police station: arrested after a bar fight. They swear it wasn't their fault.`,
       choices: [
-        priced(c, 'lawyer', 'Hire a good lawyer', local(c, 10000), 'Most likely cleared'),
+        emergency(c, 'lawyer', 'Hire a good lawyer', local(c, 10000), 'Most likely cleared'),
         { id: 'public', label: 'Let a public defender handle it', hint: 'Free; a coin flip' },
         { id: 'alone', label: 'They made their bed', hint: 'Tough love' },
       ],
     }),
     resolve: (c, ch, k) => {
       const odds = ch === 'lawyer' ? 0.85 : ch === 'public' ? 0.5 : 0.3;
-      if (ch === 'lawyer') pay(c, local(c, 10000));
+      if (ch === 'lawyer') payE(c, local(c, 10000));
       adjustBond(c.s, c.me.id, k!.id, ch === 'lawyer' ? 6 : ch === 'public' ? 0 : -12, ch === 'alone' ? -8 : 3);
       if (c.rng.chance(odds)) return `The charges were dropped. ${k!.firstName} promised it would never happen again.`;
       flag(k!, 'record');
@@ -468,8 +474,8 @@ export const LIFE_EVENTS: EventDef[] = [
         title: `${p!.firstName} needs help`,
         text: `${p!.firstName} is behind on bills and asks if you can help with ${money(ask)}.`,
         choices: [
-          priced(c, 'give', 'Give it to them', ask),
-          priced(c, 'lend', 'Lend it (they promise to pay you back)', ask),
+          emergency(c, 'give', 'Give it to them', ask),
+          emergency(c, 'lend', 'Lend it (they promise to pay you back)', ask),
           { id: 'no', label: 'Say no', hint: 'It will hurt' },
         ],
       };

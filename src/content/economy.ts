@@ -71,3 +71,9 @@ export const lateLifeCare = (age: number, health: number) => {
   const base = age >= 90 ? 60000 : age >= 85 ? 35000 : age >= 80 ? 15000 : 0;
   return health < 30 && age >= 70 ? Math.max(base, 30000) : base;
 };
+
+/**
+ * While a household is in cash debt and has investments, this share of the debt is paid from
+ * investments each year, before interest. Paying off the rest is up to the player.
+ */
+export const DEBT_PAYDOWN = 0.1;

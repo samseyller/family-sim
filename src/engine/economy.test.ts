@@ -149,6 +149,63 @@ describe('life events', () => {
   });
 });
 
+describe('investments in an emergency', () => {
+  /** A homeowner with almost no cash but plenty invested. */
+  const invested = (seed: number) => {
+    const s = financeAction(rich(seed), { kind: 'buyHome', tier: 'family', downPct: 0.2 });
+    hhOf(s).investments = 1_000_000;
+    hhOf(s).wallet = 1000;
+    return s;
+  };
+
+  it('can pay for full flood repairs by selling investments, and says so', () => {
+    const s = invested(4410);
+    const repair = EVENT_BY_ID.flood.build({ s, rng: makeRng(1), me: active(s) }).choices.find((c) => c.id === 'repair')!;
+    expect(repair.disabled).toBe(false);
+    expect(repair.hint).toMatch(/Sells \$[\d,]+ of investments/);
+    const { s: t } = decide(s, 'flood', 'repair');
+    expect(hhOf(t).investments!).toBeLessThan(1_000_000);
+  });
+
+  it('only sells what cash cannot cover, and never more than is invested', async () => {
+    const { payEmergency, canCover } = await import('./emergency');
+    const hh = { ...hhOf(newGame(4411)), wallet: 3000, investments: 10_000 };
+    expect(canCover(hh, 13_000)).toBe(true);
+    expect(canCover(hh, 13_001)).toBe(false);
+    expect(payEmergency(hh, 5000)).toBe(2000);
+    expect(hh.wallet).toBe(0);
+    expect(hh.investments).toBe(8000);
+    expect(payEmergency(hh, 20_000)).toBe(8000); // the rest becomes debt
+    expect(hh.wallet).toBe(-12_000);
+    expect(hh.investments).toBe(0);
+  });
+
+  it('everyday spending stays cash-only', () => {
+    const s = invested(4412);
+    const wedding = EVENT_BY_ID.wedding.build({ s, rng: makeRng(1), me: active(s) }, partnerOf(s, active(s).id));
+    expect(wedding.choices.find((c) => c.id === 'dream')!.disabled).toBe(true);
+  });
+
+  it('pays 10% of cash debt from investments each year, before interest', async () => {
+    const { runEconomy } = await import('./systems');
+    const { DEBT_PAYDOWN } = await import('../content/economy');
+    const { payDownDebt } = await import('./emergency');
+    const hh = { ...hhOf(newGame(4413)), wallet: -100_000, investments: 500_000 };
+    expect(payDownDebt(hh)).toBe(100_000 * DEBT_PAYDOWN);
+    expect(hh.wallet).toBe(-90_000);
+    expect(hh.investments).toBe(490_000);
+    const broke = { ...hh, wallet: -100_000, investments: 4000 };
+    expect(payDownDebt(broke)).toBe(4000); // only what there is
+    // In the yearly economy, with a journal note for the player.
+    const s = newGame(4414);
+    hhOf(s).investments = 2_000_000;
+    hhOf(s).wallet = -1_000_000;
+    runEconomy(s, 0);
+    expect(hhOf(s).investments!).toBeLessThan(2_000_000);
+    expect(s.journal.some((j) => j.text.startsWith('Sold $'))).toBe(true);
+  });
+});
+
 describe('households the player does not run', () => {
   it('cut back before their debt spirals; yours is still yours to manage', async () => {
     const { runEconomy } = await import('./systems');

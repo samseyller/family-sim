@@ -1,6 +1,7 @@
 /** Sports moments: tryouts, big games, injuries, the draft, contracts, and retirement. */
 import { CAREER_BY_ID } from '../content/careers';
 import { PRO_SKILL, SPORTS, TRAVEL_TEAM_COST } from '../content/sports';
+import { canCover, coverHint, payEmergency } from './emergency';
 import type { Ctx, EventDef } from './events';
 import { goPro, isPro, retireFromPro } from './sports';
 import type { Person } from './types';
@@ -117,14 +118,14 @@ export const SPORTS_EVENTS: EventDef[] = [
         title: 'Injured',
         text: `You went down hard during ${sportName(c.me)} and couldn't get back up. The doctor says it's a torn ligament.`,
         choices: [
-          { id: 'surgery', label: covered ? 'Surgery (the team pays)' : `Surgery and rehab (${money(8000)})`, hint: 'The best shot at a full recovery', disabled: !covered && wallet(c).wallet < 8000 },
+          { id: 'surgery', label: covered ? 'Surgery (the team pays)' : `Surgery and rehab (${money(8000)})`, hint: covered ? 'The best shot at a full recovery' : coverHint(wallet(c), 8000, 'The best shot at a full recovery'), disabled: !covered && !canCover(wallet(c), 8000) },
           { id: 'rest', label: 'Rest and hope it heals', hint: 'Cheaper; you may lose a step' },
         ],
       };
     },
     resolve: (c, ch) => {
       if (ch === 'surgery') {
-        if (!isPro(c.me)) wallet(c).wallet -= 8000;
+        if (!isPro(c.me)) payEmergency(wallet(c), 8000);
         c.me.skills.sports = clamp(skill(c.me) - 4, 0, 100);
         stat(c.me, 'health', -4);
         return 'Months of rehab, then back in the game, a little wiser.';

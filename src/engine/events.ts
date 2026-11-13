@@ -11,6 +11,7 @@ import { SCHOLARSHIP_SKILL } from '../content/sports';
 import { FEMALE_NAMES, MALE_NAMES } from '../content/names';
 import { annuityPayment, HOMES, MORTGAGE_RATE, MORTGAGE_YEARS, SCRAP_VALUE } from '../content/finance';
 import { breakdownChance, carAge, conditionOf, garagedIds, repairCost, shakiestCar } from './cars';
+import { canCover, coverHint, payEmergency } from './emergency';
 import type { Asset } from './types';
 import { homePriceIn, homeUpfront, makeHome, relocate } from './finance';
 import { cityName, cityOf, isNear, myCity } from './location';
@@ -1049,7 +1050,7 @@ const EVENTS: EventDef[] = [
         title: 'A sick dog',
         text: d ? `${d.name} won't eat and won't get off the couch. The vet says treatment will cost ${money(bill)}.` : 'Your dog seems unwell.',
         choices: [
-          { id: 'treat', label: `Pay for treatment (${money(bill)})`, disabled: !d || wallet(c).wallet < bill },
+          { id: 'treat', label: `Pay for treatment (${money(bill)})`, hint: coverHint(wallet(c), bill), disabled: !d || !canCover(wallet(c), bill) },
           { id: 'wait', label: 'Wait and see', hint: 'Their health may get worse' },
         ],
       };
@@ -1058,7 +1059,7 @@ const EVENTS: EventDef[] = [
       const d = frailestDog(wallet(c));
       if (!d) return 'They bounced back on their own.';
       if (ch === 'treat') {
-        wallet(c).wallet -= vetBill(d, c.s.year);
+        payEmergency(wallet(c), vetBill(d, c.s.year));
         d.health = Math.min(100, d.health + 25);
         d.bond = Math.min(100, d.bond + 5);
         return `${d.name} is back to stealing socks. Worth every penny.`;
@@ -1153,7 +1154,7 @@ const EVENTS: EventDef[] = [
           ? `The ${car.name} (${carAge(car)} years old) makes a horrible noise and dies on the highway. The repair will cost ${money(cost)}.${old ? ' The mechanic says it may not be worth it.' : ''}`
           : 'The car makes a horrible noise and dies on the highway.',
         choices: [
-          { id: 'fix', label: `Pay for the repair (${money(cost)})`, disabled: !car || wallet(c).wallet < cost, hint: old ? 'It may not last much longer' : undefined },
+          { id: 'fix', label: `Pay for the repair (${money(cost)})`, disabled: !car || !canCover(wallet(c), cost), hint: coverHint(wallet(c), cost, old ? 'It may not last much longer' : undefined) },
           { id: 'scrap', label: 'Scrap it', hint: car ? `Get ${money(SCRAP_VALUE)}; buy another in the Money tab` : undefined, disabled: !car },
           { id: 'bus', label: 'Take the bus for a while', hint: 'Stress up, late to work' },
         ],
@@ -1163,7 +1164,7 @@ const EVENTS: EventDef[] = [
       const hh = wallet(c);
       const car = shakiestCar(hh);
       if (ch === 'fix' && car) {
-        hh.wallet -= bigRepair(car);
+        payEmergency(hh, bigRepair(car));
         return 'Fixed. Your wallet is lighter.';
       }
       if (ch === 'scrap' && car) {

@@ -3,6 +3,7 @@ import { CAT_BREEDS, CAT_TREE_COST, type CatBreed } from '../content/cats';
 import { adoptCatInto, catAge, catsOf, catStage, frailestCat, maxCats } from './cats';
 import { dogsOf } from './dogs';
 import { hash } from './jobMarket';
+import { canCover, coverHint, payEmergency } from './emergency';
 import type { Ctx, EventDef } from './events';
 import type { Cat } from './types';
 import { ageOf, clamp, flag, money, stat } from './util';
@@ -28,7 +29,7 @@ export const CAT_EVENTS: EventDef[] = [
         title: 'A sick cat',
         text: cat ? `${cat.name} is hiding under the bed and skipping meals. The vet wants to run tests: ${money(bill)}.` : 'Your cat seems unwell.',
         choices: [
-          { id: 'treat', label: `Pay for the vet (${money(bill)})`, disabled: !cat || hh(c).wallet < bill },
+          { id: 'treat', label: `Pay for the vet (${money(bill)})`, hint: coverHint(hh(c), bill), disabled: !cat || !canCover(hh(c), bill) },
           { id: 'wait', label: 'Wait and see', hint: 'Cats hide it when they are unwell' },
         ],
       };
@@ -37,7 +38,7 @@ export const CAT_EVENTS: EventDef[] = [
       const cat = frailestCat(hh(c));
       if (!cat) return 'They were back on the windowsill by morning.';
       if (ch === 'treat') {
-        hh(c).wallet -= vetBill(cat, c.s.year);
+        payEmergency(hh(c), vetBill(cat, c.s.year));
         cat.health = clamp(cat.health + 25, 0, 100);
         return `${cat.name} is eating again and yelling for breakfast at 5 a.m. Normal service resumed.`;
       }
