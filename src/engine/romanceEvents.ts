@@ -1,6 +1,6 @@
 /** Getting caught seeing someone else (scheduled by dating while you're in a relationship). */
 import { breakUp, separate, startDating } from './family';
-import type { Ctx, EventDef } from './events';
+import type { Ctx, EventDef } from './eventKit';
 import type { Person } from './types';
 import { activePartnership, adjustBond, alive, flag, getBond, journal, kidsAtHome, stat } from './util';
 

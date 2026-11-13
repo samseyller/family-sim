@@ -2,7 +2,7 @@
 import { CAREER_BY_ID } from '../content/careers';
 import { PRO_SKILL, SPORTS, TRAVEL_TEAM_COST } from '../content/sports';
 import { canCover, coverHint, payEmergency } from './emergency';
-import type { Ctx, EventDef } from './events';
+import type { Ctx, EventDef } from './eventKit';
 import { goPro, isPro, retireFromPro } from './sports';
 import type { Person } from './types';
 import { adjustBond, ageOf, alive, childrenOf, clamp, flag, journal, money, stat } from './util';

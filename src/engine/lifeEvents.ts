@@ -14,10 +14,7 @@ import { CITIES } from '../content/cities';
 import { DEDUCTIBLE } from '../content/economy';
 import { makeCar, parkingFree, workingCars } from './cars';
 import { canCover, coverHint, payEmergency } from './emergency';
-import type { Ctx, EventDef } from './events';
-/** Queue a follow-up decision this year; registered by events.ts (avoids a circular import). */
-let enqueue: (c: Ctx, id: string, subject?: Person) => void = () => {};
-export const setEnqueue = (fn: typeof enqueue) => { enqueue = fn; };
+import { pushPending, type Ctx, type EventDef } from './eventKit';
 import { homeOf, upgradeCount } from './finance';
 import { cityOfHousehold } from './location';
 import type { Rng } from './rng';
@@ -87,7 +84,7 @@ export const LIFE_EVENTS: EventDef[] = [
       adjustBond(c.s, c.me.id, p!.id, joy / 2, 3);
       if (ch === 'big' || ch === 'dream') for (const par of parentsOf(c.s, c.me).filter(alive)) adjustBond(c.s, c.me.id, par.id, 4, 2);
       if (ch === 'dream') { flag(c.me, 'dream_wedding'); stat(c.me, 'stress', 4); }
-      enqueue(c, 'honeymoon', p);
+      pushPending(c, LIFE_EVENTS.find((e) => e.id === 'honeymoon')!, p); // straight after the wedding
       return {
         courthouse: 'Two signatures, one great dinner, zero stress.',
         small: 'Fairy lights, close friends, and dancing until midnight.',

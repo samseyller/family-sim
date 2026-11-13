@@ -1,7 +1,7 @@
 /** Moments along the hobby paths: firsts, scares, breaks, and bragging rights. */
 import { CAREER_BY_ID } from '../content/careers';
 import { DEDUCTIBLE } from '../content/economy';
-import type { Ctx, EventDef } from './events';
+import type { Ctx, EventDef } from './eventKit';
 import { ownsGear } from './hobbies';
 import type { Hobby, Person } from './types';
 import { ageOf, flag, journal, money, stat } from './util';

@@ -4,7 +4,7 @@ import { adoptCatInto, catAge, catsOf, catStage, frailestCat, maxCats } from './
 import { dogsOf } from './dogs';
 import { hash } from './jobMarket';
 import { canCover, coverHint, payEmergency } from './emergency';
-import type { Ctx, EventDef } from './events';
+import type { Ctx, EventDef } from './eventKit';
 import type { Cat } from './types';
 import { ageOf, clamp, flag, money, stat } from './util';
 

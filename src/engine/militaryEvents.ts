@@ -1,6 +1,6 @@
 /** Decisions in military service (scheduled by militaryYear for the player). */
 import { CAREER_BY_ID, titleOf } from '../content/careers';
-import type { Ctx, EventDef } from './events';
+import type { Ctx, EventDef } from './eventKit';
 import {
   DISABILITY_PAY, PENSION_YEARS, REENLIST_BONUS, TOUR_YEARS, enlist, isActiveDuty, leaveService, promote, retireFromService, serviceYears,
 } from './military';

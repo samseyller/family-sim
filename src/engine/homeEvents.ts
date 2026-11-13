@@ -6,7 +6,7 @@
 import { DEBT_RATE } from '../content/economy';
 import { HOMES, HOME_UPGRADES, RENTALS, SELL_COSTS, type HomeTier, type RentTier } from '../content/finance';
 import { estimateYear } from './budget';
-import type { Ctx, EventDef } from './events';
+import type { Ctx, EventDef } from './eventKit';
 import { moveOut } from './family';
 import { headOf } from './household';
 import { applyFinance, capacityOf, homeOf, homeUpfront, homeUpgradeCost, rentTierOf, upgradeCount } from './finance';

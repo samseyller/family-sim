@@ -5,7 +5,7 @@
  */
 import { HOBBY_BY_ID } from '../content/actions';
 import { addHobbySkill } from './hobbies';
-import type { Ctx, EventDef } from './events';
+import type { Ctx, EventDef } from './eventKit';
 import { moveOut, startPath, type LifePath } from './family';
 import { admitChance, collegeChoice, gpaText, TUITION } from './school';
 import { SCHOLARSHIP_SKILL, SPORTS } from '../content/sports';
