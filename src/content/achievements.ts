@@ -311,6 +311,21 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     test: (s) => !!active(s).flags.champion,
   },
   {
+    id: 'clean_bill',
+    title: 'Clean Bill of Health',
+    desc: 'Get a clean bill of health at five check-ups.',
+    icon: '🩺',
+    test: (s) => (active(s).flags.clean_checkups ?? 0) >= 5,
+  },
+  {
+    id: 'lucky_ticket',
+    title: 'Lucky Ticket',
+    desc: 'Hit the lottery jackpot.',
+    icon: '🎟️',
+    hidden: true,
+    test: (s) => !!active(s).flags.lottery_win,
+  },
+  {
     id: 'marathoner',
     title: '26.2',
     desc: 'Finish a marathon.',

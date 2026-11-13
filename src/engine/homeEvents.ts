@@ -9,7 +9,7 @@ import { estimateYear } from './budget';
 import type { Ctx, EventDef } from './events';
 import { moveOut } from './family';
 import { headOf } from './household';
-import { applyFinance, capacityOf, homeOf, homeUpfront, rentTierOf, upgradeCost, upgradeCount } from './finance';
+import { applyFinance, capacityOf, homeOf, homeUpfront, homeUpgradeCost, rentTierOf, upgradeCount } from './finance';
 import { cityOfHousehold } from './location';
 import type { Household, Person } from './types';
 import { adjustBond, ageOf, childrenOf, membersOf, money, partnerOf, stat } from './util';
@@ -62,7 +62,7 @@ export const HOME_EVENTS: EventDef[] = [
       const n = membersOf(c.s, h.id).length;
       const home = homeOf(h);
       const city = cityOfHousehold(h);
-      const addCost = upgradeCost('expansion', city);
+      const addCost = homeUpgradeCost(c.s, h, 'expansion');
       const canAdd = !!home && upgradeCount(home, 'expansion') < HOME_UPGRADES.expansion.max;
       const tier = fitsTier(n);
       const bigger = home ? tier !== tierOf(home.name) && HOMES[tier].capacity > capacityOf(h) : false;

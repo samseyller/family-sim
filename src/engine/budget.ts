@@ -14,6 +14,7 @@ import { petCosts } from './dogs';
 import { catCosts } from './cats';
 import { tuitionFor } from './school';
 import { practiceCostPerBlock } from './hobbies';
+import { gardenHarvest } from './handy';
 import { isActiveDuty, veteranIncome } from './military';
 import { sportsCosts } from './sports';
 import { cityDef, cityOfHousehold } from './location';
@@ -133,6 +134,8 @@ export function householdBudget(s: GameState, householdId: string, activePay: nu
   if (mem.length && mem.every((p) => ageOf(p, s.year) < 18)) add(inc, 'Survivor benefits', 24000);
 
   if (!homeOf(hh)) add(exp, 'Rent', rentIn(rentTierOf(hh), cityOfHousehold(hh)));
+  // A gardener with a yard grows some of the groceries.
+  add(inc, 'Garden harvest', living(gardenHarvest(s, hh)));
   if (!workingCars(hh).length && commuters(s, householdId)) add(exp, 'Transit', TRANSIT_BY_CITY[city.transit]);
   add(exp, 'Street parking', streetParkingCost(hh));
   add(exp, 'Pet care', petCosts(s, hh) + catCosts(s, hh));

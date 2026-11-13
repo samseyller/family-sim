@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { COLLEGE_FUND_CAP, GARAGE_BUILD, HOME_UPGRADES, type UpgradeId, HOMES, INVEST_RETURN, MORTGAGE_RATE, MORTGAGE_YEARS, RENOVATION, RENTALS, SELL_COSTS, annuityPayment, type HomeTier, type RentTier } from '../../content/finance';
 import { estimateYear } from '../../engine/budget';
-import { capacityOf, carsOf, financeBlocker, homeEquity, homeOf, homeUpfront, netWorth, rentTierOf, upgradeCost, upgradeCount, type FinanceAction } from '../../engine/finance';
+import { capacityOf, carsOf, financeBlocker, homeEquity, homeOf, homeUpfront, homeUpgradeCost, netWorth, renovationCost, rentTierOf, upgradeCount, type FinanceAction } from '../../engine/finance';
+import { bestSkill } from '../../engine/handy';
 import { CITIES } from '../../content/cities';
 import { DEBT_PAYDOWN, DEBT_RATE, FLOOD_INSURANCE } from '../../content/economy';
 import type { GameState } from '../../engine/types';
@@ -97,6 +98,7 @@ export function MoneyTab({ g }: { g: GameState }) {
   const people = membersOf(g, hh.id).length;
   const cap = capacityOf(hh);
   const city = cityOfHousehold(hh);
+  const diyNote = bestSkill(g, hh.id, 'woodworking') >= 20 ? ' · cheaper: you do the carpentry' : '';
 
   return (
     <div className="stack two-col">
@@ -153,12 +155,12 @@ export function MoneyTab({ g }: { g: GameState }) {
             )}
             <Reveal label="Improve the home">
               <div className="choices">
-                <Act g={g} action={{ kind: 'renovate' }} label={`Renovate (${money(RENOVATION.cost)})`} hint={`Adds ~${money(RENOVATION.valueGain)} of value; everyone +${RENOVATION.happiness} happiness`} />
+                <Act g={g} action={{ kind: 'renovate' }} label={`Renovate (${money(renovationCost(g, hh))})`} hint={`Adds ~${money(RENOVATION.valueGain)} of value; everyone +${RENOVATION.happiness} happiness${diyNote}`} />
                 <Act g={g} action={{ kind: 'buildGarage' }} label={`Add a garage space (${money(GARAGE_BUILD.cost)})`} hint={`Room for one more car, and garaged cars break down less. Adds ~${money(GARAGE_BUILD.valueGain)} of value`} />
                 {(Object.keys(HOME_UPGRADES) as UpgradeId[]).filter((u) => upgradeCount(home, u) < HOME_UPGRADES[u].max).map((u) => (
                   <Act key={u} g={g} action={{ kind: 'upgradeHome', upgrade: u }}
-                    label={`${HOME_UPGRADES[u].icon} ${u === 'expansion' ? 'Build an addition' : `Add a ${HOME_UPGRADES[u].label.toLowerCase()}`} (${money(upgradeCost(u, city))})`}
-                    hint={`${HOME_UPGRADES[u].desc} · upkeep ${money(HOME_UPGRADES[u].upkeep)}/yr`} confirm={`Confirm: ${money(upgradeCost(u, city))}`} />
+                    label={`${HOME_UPGRADES[u].icon} ${u === 'expansion' ? 'Build an addition' : `Add a ${HOME_UPGRADES[u].label.toLowerCase()}`} (${money(homeUpgradeCost(g, hh, u))})`}
+                    hint={`${HOME_UPGRADES[u].desc} · upkeep ${money(HOME_UPGRADES[u].upkeep)}/yr${u === 'expansion' ? diyNote : ''}`} confirm={`Confirm: ${money(homeUpgradeCost(g, hh, u))}`} />
                 ))}
               </div>
             </Reveal>

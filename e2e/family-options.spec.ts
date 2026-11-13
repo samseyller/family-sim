@@ -26,3 +26,22 @@ test('family options: separate from your spouse, then file for divorce', async (
   await page.screenshot({ path: 'e2e/out/family-options.png', fullPage: true });
   expect(errors).toEqual([]);
 });
+
+test('family options: visit a parent who lives elsewhere', async ({ page }, info) => {
+  test.skip(info.project.name === 'mobile', 'covered on desktop');
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page.goto('/');
+  await page.getByRole('button', { name: /start a new family/i }).click();
+  await page.getByRole('button', { name: 'Begin' }).click();
+  await page.keyboard.press('3');
+  const parent = page.locator('article.person', { has: page.locator('.chip', { hasText: /^(Mother|Father)$/ }) }).first();
+  await parent.getByRole('button', { name: /Options/ }).click();
+  const visit = parent.getByRole('button', { name: /(Visit|Fly to see) / }).first();
+  await expect(visit).toBeEnabled();
+  const affinity = parent.getByRole("meter", { name: "Affinity" });
+  const before = Number(await affinity.getAttribute("aria-valuenow"));
+  await visit.click();
+  await expect.poll(async () => Number(await affinity.getAttribute("aria-valuenow"))).toBeGreaterThan(before);
+  expect(errors).toEqual([]);
+});

@@ -182,7 +182,7 @@ for random). When your baby is born, a naming event offers suggestions or lets y
   (if you live together they move out with half the savings), separate from a spouse (they move out with half;
   the divorce follows) and file for divorce, ask parents or grown children living with you to find their own
   place, ask a grown brother or sister living in a home you run to move out (they may refuse; asking costs trust,
-  more so if they say no; once a year), invite relatives to move in, and call, meet or visit friends. Friends you've drifted apart from can be
+  more so if they say no; once a year), invite relatives to move in, visit (or fly to see) relatives who live elsewhere, and call, meet or visit friends. Friends you've drifted apart from can be
   let go for good.
 - Grown children (and anyone else) living with you can still marry, with the spouse moving in, and have children.
   When the home holds more people than it fits, a **full house** prompt offers an addition, a bigger home or
@@ -294,8 +294,14 @@ for random). When your baby is born, a naming event offers suggestions or lets y
   passes down to an heir in the family estate.
 - **Side gigs** (Activities → Hobbies & side gigs): sell furniture, play gigs, cater, fix cars, the farmers
   market, tournaments, car shows, plus fishing trips, family flights, garden days, and dinner parties.
-- **Moments:** first solo flight, engine trouble, workshop injuries, a food critic, a song going viral, the big
-  catch, a storm at sea, the county fair. Nine achievements.
+- **Moments:** first solo flight, engine trouble, workshop injuries, a food critic, a song going viral, a big
+  audition (a session musician who wins it goes on tour; anyone else plays a paid run of shows), the big catch, a
+  storm at sea, the county fair. Nine achievements.
+- **Skills that pay off at home** (`src/engine/handy.ts`), using the best skill among the adults at home:
+  - **Mechanics:** car repairs cost up to 50% less and breakdowns are up to 30% rarer.
+  - **Woodworking:** renovations and home additions cost up to 35% less (you do the carpentry).
+  - **Gardening:** with a yard (an owned house, not a condo), someone who gardens grows up to $2,500 of
+    groceries a year (at city prices; 50% more with a greenhouse), shown as "Garden harvest" in the budget.
 
 ## Jobs and the job market
 
@@ -407,11 +413,12 @@ for random). When your baby is born, a naming event offers suggestions or lets y
   hiking, run a 5k, and a secret **marathon** that appears once your fitness passes 95 and you've run five 5ks.
   *Learning:* attend a conference (full-time careers that require a degree; your employer pays; work performance
   up). *Family visits:* fly to see a relative in another city (less tiring than driving, a bigger bond boost).
-  *Money & luck:* bet on the horse races. *Vices:* shut down a bar, doom scroll for hours.
+  *Money & luck:* bet on the horse races. *Kid stuff:* ask to have a sleepover (6–14; parents may say no). *Vices:* shut down a bar, doom scroll for hours.
 - **Dating while attached:** dating activities stay open when you're in a relationship, with an orange "You are
   already seeing someone" warning. You may start seeing someone in secret, and every date out raises the chance
   (6%, 12%, 18%... up to 50%) that your partner finds out. Then you can apologize (trust takes a huge hit and they
   may leave anyway), leave them for the other person, or let them go. Hidden achievements: Cheater, Found Out.
+- **Achievements:** Clean Bill of Health (five clean check-ups) and the hidden Lucky Ticket (a lottery jackpot).
 - **🎯 Activities** (key 6): one-off things to do while planning, outside the 12 time blocks. Each costs
   energy (100 a year, less when unhealthy or stressed, never below 50) and usually money.
 - **🏖️ Retirement** (Money tab): early retirement from 55, full at 65. Pension jobs pay 1.5% of best

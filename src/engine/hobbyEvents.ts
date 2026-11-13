@@ -123,6 +123,41 @@ export const HOBBY_EVENTS: EventDef[] = [
     },
   },
   {
+    // A shot at a bigger stage: a band, an orchestra seat, or a tour needs a player.
+    id: 'big_audition',
+    major: false,
+    cooldown: 5,
+    candidates: (c) => one(adult(c) && skill(c.me, 'music') >= 45 && !(c.me.jobId === 'musician' && c.me.jobLevel >= 3), 0.5),
+    build: () => ({
+      title: 'A big audition',
+      text: 'A touring band lost their player a week before the tour. A friend got you an audition. Tomorrow. Bring two songs.',
+      choices: [{ id: 'go', label: 'Practice all night and go for it', hint: 'Skill decides it; nerves don’t help' }, { id: 'pass', label: 'Pass', hint: 'Not the right time' }],
+    }),
+    resolve: (c, ch) => {
+      if (ch === 'pass') return 'You wished them luck. Maybe next time.';
+      const odds = Math.min(0.9, Math.max(0.1, skill(c.me, 'music') / 100 + 0.1 - Math.max(0, c.me.stats.stress - 60) / 200));
+      c.me.skills.music = Math.min(100, skill(c.me, 'music') + 2);
+      if (!c.rng.chance(odds)) {
+        stat(c.me, 'happiness', -5);
+        stat(c.me, 'stress', 4);
+        return 'Your hands shook on the second song. They went with someone else, but you learned a lot about playing under pressure.';
+      }
+      flag(c.me, 'audition_won');
+      stat(c.me, 'happiness', 8);
+      c.me.skills.music = Math.min(100, skill(c.me, 'music') + 4);
+      // A session player gets the bump to touring; anyone else gets a paid run of shows.
+      if (c.me.jobId === 'musician' && c.me.jobLevel === 1) {
+        c.me.jobLevel = 2;
+        journal(c.s, 'You won the audition and went out on tour.', 'major');
+        return 'You nailed it. Pack a bag: you are a touring musician now.';
+      }
+      const pay = 3000 + skill(c.me, 'music') * 60;
+      wallet(c).wallet += pay;
+      journal(c.s, `You won the audition and played a run of shows (${money(pay)}).`, 'good');
+      return `You nailed it. A month of shows, ${money(pay)}, and your name on a poster.`;
+    },
+  },
+  {
     id: 'big_catch',
     major: false,
     cooldown: 3,

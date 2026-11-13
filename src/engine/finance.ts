@@ -20,6 +20,7 @@ import { unlockedTabs } from './tutorial';
 import { sanitizePlan } from './generate';
 import { EARLY_RETIREMENT_AGE } from '../content/retirement';
 import { active, ageOf, alive, journal, kidsAtHome, membersOf, money, newId, stat } from './util';
+import { bestSkill, diyFactor } from './handy';
 
 export type FinanceAction =
   | { kind: 'rent'; tier: RentTier }
@@ -52,6 +53,13 @@ export const capacityOf = (hh: Household) => {
 export const upgradeCount = (home: Asset, id: UpgradeId) => (home.upgrades ?? []).filter((u) => u === id).length;
 /** An upgrade's price in a city. */
 export const upgradeCost = (id: UpgradeId, city: CityId) => Math.round((HOME_UPGRADES[id].cost * CITIES[city].living) / 500) * 500;
+/** A woodworker at home does the building: renovations and additions cost less with their skill. */
+const diy = (s: GameState, hh: Household, cost: number) => Math.round((cost * diyFactor(bestSkill(s, hh.id, 'woodworking'))) / 500) * 500;
+/** What an upgrade costs this household (additions are cheaper with a woodworker at home). */
+export const homeUpgradeCost = (s: GameState, hh: Household, id: UpgradeId) =>
+  id === 'expansion' ? diy(s, hh, upgradeCost(id, cityOfHousehold(hh))) : upgradeCost(id, cityOfHousehold(hh));
+/** What renovating the kitchen costs this household. */
+export const renovationCost = (s: GameState, hh: Household) => diy(s, hh, RENOVATION.cost);
 
 /** Everything the household owns minus what it owes (college funds belong to the kids). */
 export function netWorth(s: GameState, householdId: string) {
@@ -101,7 +109,7 @@ export function financeBlocker(s: GameState, a: FinanceAction): string | null {
       if (!u) return 'Unknown upgrade.';
       if (upgradeCount(home, a.upgrade) >= u.max) return u.max === 1 ? 'You already have one.' : `At most ${u.max}.`;
       if (a.upgrade === 'garage_lift' && garageOf(home) < 1) return 'Needs a garage (add a garage space first).';
-      return hh.wallet < upgradeCost(a.upgrade, cityOfHousehold(hh)) ? `Costs ${money(upgradeCost(a.upgrade, cityOfHousehold(hh)))}.` : null;
+      return hh.wallet < homeUpgradeCost(s, hh, a.upgrade) ? `Costs ${money(homeUpgradeCost(s, hh, a.upgrade))}.` : null;
     }
     case 'buyGear':
       return gearBlocker(s, a.gear, parkingFree(hh));
@@ -116,7 +124,7 @@ export function financeBlocker(s: GameState, a: FinanceAction): string | null {
       return hh.wallet < GARAGE_BUILD.cost ? `A garage space costs ${money(GARAGE_BUILD.cost)}.` : null;
     case 'renovate':
       if (!home) return 'You do not own a home.';
-      return hh.wallet < RENOVATION.cost ? `Renovating costs ${money(RENOVATION.cost)}.` : null;
+      return hh.wallet < renovationCost(s, hh) ? `Renovating costs ${money(renovationCost(s, hh))}.` : null;
     case 'payLoan': {
       const asset = hh.assets.find((x) => x.id === a.assetId);
       if (!asset || asset.mortgage <= 0) return 'Nothing is owed on that.';
@@ -195,7 +203,7 @@ export function applyFinance(s: GameState, a: FinanceAction) {
     }
     case 'upgradeHome': {
       const u = HOME_UPGRADES[a.upgrade];
-      const cost = upgradeCost(a.upgrade, cityOfHousehold(hh));
+      const cost = homeUpgradeCost(s, hh, a.upgrade);
       hh.wallet -= cost;
       home!.upgrades = [...(home!.upgrades ?? []), a.upgrade];
       home!.upkeep += u.upkeep;
@@ -231,7 +239,7 @@ export function applyFinance(s: GameState, a: FinanceAction) {
       break;
     }
     case 'renovate': {
-      hh.wallet -= RENOVATION.cost;
+      hh.wallet -= renovationCost(s, hh);
       home!.value += RENOVATION.valueGain;
       for (const m of membersOf(s, hh.id)) stat(m, 'happiness', RENOVATION.happiness);
       journal(s, 'You renovated the kitchen. Everyone gathers there now.', 'good');

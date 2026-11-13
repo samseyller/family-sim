@@ -1,12 +1,12 @@
 import type { ReactElement } from 'react';
-import { activityBlocker } from '../../engine/activities';
+import { ACTIVITY_BY_ID, activityBlocker, relativesOutside } from '../../engine/activities';
 import { separatedFrom } from '../../engine/family';
 import { friendship, isDistant } from '../../engine/friends';
 import { householdBlocker, invitable, type HouseholdAction } from '../../engine/household';
 import { isNear } from '../../engine/location';
 import { isSibling, relationBlocker, siblingLeaveChance, type RelationAction } from '../../engine/relations';
 import type { GameState, Person } from '../../engine/types';
-import { active, activePartnership, ageOf } from '../../engine/util';
+import { active, activePartnership, ageOf, money } from '../../engine/util';
 import { useGame } from '../../store/gameStore';
 import { TRY_FOR_BABY_CHANCE } from '../../engine/romance';
 import { ActionButton, Reveal } from '../components';
@@ -51,6 +51,16 @@ export function PersonOptions({ g, p }: { g: GameState; p: Person }) {
     rel({ kind: 'askSiblingToLeave', personId: p.id }, `🚪 Ask ${p.firstName} to move out`, `About ${odds}% chance they agree; asking hurts their trust either way (more if they refuse)`, 'Confirm: ask them to leave');
   }
   if (!atHome && invitable(g).some((x) => x.id === p.id)) hh({ kind: 'invite', personId: p.id }, 'invite', `🏡 Invite ${p.firstName} to live with you`, 'Everyone in their home moves in; their home is sold');
+
+  // Relatives in another home: jump straight to a visit.
+  if (relativesOutside(g, me).some((r) => r.id === p.id)) {
+    const cost = (id: string) => money(ACTIVITY_BY_ID[id].cost(g, [p]));
+    if (isNear(g, p)) act('visit', `🚗 Visit ${p.firstName}`, `Same city · ${cost('visit')}`);
+    else {
+      act('fly_visit', `✈️ Fly to see ${p.firstName}`, `A few days together · ${cost('fly_visit')}`);
+      act('visit', `🚗 Drive to see ${p.firstName}`, `A long, tiring drive · ${cost('visit')}`);
+    }
+  }
 
   const fs = friendship(g, me, p.id);
   if (fs) {

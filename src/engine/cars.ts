@@ -8,6 +8,7 @@ import {
   BASE_PARKING, CAR_LOAN_RATE, CAR_LOAN_YEARS, CARS, HOMES, SCRAP_VALUE, STREET_PARKING_COST, annuityPayment, type CarKind,
 } from '../content/finance';
 import { GEAR } from '../content/gear';
+import { bestSkill, breakdownFactor, repairFactor } from './handy';
 import type { Rng } from './rng';
 import type { Asset, GameState, Household } from './types';
 import { journal, money, newId } from './util';
@@ -61,17 +62,17 @@ export const streetParkingCost = (hh: Household) => Math.max(0, parkedCount(hh) 
 
 // ── Wear and tear ────────────────────────────────────────────────────
 
-/** Chance (0–1) that the car breaks down this year. */
-export function breakdownChance(a: Asset, garaged = false): number {
+/** Chance (0–1) that the car breaks down this year (a mechanic at home makes it rarer). */
+export function breakdownChance(a: Asset, garaged = false, mechanic = 0): number {
   if (a.broken) return 0;
   const age = carAge(a);
   const def = carDef(a);
   const base = 0.03 + 0.008 * age + (age > 8 ? 0.015 * (age - 8) : 0);
-  return Math.min(0.65, (base / def.reliability) * (garaged ? 0.7 : 1));
+  return Math.min(0.65, (base / def.reliability) * (garaged ? 0.7 : 1) * breakdownFactor(mechanic));
 }
 
-/** What a typical repair costs for this car. */
-export const repairCost = (a: Asset) => Math.round(((600 + 140 * carAge(a)) * carDef(a).repairMult) / 50) * 50;
+/** What a typical repair costs for this car (less when someone at home is a skilled mechanic). */
+export const repairCost = (a: Asset, mechanic = 0) => Math.round(((600 + 140 * carAge(a)) * carDef(a).repairMult * repairFactor(mechanic)) / 50) * 50;
 
 /** A short condition label for the car. */
 export function conditionOf(a: Asset): { label: string; tone: 'good' | 'ok' | 'bad' } {
@@ -97,6 +98,7 @@ export function deathChance(a: Asset) {
  */
 export function ageCars(s: GameState, hh: Household, rng?: Rng, isMine = false) {
   const garaged = garagedIds(hh);
+  const mechanic = bestSkill(s, hh.id, 'mechanics');
   for (const a of allCars(hh)) {
     if (a.broken) continue;
     const def = carDef(a);
@@ -110,10 +112,10 @@ export function ageCars(s: GameState, hh: Household, rng?: Rng, isMine = false) 
       a.value = SCRAP_VALUE;
       a.upkeep = 0;
       if (isMine) journal(s, `The ${a.name} died for good after ${a.age} years. Scrap it in the Money tab.`, 'bad');
-    } else if (rng.chance(breakdownChance(a, garaged.has(a.id)) * 0.6)) {
-      const cost = repairCost(a);
+    } else if (rng.chance(breakdownChance(a, garaged.has(a.id), mechanic) * 0.6)) {
+      const cost = repairCost(a, mechanic);
       hh.wallet -= cost;
-      if (isMine) journal(s, `The ${a.name} needed ${money(cost)} in repairs.`, 'info');
+      if (isMine) journal(s, `The ${a.name} needed ${money(cost)} in repairs${mechanic >= 20 ? ' (less, since you did the work yourselves)' : ''}.`, 'info');
     }
   }
 }

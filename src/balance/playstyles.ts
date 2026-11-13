@@ -202,6 +202,10 @@ function soldierAct(s: GameState): GameState {
   // Heirs who never served visit the recruiter (until 30).
   const p = me(s);
   if (age(s) >= 18 && age(s) <= 30 && !p.flags.tours && !p.jobId && !p.studyingUntil) s = enlistNow(s, !!p.flags.degree);
+  if (age(s) < 18) return s;
+  // A yearly check-up, and a few lottery tickets (a jackpot is about 1 in 2,000 tickets).
+  s = tryActivity(s, 'checkup');
+  for (let i = 0; i < 5; i++) s = tryActivity(s, 'lottery');
   return s;
 }
 
@@ -280,7 +284,7 @@ const DATE_ACTS = ['date_night', 'picnic', 'concert_date', 'weekend_getaway', 's
 
 function socialiteAct(s: GameState, ctx: StyleCtx): GameState {
   const a = age(s);
-  if (a < 18) return s;
+  if (a < 18) return a >= 6 ? tryActivity(s, 'sleepover') : s;
   const ps = activePartnership(s, me(s).id);
   if (!ps) {
     // Single: catch up with the ex you're still fondest of (that's how sparks rekindle), then go meet people.

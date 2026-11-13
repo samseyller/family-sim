@@ -12,6 +12,7 @@ import { FEMALE_NAMES, MALE_NAMES } from '../content/names';
 import { annuityPayment, HOMES, MORTGAGE_RATE, MORTGAGE_YEARS, SCRAP_VALUE } from '../content/finance';
 import { breakdownChance, carAge, conditionOf, garagedIds, repairCost, shakiestCar } from './cars';
 import { canCover, coverHint, payEmergency } from './emergency';
+import { bestSkill } from './handy';
 import type { Asset } from './types';
 import { homePriceIn, homeUpfront, makeHome, relocate } from './finance';
 import { cityName, cityOf, isNear, myCity } from './location';
@@ -33,7 +34,8 @@ import type { Dog } from './types';
 const vetBill = (d: Dog, year: number) => Math.round((DOG_YEARLY[BREEDS[d.breed].size] * 0.8 + (dogStage(d, year) === 'senior' ? 600 : 0)) / 50) * 50;
 
 /** A highway breakdown costs several times a routine repair. */
-const bigRepair = (car: Asset) => repairCost(car) * 3;
+/** A major repair: three times a typical one (less with a mechanic at home). */
+const bigRepair = (c: Ctx, car: Asset) => repairCost(car, bestSkill(c.s, c.me.householdId, 'mechanics')) * 3;
 import { readiness } from './retirement';
 import { guidedPerson, scriptedPhase, severeGuard } from './tutorial';
 import { FULL_RETIREMENT_AGE } from '../content/retirement';
@@ -1142,11 +1144,11 @@ const EVENTS: EventDef[] = [
     // Older and less reliable cars break down far more often.
     candidates: (c) => {
       const car = shakiestCar(wallet(c));
-      return one(!!car, car ? 0.5 + 8 * breakdownChance(car, garagedIds(wallet(c)).has(car.id)) : 0);
+      return one(!!car, car ? 0.5 + 8 * breakdownChance(car, garagedIds(wallet(c)).has(car.id), bestSkill(c.s, c.me.householdId, 'mechanics')) : 0);
     },
     build: (c) => {
       const car = shakiestCar(wallet(c));
-      const cost = car ? bigRepair(car) : 0;
+      const cost = car ? bigRepair(c, car) : 0;
       const old = car ? conditionOf(car).tone === 'bad' : false;
       return {
         title: 'Car trouble',
@@ -1164,7 +1166,7 @@ const EVENTS: EventDef[] = [
       const hh = wallet(c);
       const car = shakiestCar(hh);
       if (ch === 'fix' && car) {
-        payEmergency(hh, bigRepair(car));
+        payEmergency(hh, bigRepair(c, car));
         return 'Fixed. Your wallet is lighter.';
       }
       if (ch === 'scrap' && car) {

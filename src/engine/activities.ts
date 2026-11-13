@@ -22,7 +22,7 @@ import { dogsOf } from './dogs';
 import { adoptCatInto, catsOf, maxCats } from './cats';
 import { CAT_BREEDS, CAT_SHELTER_FEE } from '../content/cats';
 import { cityName, cityOf, isNear } from './location';
-import { afterTogether, friendsOf, maybeMeetFriend, willJoin } from './friends';
+import { afterTogether, friendsOf, maybeMeetFriend, sawFriend, willJoin } from './friends';
 import { canConceive, carrierOf, conceive, dateWhileAttached, exesOf, isSingle, jobBlurb, meetSomeone, pregnancyChance, TRY_FOR_BABY_CHANCE } from './romance';
 import { unlockedTabs } from './tutorial';
 
@@ -325,6 +325,7 @@ export const ACTIVITIES: ActivityDef[] = [
         return { text: 'The doctor caught something early. Treatment started right away.', tone: 'neutral' };
       }
       stat(c.me, 'health', 2);
+      flag(c.me, 'clean_checkups');
       return { text: 'A clean bill of health. The doctor says keep it up.', tone: 'good' };
     },
   },
@@ -1218,6 +1219,20 @@ export const ACTIVITIES: ActivityDef[] = [
       stat(c.me, 'smarts', 4);
       if (c.rng.chance(c.me.stats.smarts / 150)) { stat(c.me, 'happiness', 6); flag(c.me, 'science_ribbon'); return { text: 'Blue ribbon! Your parents framed it.', tone: 'good' }; }
       return { text: 'The volcano erupted a little early. You still learned a lot.', tone: 'neutral' };
+    },
+  },
+  {
+    id: 'sleepover', category: 'kid', icon: '🛏️', label: 'Ask to have a sleepover', who: 'solo', ages: [6, 14], kidAsk: true, perYear: 1,
+    desc: 'Pizza, a movie, and whispering until 2 a.m. (If your parents say yes.)',
+    energy: flat(15), cost: flat(60),
+    run: (c) => {
+      stat(c.me, 'happiness', 6);
+      const pal = friendsOf(c.s, c.me)[0];
+      if (pal) { adjustBond(c.s, c.me.id, pal.id, 6, 4); sawFriend(c.s, c.me, pal); }
+      const met = pal ? undefined : maybeMeetFriend(c.s, c.rng, c.me, 0.6, 'at a sleepover');
+      if (c.rng.chance(0.3)) { stat(c.me, 'stress', 3); return { text: 'Nobody slept. Breakfast was very quiet.', tone: 'neutral' }; }
+      if (met) return { text: `You stayed up swapping secrets with ${met.firstName}. Friends for sure now.`, tone: 'good' };
+      return { text: pal ? `You and ${pal.firstName} built a blanket fort and talked until 2 a.m.` : 'Pizza, a scary movie, and a blanket fort.', tone: 'good' };
     },
   },
 ];
