@@ -6,6 +6,7 @@
 import { makeRng, type Rng } from './rng';
 import type { ActivityResult, GameState, Hobby, Person, StatKey } from './types';
 import { HOBBY_BY_ID } from '../content/actions';
+import { CAREER_BY_ID } from '../content/careers';
 import type { UpgradeId } from '../content/finance';
 import { addHobbySkill, ownsGear, practiceBoost, restoreProgress } from './hobbies';
 import { SPORTS } from '../content/sports';
@@ -22,7 +23,7 @@ import { adoptCatInto, catsOf, maxCats } from './cats';
 import { CAT_BREEDS, CAT_SHELTER_FEE } from '../content/cats';
 import { cityName, cityOf, isNear } from './location';
 import { afterTogether, friendsOf, maybeMeetFriend, willJoin } from './friends';
-import { canConceive, carrierOf, conceive, exesOf, isSingle, jobBlurb, meetSomeone, pregnancyChance, TRY_FOR_BABY_CHANCE } from './romance';
+import { canConceive, carrierOf, conceive, dateWhileAttached, exesOf, isSingle, jobBlurb, meetSomeone, pregnancyChance, TRY_FOR_BABY_CHANCE } from './romance';
 import { unlockedTabs } from './tutorial';
 
 // ── Energy ───────────────────────────────────────────────────────────
@@ -112,6 +113,12 @@ export interface ActivityDef {
   perYear?: number;
   energy: (s: GameState, people: Person[]) => number;
   cost: (s: GameState, people: Person[]) => number;
+  /** A label that depends on the situation (e.g. "Do Sam's chores"). */
+  labelFor?: (s: GameState, me: Person) => string;
+  /** Secret activities stay out of the list until this is false. */
+  hidden?: (s: GameState, me: Person) => boolean;
+  /** Allowed, but shown with a caution (orange) so you know what you're doing. */
+  warning?: (s: GameState, me: Person) => string | null;
   /** Extra reason the activity can't happen right now. */
   requires?: (s: GameState, me: Person) => string | null;
   /** Extra filter on who can come. */
@@ -130,6 +137,11 @@ const bondAll = (c: ActivityCtx, a: number, t: number) => c.people.forEach((p) =
 const moodAll = (c: ActivityCtx, k: StatKey, d: number) => [c.me, ...c.people].forEach((p) => stat(p, k, d));
 const hasHobby = (_s: GameState, me: Person) => (me.hobby ? null : 'Pick up a hobby first.');
 const working = (_s: GameState, me: Person) => (me.jobId ? null : 'You need a job for this.');
+/** A full-time career that requires a degree (engineer, nurse, lawyer...). */
+const professional = (_s: GameState, me: Person) => {
+  const c = me.jobId && !me.retired ? CAREER_BY_ID[me.jobId] : undefined;
+  return !!c && c.hours === 'full' && (c.requires === 'degree' || c.requires === 'top_degree');
+};
 /** Requires a hobby skill (from any hobby you've had, not just your current one). */
 const needSkill = (hobby: Hobby, min: number) => (_s: GameState, me: Person) =>
   (me.skills[hobby] ?? 0) >= min ? null : `Needs ${HOBBY_BY_ID[hobby].label.toLowerCase()} skill ${min}+ (yours: ${me.skills[hobby] ?? 0}).`;
@@ -167,11 +179,18 @@ function hangOut(c: ActivityCtx, aff: number, trust: number, text: (who: string)
   stat(c.me, 'happiness', 2);
   return { text: text(names(came)) + no, tone: skipped.length ? 'neutral' : 'good' };
 }
-const single = (s: GameState, me: Person) => (isSingle(s, me) ? null : 'You are already seeing someone.');
+const attached = (s: GameState, me: Person) => (isSingle(s, me) ? null : 'You are already seeing someone.');
 /** Try to meet someone; on success you start dating them. */
 function tryToMeet(c: ActivityCtx, chance: number, how: string, misses: string[]): { text: string; tone: ActivityResult['tone'] } {
   flag(c.me, 'met_people');
   const odds = chance + (c.me.stats.happiness - 50) / 400;
+  if (!isSingle(c.s, c.me)) {
+    // Already seeing someone: this is sneaking around, and it gets riskier every time.
+    const sp = dateWhileAttached(c.s, c.rng, c.me, odds);
+    stat(c.me, 'stress', 3);
+    if (sp) return { text: `You hit it off with ${sp.firstName}${jobBlurb(sp)}. Now you have a secret to keep.`, tone: 'neutral' };
+    return { text: `${c.rng.pick(misses)} You checked your phone the whole way home.`, tone: 'neutral' };
+  }
   if (c.rng.chance(odds)) {
     const sp = meetSomeone(c.s, c.rng, c.me, how);
     return { text: `You hit it off with ${sp.firstName}${jobBlurb(sp)}. You're dating now.`, tone: 'good' };
@@ -183,6 +202,24 @@ const kidAges =(p: Person, s: GameState, lo: number, hi: number) => ageOf(p, s.y
 
 export const ACTIVITIES: ActivityDef[] = [
   // 🏡 At home — cheap, repeatable, great for bonds with anyone in the household (any age)
+  {
+    id: 'do_chores', category: 'home', icon: '🧺', label: 'Do your spouse’s chores', who: 'solo', perYear: 3,
+    labelFor: (s, me) => { const p = partnerOf(s, me.id); return p ? `Do ${p.firstName}’s chores` : 'Do your spouse’s chores'; },
+    requires: (s, me) => {
+      const p = partnerOf(s, me.id);
+      return activePartnership(s, me.id)?.status === 'married' && p && p.householdId === me.householdId ? null : 'Needs a spouse at home.';
+    },
+    desc: 'Dishes, laundry, the gutters: take a load off their plate. It’s tiring, and they notice.',
+    energy: flat(10), cost: flat(0),
+    run: (c) => {
+      const p = partnerOf(c.s, c.me.id)!;
+      adjustBond(c.s, c.me.id, p.id, 7, 5);
+      stat(p, 'stress', -6);
+      stat(p, 'happiness', 3);
+      stat(c.me, 'stress', 4);
+      return { text: c.rng.pick([`${p.firstName} came home to a spotless kitchen and just hugged you.`, `You folded the laundry the way ${p.firstName} likes. They noticed.`, `The gutters are clean. ${p.firstName} is smitten.`]), tone: 'good' };
+    },
+  },
   {
     id: 'game_night', category: 'home', icon: '🎲', label: 'Game night', who: 'household', desc: 'Board games and snacks with people at home.',
     energy: flat(8), cost: flat(15),
@@ -241,6 +278,43 @@ export const ACTIVITIES: ActivityDef[] = [
 
   // 🩺 Health
   {
+    id: 'hike', category: 'health', icon: '🥾', label: 'Go hiking', who: 'solo', ages: [8, 85], desc: 'A trail, a view, and nobody asking you for anything.',
+    energy: flat(10), cost: flat(0),
+    run: (c) => {
+      stat(c.me, 'fitness', 3);
+      stat(c.me, 'stress', -6);
+      stat(c.me, 'happiness', 3);
+      const f = maybeMeetFriend(c.s, c.rng, c.me, 0.06, 'on a hiking trail');
+      return { text: f ? `You and ${f.firstName} kept passing each other on the trail, then shared the summit. Hiking buddies now.` : 'Muddy boots, a great view, and a clear head.', tone: 'good' };
+    },
+  },
+  {
+    id: 'run_5k', category: 'health', icon: '🏃', label: 'Run a 5k', who: 'solo', ages: [10, 85], perYear: 4, desc: 'A race morning, a bib number, and a free banana at the finish.',
+    energy: flat(12), cost: flat(40),
+    run: (c) => {
+      c.me.flags.five_ks = (c.me.flags.five_ks ?? 0) + 1;
+      stat(c.me, 'fitness', 4);
+      stat(c.me, 'health', 1);
+      stat(c.me, 'happiness', 3);
+      const fast = c.me.stats.fitness >= 85;
+      return { text: fast ? `A personal best! 5k number ${c.me.flags.five_ks}, and you finished near the front.` : `5k number ${c.me.flags.five_ks}: you crossed the line and immediately looked for the banana table.`, tone: 'good' };
+    },
+  },
+  {
+    // Secret: appears once you're very fit and have run five 5ks.
+    id: 'run_marathon', category: 'health', icon: '🏅', label: 'Run a marathon', who: 'solo', ages: [16, 85], perYear: 1,
+    hidden: (_s, me) => !(me.stats.fitness > 95 && (me.flags.five_ks ?? 0) >= 5),
+    desc: '26.2 miles. You have trained for this.',
+    energy: flat(30), cost: flat(150),
+    run: (c) => {
+      flag(c.me, 'marathon');
+      c.me.flags.marathons = (c.me.flags.marathons ?? 0) + 1;
+      stat(c.me, 'happiness', 10);
+      stat(c.me, 'health', -2);
+      return { text: 'Mile 20 was the hardest thing you have ever done. Mile 26.2 was the best. You cried at the finish, and that is fine.', tone: 'good' };
+    },
+  },
+  {
     id: 'checkup', category: 'health', icon: '🩺', label: 'Doctor check-up', who: 'solo', perYear: 1, desc: 'Catch problems early.',
     energy: flat(10), cost: flat(150),
     run: (c) => {
@@ -276,6 +350,19 @@ export const ACTIVITIES: ActivityDef[] = [
   },
 
   // 📚 Learning
+  {
+    id: 'conference', category: 'learning', icon: '🎤', label: 'Attend a conference', who: 'solo', perYear: 1,
+    requires: (s, me) => (professional(s, me) ? null : 'Needs a full-time professional career (one that requires a degree).'),
+    desc: 'Talks, badges, and a lot of networking. Your employer pays.',
+    energy: flat(20), cost: flat(0),
+    run: (c) => {
+      c.me.workPerf = Math.min(100, c.me.workPerf + 12);
+      stat(c.me, 'smarts', 2);
+      stat(c.me, 'stress', 2);
+      const f = maybeMeetFriend(c.s, c.rng, c.me, 0.2, 'at a conference');
+      return { text: f ? `Great talks, and you hit it off with ${f.firstName} at the hotel bar. Your boss loved your trip report.` : 'You came back with ideas, a tote bag, and a boss who noticed.', tone: 'good' };
+    },
+  },
   {
     id: 'read_book', category: 'learning', icon: '📖', label: 'Read a good book', who: 'solo', ages: [8, 120], desc: 'Get lost in a story.',
     energy: flat(6), cost: flat(15),
@@ -343,6 +430,21 @@ export const ACTIVITIES: ActivityDef[] = [
   },
 
   // 🚗 Family visits
+  {
+    id: 'fly_visit', category: 'visits', icon: '✈️', label: 'Fly to see a relative', who: 'relative', max: 1,
+    eligible: (s, p) => distanceOf(s, p) === 'far',
+    desc: 'Flights and a few days with family in another city: less tiring than the drive, and more time together.',
+    energy: flat(20), cost: flat(900),
+    run: (c) => {
+      const [p] = c.people;
+      adjustBond(c.s, c.me.id, p.id, 12, 6);
+      stat(p, 'happiness', 8);
+      stat(c.me, 'happiness', 4);
+      for (const m of membersOf(c.s, p.householdId)) if (m.id !== p.id) adjustBond(c.s, c.me.id, m.id, 4, 3);
+      flag(c.me, 'flew_to_family');
+      return { text: `${p.firstName} was waiting at arrivals with a sign. You stayed up talking every night.`, tone: 'good' };
+    },
+  },
   {
     id: 'visit', category: 'visits', icon: '🚗', label: 'Visit a relative', who: 'relative', max: 1, desc: 'Drop by, or travel to see someone.',
     energy: (s, ppl) => (ppl[0] && distanceOf(s, ppl[0]) === 'far' ? 35 : 10),
@@ -732,9 +834,9 @@ export const ACTIVITIES: ActivityDef[] = [
     },
   },
 
-  // 💘 Love & dating — meeting someone (single)
+  // 💘 Love & dating — meeting someone (if you are already seeing someone, it is sneaking around)
   {
-    id: 'dating_app', category: 'romance', icon: '📱', label: 'Try a dating app', who: 'solo', requires: single, desc: 'Swipe, chat, maybe meet up.',
+    id: 'dating_app', category: 'romance', icon: '📱', label: 'Try a dating app', who: 'solo', warning: attached, desc: 'Swipe, chat, maybe meet up.',
     energy: flat(6), cost: flat(30),
     run: (c) => tryToMeet(c, 0.35, 'through a dating app', [
       'Three matches, two ghosted you, one only talked about crypto.',
@@ -742,7 +844,7 @@ export const ACTIVITIES: ActivityDef[] = [
     ]),
   },
   {
-    id: 'speed_dating', category: 'romance', icon: '⏱️', label: 'Speed dating', who: 'solo', requires: single, desc: 'Twelve five-minute conversations.',
+    id: 'speed_dating', category: 'romance', icon: '⏱️', label: 'Speed dating', who: 'solo', warning: attached, desc: 'Twelve five-minute conversations.',
     energy: flat(10), cost: flat(45),
     run: (c) => tryToMeet(c, 0.45, 'at a speed-dating night', [
       'The bell kept ringing right when things got interesting.',
@@ -750,7 +852,7 @@ export const ACTIVITIES: ActivityDef[] = [
     ]),
   },
   {
-    id: 'blind_date', category: 'romance', icon: '🙈', label: 'Blind date', who: 'solo', requires: single, desc: 'A friend swears you two are perfect for each other.',
+    id: 'blind_date', category: 'romance', icon: '🙈', label: 'Blind date', who: 'solo', warning: attached, desc: 'A friend swears you two are perfect for each other.',
     energy: flat(8), cost: flat(80),
     run: (c) => tryToMeet(c, 0.4, 'on a blind date', [
       'Your friend has a very different idea of "perfect for you."',
@@ -758,7 +860,7 @@ export const ACTIVITIES: ActivityDef[] = [
     ]),
   },
   {
-    id: 'dance_class', category: 'romance', icon: '💃', label: 'Take a dance class', who: 'solo', requires: single, desc: 'Learn to salsa, and maybe meet someone.',
+    id: 'dance_class', category: 'romance', icon: '💃', label: 'Take a dance class', who: 'solo', warning: attached, desc: 'Learn to salsa, and maybe meet someone.',
     energy: flat(12), cost: flat(200),
     run: (c) => {
       stat(c.me, 'fitness', 2);
@@ -1002,6 +1104,18 @@ export const ACTIVITIES: ActivityDef[] = [
 
   // 🎲 Money & luck
   {
+    id: 'horse_races', category: 'risk', icon: '🏇', label: 'Bet on the horse races', who: 'solo', ages: [21, 120], desc: 'A $100 bet, a racing form you half understand, and a lot of yelling.',
+    energy: flat(10), cost: flat(100),
+    run: (c) => {
+      const hh = c.s.households[c.me.householdId];
+      const r = c.rng.next();
+      if (r < 0.05) { hh.wallet += 1600; flag(c.me, 'longshot'); stat(c.me, 'happiness', 8); return { text: 'Your 15-to-1 longshot came from nowhere on the final turn. You won $1,600!', tone: 'good' }; }
+      if (r < 0.3) { hh.wallet += 260; stat(c.me, 'happiness', 3); return { text: 'The favorite came through. A small win, and a great afternoon.', tone: 'good' }; }
+      stat(c.me, 'happiness', -2);
+      return { text: c.rng.pick(['Your horse stopped to look at a bird. Truly.', 'Neck and neck to the line, then a nose short.', 'You picked by name. The name was a lie.']), tone: 'bad' };
+    },
+  },
+  {
     id: 'lottery', category: 'risk', icon: '🎟️', label: 'Lottery ticket', who: 'solo', desc: 'Two dollars and a dream.',
     energy: flat(2), cost: flat(2),
     run: (c) => {
@@ -1036,6 +1150,30 @@ export const ACTIVITIES: ActivityDef[] = [
   },
 
   // ⚠️ Vices — feel good now, cost later
+  {
+    id: 'shut_down_bar', category: 'vices', icon: '🍻', label: 'Shut down a bar', who: 'solo', ages: [21, 90], desc: 'Last call? Never heard of it.',
+    energy: flat(14), cost: flat(180),
+    run: (c) => {
+      stat(c.me, 'happiness', 6);
+      stat(c.me, 'stress', -4);
+      stat(c.me, 'health', -5);
+      flag(c.me, 'closed_bar');
+      if (c.me.jobId) c.me.workPerf = Math.max(0, c.me.workPerf - 5);
+      const f = maybeMeetFriend(c.s, c.rng, c.me, 0.15, 'at the bar');
+      return { text: f ? `You and ${f.firstName} were the last ones out, singing. Friends for life (or at least till Tuesday).` : 'The bartender knew your name by midnight. The morning did not go well.', tone: 'neutral' };
+    },
+  },
+  {
+    id: 'doom_scroll', category: 'vices', icon: '📱', label: 'Doom scroll for hours', who: 'solo', ages: [13, 120], desc: 'Just one more video. And one more.',
+    energy: flat(6), cost: flat(0),
+    run: (c) => {
+      stat(c.me, 'happiness', -4);
+      stat(c.me, 'stress', 4);
+      stat(c.me, 'smarts', -1);
+      flag(c.me, 'doom_scrolled');
+      return { text: c.rng.pick(['Three hours vanished. You now know far too much about a celebrity feud.', 'It got dark outside. You did not notice.', 'You watched a man restore a rusty knife for forty minutes. Then another one.']), tone: 'bad' };
+    },
+  },
   {
     id: 'party', category: 'vices', icon: '🪩', label: 'Party all night', who: 'solo', desc: 'Dance till dawn. Pay for it tomorrow.',
     energy: flat(15), cost: flat(150),
@@ -1104,6 +1242,9 @@ export function candidatesFor(s: GameState, def: ActivityDef): Person[] {
 export const timesThisYear = (s: GameState, id: string) => (s.activityLog ?? []).filter((x) => x.year === s.year && x.id === id).length;
 
 /** Why this activity can't be done (with these people) right now, or null. */
+/** The label to show (some depend on who's around). */
+export const activityLabel = (s: GameState, def: ActivityDef) => def.labelFor?.(s, active(s)) ?? def.label;
+
 export function activityBlocker(s: GameState, id: string, ids: string[] = []): string | null {
   const def = ACTIVITY_BY_ID[id];
   if (!def) return 'Unknown activity.';
@@ -1114,6 +1255,7 @@ export function activityBlocker(s: GameState, id: string, ids: string[] = []): s
   const [lo, hi] = def.ages ?? [18, 120];
   if (age < lo || age > hi) return age < lo ? `From age ${lo}.` : 'Not at your age.';
   if (def.perYear && timesThisYear(s, id) >= def.perYear) return def.perYear === 1 ? 'Already done this year.' : `At most ${def.perYear} times a year.`;
+  if (def.hidden?.(s, me)) return 'Not available yet.';
   const req = def.requires?.(s, me);
   if (req) return req;
   const pool = candidatesFor(s, def);
@@ -1176,8 +1318,9 @@ export function performActivity(state: GameState, id: string, ids: string[] = []
   if (dw) changes.push(`${dw > 0 ? '+' : '-'}${money(Math.abs(dw))}`);
   changes.push(`Energy -${eCost}`);
 
-  s.lastActivity = { id, title: def.label, text: result.text, tone: result.tone, changes };
-  journal(s, `${def.icon} ${def.label}: ${result.text}`, result.tone === 'bad' ? 'bad' : 'info');
+  const label = activityLabel(state, def);
+  s.lastActivity = { id, title: label, text: result.text, tone: result.tone, changes };
+  journal(s, `${def.icon} ${label}: ${result.text}`, result.tone === 'bad' ? 'bad' : 'info');
   s.rngState = rng.state();
   return s;
 }

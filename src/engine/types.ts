@@ -42,6 +42,8 @@ export interface Person {
   traits: Trait[];
   skills: Partial<Record<Hobby, number>>;
   hobby?: Hobby;
+  /** Someone you're secretly seeing while in a relationship. */
+  secretPartnerId?: string;
   /** Which sport, when the hobby is sports; skill per sport is kept (skills.sports is the current one). */
   sport?: import('../content/sports').SportId;
   sportSkills?: Partial<Record<import('../content/sports').SportId, number>>;

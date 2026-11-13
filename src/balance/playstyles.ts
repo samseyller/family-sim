@@ -294,7 +294,11 @@ function socialiteAct(s: GameState, ctx: StyleCtx): GameState {
     const since = s.year - ps.startYear;
     if (a < 30 && since >= 1 && ctx.rng.chance(0.6)) s = tryActivity(s, 'break_up');
     else if (a >= 30) s = tryActivity(s, 'move_in_together');
-  } else s = doAll(s, ['date_night', 'weekend_getaway', 'spend_the_night']);
+  } else {
+    s = doAll(s, ['date_night', 'weekend_getaway', 'spend_the_night']);
+    // Some lives stray (and sooner or later, get caught).
+    if (ctx.seed % 4 === 0 && ctx.rng.chance(0.4)) s = tryActivity(s, 'dating_app');
+  }
   // Friends: lots of them, and one best friend you see all the time.
   const friends = friendsOf(s);
   const best = [...friends].sort((x, y) => getBond(s, me(s).id, y.id).affinity - getBond(s, me(s).id, x.id).affinity)[0];

@@ -10,6 +10,7 @@
   --accent-soft: #dcebe5;
   --good: #3f9a6b;
   --mid: #d3a13a;
+  --warn: #b85c00;
   --bad: #c9533f;
   --avatar-bg: #e8e2d8;
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.06), 0 4px 14px rgba(0, 0, 0, 0.05);
@@ -29,6 +30,7 @@
     --accent-ink: #0f1a16;
     --accent-soft: #23362f;
     --avatar-bg: #2c312d;
+    --warn: #f0a24a;
     --shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
     color-scheme: dark;
   }
@@ -266,7 +268,7 @@ kbd {
 :root[data-theme='dark'] {
   --bg: #151715; --surface: #1f2220; --surface-2: #282c29; --text: #ece8e1; --muted: #a39d93;
   --border: #343935; --accent: #5fb69a; --accent-ink: #0f1a16; --accent-soft: #23362f;
-  --avatar-bg: #2c312d; --shadow: 0 1px 2px rgba(0, 0, 0, 0.4); color-scheme: dark;
+  --avatar-bg: #2c312d; --warn: #f0a24a; --shadow: 0 1px 2px rgba(0, 0, 0, 0.4); color-scheme: dark;
 }
 :root[data-theme='light'] { color-scheme: light; }
 :root[data-text='large'] { font-size: 112.5%; }
@@ -474,3 +476,6 @@ kbd {
 .reveal-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .reveal-body { margin-top: 8px; padding-left: 10px; border-left: 2px solid var(--border); }
 .car-line { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px; }
+
+/* Allowed, but think twice (e.g. dating while in a relationship). */
+.warn-text { color: var(--warn); font-weight: 600; }

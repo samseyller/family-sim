@@ -8,7 +8,7 @@ import { startDating } from './family';
 import { makeAdultStranger } from './generate';
 import type { Rng } from './rng';
 import type { GameState, Person } from './types';
-import { activePartnership, ageOf, alive, fullName, getBond, journal, partnerOf, stat } from './util';
+import { activePartnership, adjustBond, ageOf, alive, fullName, getBond, journal, partnerOf, stat } from './util';
 
 /** Oldest age at which a pregnancy can happen in the game. */
 export const FERTILE_UNTIL = 44;
@@ -73,4 +73,25 @@ export function conceive(s: GameState, rng: Rng, me: Person, partner: Person) {
   const close = getBond(s, me.id, partner.id).affinity;
   partner.flags.wants_baby = rng.chance(married ? 0.8 : close >= 60 ? 0.55 : 0.35) ? 1 : 0;
   s.scheduled.push({ dueYear: s.year, eventId: 'unplanned_pregnancy', subjectId: partner.id });
+}
+
+/** Chance your partner finds out on a date out while you're attached; it grows each time. */
+export const caughtChance = (me: Person) => Math.min(0.5, 0.06 * ((me.flags.sneaking ?? 0) + 1));
+
+/**
+ * Going on dates while in a relationship. Each time there's a growing chance your partner finds
+ * out (decided as the year ends); hit it off with someone and you start secretly seeing them.
+ */
+export function dateWhileAttached(s: GameState, rng: Rng, me: Person, chance: number): Person | undefined {
+  const partner = partnerOf(s, me.id);
+  const odds = caughtChance(me);
+  me.flags.sneaking = (me.flags.sneaking ?? 0) + 1;
+  if (partner && rng.chance(odds) && !s.scheduled.some((x) => x.eventId === 'caught_cheating')) {
+    s.scheduled.push({ dueYear: s.year, eventId: 'caught_cheating', subjectId: partner.id });
+  }
+  if (me.secretPartnerId || !rng.chance(chance)) return undefined;
+  const sp = makeAdultStranger(s, rng, me);
+  me.secretPartnerId = sp.id;
+  adjustBond(s, me.id, sp.id, 35, 10);
+  return sp;
 }

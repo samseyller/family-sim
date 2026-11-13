@@ -373,6 +373,15 @@ for random). When your baby is born, a naming event offers suggestions or lets y
 
 ## Activities, retirement, and the guided first life
 
+- **More activities:** *At home:* do your spouse's chores (named for them; tiring, but they notice). *Health:* go
+  hiking, run a 5k, and a secret **marathon** that appears once your fitness passes 95 and you've run five 5ks.
+  *Learning:* attend a conference (full-time careers that require a degree; your employer pays; work performance
+  up). *Family visits:* fly to see a relative in another city (less tiring than driving, a bigger bond boost).
+  *Money & luck:* bet on the horse races. *Vices:* shut down a bar, doom scroll for hours.
+- **Dating while attached:** dating activities stay open when you're in a relationship, with an orange "You are
+  already seeing someone" warning. You may start seeing someone in secret, and every date out raises the chance
+  (6%, 12%, 18%... up to 50%) that your partner finds out. Then you can apologize (trust takes a huge hit and they
+  may leave anyway), leave them for the other person, or let them go.
 - **🎯 Activities** (key 6): one-off things to do while planning, outside the 12 time blocks. Each costs
   energy (100 a year, less when unhealthy or stressed, never below 50) and usually money.
 - **🏖️ Retirement** (Money tab): early retirement from 55, full at 65. Pension jobs pay 1.5% of best

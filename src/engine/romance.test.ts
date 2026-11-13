@@ -1,12 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { ACHIEVEMENT_BY_ID } from '../content/achievements';
-import { activityBlocker, candidatesFor, ACTIVITY_BY_ID, performActivity } from './activities';
+import { activityBlocker, activityLabel, candidatesFor, ACTIVITY_BY_ID, performActivity } from './activities';
 import { newGame } from './generate';
 import { splitOff } from './household';
 import { choose, nextYear, resolveYear } from './phases';
-import { exesOf, isSingle, pregnancyChance, TRY_FOR_BABY_CHANCE } from './romance';
+import { caughtChance, dateWhileAttached, exesOf, isSingle, pregnancyChance, TRY_FOR_BABY_CHANCE } from './romance';
+import { makeRng } from './rng';
+import { resolveEvent } from './events';
 import type { GameState, Person } from './types';
-import { active, activePartnership, adjustBond, childrenOf, partnerOf } from './util';
+import { active, activePartnership, adjustBond, childrenOf, getBond, partnerOf } from './util';
 import { parseSaveFile, serializeGame } from '../persistence/exportImport';
 
 const got = (s: GameState, id: string) => ACHIEVEMENT_BY_ID[id].test(s);
@@ -30,9 +32,10 @@ function repeat(s: GameState, id: string, who: (s: GameState) => string[], done:
 }
 
 describe('meeting someone', () => {
-  it('dating activities are for singles and can start a relationship', () => {
+  it('dating activities start a relationship (and warn you when you are already seeing someone)', () => {
     const married = rich(newGame(801));
-    expect(activityBlocker(married, 'dating_app')).toMatch(/seeing someone/);
+    expect(activityBlocker(married, 'dating_app')).toBeNull();
+    expect(ACTIVITY_BY_ID.dating_app.warning!(married, active(married))).toMatch(/already seeing someone/);
     let s = single(802);
     expect(isSingle(s, active(s))).toBe(true);
     expect(got(s, 'butterflies')).toBe(false);
@@ -170,5 +173,80 @@ describe('trying for a baby', () => {
 
   it('is better odds than leaving it to chance', () => {
     expect(TRY_FOR_BABY_CHANCE).toBeGreaterThan(pregnancyChance(newGame(8102), active(newGame(8102))));
+  });
+});
+
+describe('dating while attached', () => {
+  it('can start a secret fling, and each time the chance of getting caught grows', () => {
+    let s = rich(newGame(8201));
+    const me = active(s);
+    expect(caughtChance(me)).toBeCloseTo(0.06);
+    let caught = false;
+    let fling = false;
+    for (let i = 0; i < 12 && !(caught && fling); i++) {
+      s = performActivity({ ...refill(s), activityLog: [], rngState: 8200 + i }, 'speed_dating');
+      caught ||= s.scheduled.some((x) => x.eventId === 'caught_cheating');
+      fling ||= !!active(s).secretPartnerId;
+    }
+    expect(active(s).flags.sneaking).toBeGreaterThan(1);
+    expect(caughtChance(active(s))).toBeGreaterThan(0.06);
+    expect(caught).toBe(true);
+    expect(fling).toBe(true);
+    expect(activePartnership(s, active(s).id)?.status).toBe('married'); // still married until found out
+  });
+
+  it('when your partner finds out, apologizing costs trust; leaving them for the fling ends the marriage', () => {
+    const s = rich(newGame(8202));
+    const me = active(s);
+    const spouse = partnerOf(s, me.id)!;
+    for (let i = 0; i < 20 && !me.secretPartnerId; i++) dateWhileAttached(s, makeRng(i), me, 1);
+    const fling = s.people[me.secretPartnerId!];
+    const pe = { uid: 'x', eventId: 'caught_cheating', subjectId: spouse.id, title: 'Found out', text: '', choices: [], major: true } as never;
+    const sorry = structuredClone(s);
+    const trust = getBond(sorry, me.id, spouse.id).trust;
+    resolveEvent(sorry, makeRng(1), pe, 'apologize');
+    expect(getBond(sorry, me.id, spouse.id).trust).toBeLessThan(trust - 30);
+    expect(active(sorry).secretPartnerId).toBeUndefined();
+    const left = structuredClone(s);
+    resolveEvent(left, makeRng(1), pe, 'leave');
+    expect(partnerOf(left, me.id)?.id).toBe(fling.id);
+    expect(left.partnerships.some((p) => p.status === 'separated')).toBe(true);
+  });
+});
+
+describe('new activities', () => {
+  it('doing your spouse’s chores is named for them, tires you, and helps the marriage', () => {
+    const s = rich(newGame(8301));
+    const me = active(s);
+    const spouse = partnerOf(s, me.id)!;
+    expect(activityLabel(s, ACTIVITY_BY_ID.do_chores)).toBe(`Do ${spouse.firstName}’s chores`);
+    const before = { bond: getBond(s, me.id, spouse.id).affinity, stress: me.stats.stress };
+    const after = performActivity(refill(s), 'do_chores');
+    expect(getBond(after, me.id, spouse.id).affinity).toBeGreaterThan(before.bond);
+    expect(active(after).stats.stress).toBeGreaterThan(before.stress);
+    expect(after.lastActivity!.title).toContain(spouse.firstName);
+  });
+
+  it('the marathon stays secret until you are very fit and have run five 5ks', () => {
+    let s = rich(newGame(8302));
+    expect(activityBlocker(s, 'run_marathon')).toMatch(/Not available/);
+    for (let i = 0; i < 5; i++) s = performActivity({ ...refill(s), activityLog: [] }, 'run_5k');
+    expect(active(s).flags.five_ks).toBe(5);
+    active(s).stats.fitness = 96;
+    expect(activityBlocker(s, 'run_marathon')).toBeNull();
+    s = performActivity(refill(s), 'run_marathon');
+    expect(got(s, 'marathoner')).toBe(true);
+  });
+
+  it('conferences are for professional careers; flying to family only for relatives far away', () => {
+    const s = rich(newGame(8303));
+    const me = active(s);
+    me.jobId = 'retail';
+    expect(activityBlocker(s, 'conference')).toMatch(/professional/);
+    me.jobId = 'engineer';
+    expect(activityBlocker(s, 'conference')).toBeNull();
+    const pool = candidatesFor(s, ACTIVITY_BY_ID.fly_visit);
+    for (const p of pool) expect(p.householdId).not.toBe(me.householdId);
+    expect(pool.every((p) => candidatesFor(s, ACTIVITY_BY_ID.visit).includes(p))).toBe(true);
   });
 });

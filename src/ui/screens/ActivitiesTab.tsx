@@ -1,7 +1,7 @@
 import { cityName, cityOf } from '../../engine/location';
 import { useMemo, useState } from 'react';
 import {
-  ACTIVITIES, CATEGORIES, activityBlocker, candidatesFor, distanceOf, energyOf, timesThisYear, type ActivityDef, type Category,
+  ACTIVITIES, CATEGORIES, activityBlocker, activityLabel, candidatesFor, distanceOf, energyOf, timesThisYear, type ActivityDef, type Category,
 } from '../../engine/activities';
 import type { GameState } from '../../engine/types';
 import { active, ageOf, money } from '../../engine/util';
@@ -14,7 +14,7 @@ function forAge(g: GameState) {
   const age = ageOf(active(g), g.year);
   return ACTIVITIES.filter((a) => {
     const [lo, hi] = a.ages ?? [18, 120];
-    return age >= lo && age <= hi;
+    return age >= lo && age <= hi && !a.hidden?.(g, active(g));
   });
 }
 
@@ -49,9 +49,10 @@ function ActivitySheet({ g, def, onClose }: { g: GameState; def: ActivityDef; on
   const toggle = (id: string) =>
     setPicked((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : max === 1 ? [id] : cur.length >= max ? cur : [...cur, id]));
   return (
-    <Modal label={def.label} onClose={onClose}>
-      <h2>{def.icon} {def.label}</h2>
+    <Modal label={activityLabel(g, def)} onClose={onClose}>
+      <h2>{def.icon} {activityLabel(g, def)}</h2>
       <p className="muted">{def.desc}</p>
+      {def.warning?.(g, active(g)) && <p className="warn-text">⚠️ {def.warning(g, active(g))}</p>}
       {def.who !== 'solo' && (
         <>
           <div className="label">
@@ -138,8 +139,8 @@ export function ActivitiesTab({ g }: { g: GameState }) {
             <button key={a.id} className="activity" disabled={!!hard} title={hard ?? undefined} onClick={() => setOpen(a)}>
               <span className="activity-icon" aria-hidden>{a.icon}</span>
               <span className="activity-body">
-                <strong>{a.label}</strong>
-                <span className="hint">{hard ?? a.desc}</span>
+                <strong>{activityLabel(g, a)}</strong>
+                {!hard && a.warning?.(g, active(g)) ? <span className="warn-text">⚠️ {a.warning(g, active(g))}</span> : <span className="hint">{hard ?? a.desc}</span>}
                 <span className="activity-meta">
                   <span>⚡ {a.energy(g, pool.slice(0, 1))}</span>
                   <span>💵 {a.cost(g, a.who === 'solo' ? [] : pool.slice(0, Math.max(0, a.min ?? 1))) ? `from ${money(a.cost(g, a.who === 'solo' ? [] : pool.slice(0, Math.max(0, a.min ?? 1))))}` : 'free'}</span>
