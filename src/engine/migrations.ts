@@ -94,6 +94,8 @@ const STEPS: Record<number, Step> = {
   16: (s) => s,
   // v17 → v18: a hidden athletic ceiling per person (rolled when first needed). Optional; nothing to rewrite.
   17: (s) => s,
+  // v18 → v19: pet cats (optional per household). Nothing to rewrite.
+  18: (s) => s,
   10: (s) => {
     const garages: Record<string, number> = { 'Starter home': 0, 'Family home': 2, 'Large home': 2 };
     for (const hh of isObj(s.households) ? Object.values(s.households).filter(isObj) : []) {

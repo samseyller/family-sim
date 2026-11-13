@@ -18,6 +18,8 @@ import { homeParents } from './generate';
 import { breakUp, mergeHouseholds, startDating } from './family';
 import { shareAmounts, splitOff } from './household';
 import { dogsOf } from './dogs';
+import { adoptCatInto, catsOf, maxCats } from './cats';
+import { CAT_BREEDS, CAT_SHELTER_FEE } from '../content/cats';
 import { cityName, cityOf, isNear } from './location';
 import { afterTogether, friendsOf, maybeMeetFriend, willJoin } from './friends';
 import { canConceive, conceive, exesOf, isSingle, jobBlurb, meetSomeone, pregnancyChance } from './romance';
@@ -74,7 +76,7 @@ export const CATEGORIES: Record<Category, { label: string; icon: string }> = {
   home: { label: 'At home', icon: '🏡' },
   sports: { label: 'Sports', icon: '🏅' },
   hobby: { label: 'Hobbies & side gigs', icon: '🧰' },
-  pets: { label: 'Dogs', icon: '🐕' },
+  pets: { label: 'Pets', icon: '🐾' },
   health: { label: 'Health', icon: '🩺' },
   learning: { label: 'Learning', icon: '📚' },
   leisure: { label: 'Fun & travel', icon: '🌴' },
@@ -145,6 +147,8 @@ function earn(c: ActivityCtx, hobby: Hobby, base: number, perSkill: number, good
 }
 const hasDog =(s: GameState, me: Person) => (dogsOf(s.households[me.householdId]).length ? null : 'You need a dog (adopt one in the Family tab).');
 const myDogs = (c: ActivityCtx) => dogsOf(c.s.households[c.me.householdId]);
+const hasCat = (s: GameState, me: Person) => (catsOf(s.households[me.householdId]).length ? null : 'You need a cat (adopt one in the Family tab).');
+const myCats = (c: ActivityCtx) => catsOf(c.s.households[c.me.householdId]);
 const dogNames = (dogs: { name: string }[]) => (dogs.length <= 2 ? dogs.map((d) => d.name).join(' and ') : `${dogs.slice(0, -1).map((d) => d.name).join(', ')} and ${dogs[dogs.length - 1].name}`);
 /**
  * Time with friends: those who come get closer (distant friends may say no). Spending time
@@ -592,6 +596,70 @@ export const ACTIVITIES: ActivityDef[] = [
       c.me.skills.cooking = Math.min(100, (c.me.skills.cooking ?? 0) + 1);
       const great = (c.me.skills.cooking ?? 0) >= 50;
       return hangOut(c, great ? 7 : 4, 3, (who) => great ? `${who} are still talking about your risotto.` : `${who} were very polite about the casserole.`);
+    },
+  },
+
+  // 🐈 Cats (everything here includes all your cats)
+  {
+    id: 'play_with_cats', category: 'pets', icon: '🧶', label: 'Play with the cats', who: 'household', min: 0, requires: hasCat, desc: 'A laser pointer, a feather wand, and sudden bursts of chaos.',
+    energy: flat(3), cost: flat(0),
+    run: (c) => {
+      const cats = myCats(c);
+      cats.forEach((x) => { x.lastPlayYear = c.s.year; x.bond = clamp(x.bond + 5, 0, 100); });
+      moodAll(c, 'happiness', 3);
+      moodAll(c, 'stress', -2);
+      bondAll(c, 2, 1);
+      return { text: `${dogNames(cats)} chased the red dot until they pretended they meant to stop.`, tone: 'good' };
+    },
+  },
+  {
+    id: 'cat_nap', category: 'pets', icon: '😴', label: 'Nap with the cat', who: 'solo', perYear: 3, requires: hasCat, desc: 'A warm cat on your chest. The best kind of rest.',
+    energy: flat(2), cost: flat(0),
+    run: (c) => {
+      const cat = [...myCats(c)].sort((a, b) => b.bond - a.bond)[0];
+      cat.bond = clamp(cat.bond + 3, 0, 100);
+      stat(c.me, 'stress', -6);
+      stat(c.me, 'happiness', 2);
+      return { text: `${cat.name} purred like a tiny engine. You woke up two hours later, very rested.`, tone: 'good' };
+    },
+  },
+  {
+    id: 'cat_vet', category: 'pets', icon: '🩺', label: 'Cat vet check-up', who: 'solo', perYear: 2, requires: hasCat, desc: 'Shots, a once-over, and a carrier nobody wants to get into.',
+    energy: flat(4), cost: (s) => 180 * catsOf(s.households[active(s).householdId]).length,
+    run: (c) => {
+      const cats = myCats(c);
+      cats.forEach((x) => { x.health = clamp(x.health + 12, 0, 100); x.bond = clamp(x.bond - 1, 0, 100); });
+      return { text: `${dogNames(cats)} ${cats.length > 1 ? 'are' : 'is'} healthy, and deeply offended by the thermometer.`, tone: 'good' };
+    },
+  },
+  {
+    id: 'cat_grooming', category: 'pets', icon: '🪮', label: 'Brush the long-haired cats', who: 'solo', requires: (s) => (catsOf(s.households[active(s).householdId]).some((x) => CAT_BREEDS[x.breed].longHair) ? null : 'Needs a long-haired cat.'),
+    desc: 'Fewer hairballs, fewer mats, a little more trust.',
+    energy: flat(3), cost: flat(0),
+    run: (c) => {
+      const cats = myCats(c).filter((x) => CAT_BREEDS[x.breed].longHair);
+      cats.forEach((x) => { x.health = clamp(x.health + 3, 0, 100); x.bond = clamp(x.bond + 2, 0, 100); });
+      return { text: `Enough fur came off ${dogNames(cats)} to build another cat.`, tone: 'good' };
+    },
+  },
+  {
+    id: 'cat_cafe', category: 'pets', icon: '☕', label: 'Visit a cat café', who: 'solo', ages: [12, 100], desc: 'Coffee among a dozen adoptable cats. Some people go home with one.',
+    energy: flat(5), cost: flat(20),
+    run: (c) => {
+      stat(c.me, 'happiness', 4);
+      stat(c.me, 'stress', -3);
+      const hh = c.s.households[c.me.householdId];
+      if (ageOf(c.me, c.s.year) >= 18 && catsOf(hh).length < maxCats(hh) && hh.wallet >= CAT_SHELTER_FEE && c.rng.chance(0.15)) {
+        hh.wallet -= CAT_SHELTER_FEE;
+        const cat = adoptCatInto(c.s, c.rng, 'tabby', '', c.rng.int(1, 6), 'shelter');
+        return { text: `${cat.name} climbed into your lap and refused to leave. You signed the adoption papers.`, tone: 'good' };
+      }
+      if (isSingle(c.s, c.me) && ageOf(c.me, c.s.year) >= 18 && c.rng.chance(0.08)) {
+        const sp = meetSomeone(c.s, c.rng, c.me, 'at the cat café');
+        return { text: `You and ${sp.firstName} reached for the same kitten. Now you're dating.`, tone: 'good' };
+      }
+      const f = maybeMeetFriend(c.s, c.rng, c.me, 0.12, 'at the cat café');
+      return { text: f ? `You got talking with ${f.firstName}, who knew every cat by name. Friends now.` : 'A calico fell asleep on your foot. You stayed an extra hour.', tone: 'good' };
     },
   },
 

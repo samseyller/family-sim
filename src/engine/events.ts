@@ -5,6 +5,7 @@ import { HOBBY_EVENTS } from './hobbyEvents';
 import { MILITARY_EVENTS } from './militaryEvents';
 import { SPORTS_EVENTS } from './sportsEvents';
 import { HOME_EVENTS } from './homeEvents';
+import { CAT_EVENTS } from './catEvents';
 import { SCHOLARSHIP_SKILL } from '../content/sports';
 import { FEMALE_NAMES, MALE_NAMES } from '../content/names';
 import { annuityPayment, HOMES, MORTGAGE_RATE, MORTGAGE_YEARS, SCRAP_VALUE } from '../content/finance';
@@ -1483,7 +1484,7 @@ const GUIDED_KID: EventDef = {
   },
 };
 
-const ALL_EVENTS: EventDef[] = [...EVENTS, ...CHILD_EVENTS, ...LIFE_EVENTS, ...HOBBY_EVENTS, ...MILITARY_EVENTS, ...SPORTS_EVENTS, ...HOME_EVENTS, NAME_BABY, GUIDED_KID];
+const ALL_EVENTS: EventDef[] = [...EVENTS, ...CHILD_EVENTS, ...LIFE_EVENTS, ...HOBBY_EVENTS, ...MILITARY_EVENTS, ...SPORTS_EVENTS, ...HOME_EVENTS, ...CAT_EVENTS, NAME_BABY, GUIDED_KID];
 
 export const EVENT_BY_ID: Record<string, EventDef> = Object.fromEntries(ALL_EVENTS.map((e) => [e.id, e]));
 

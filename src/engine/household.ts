@@ -142,6 +142,12 @@ export function splitOff(s: GameState, group: Person[], cash: number, invest: nu
     hh.dogs = going;
     from.dogs = (from.dogs ?? []).filter((d) => !going.includes(d));
   }
+  // Cats too.
+  const cats = (from.cats ?? []).filter((c) => c.deathYear === undefined && c.ownerId && ids.has(c.ownerId));
+  if (cats.length) {
+    hh.cats = cats;
+    from.cats = (from.cats ?? []).filter((c) => !cats.includes(c));
+  }
   if (from.headId && group.some((p) => p.id === from.headId)) from.headId = undefined;
   return hh;
 }
@@ -369,6 +375,8 @@ export function householdAction(state: GameState, a: HouseholdAction): GameState
       theirs.assets = [];
       hh.dogs = [...(hh.dogs ?? []), ...(theirs.dogs ?? [])];
       theirs.dogs = [];
+      hh.cats = [...(hh.cats ?? []), ...(theirs.cats ?? [])];
+      theirs.cats = [];
       theirs.settled = true;
       for (const p of movers) {
         p.householdId = hh.id;

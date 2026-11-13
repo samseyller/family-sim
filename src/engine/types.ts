@@ -148,6 +148,10 @@ export interface Household {
   floodInsurance?: boolean;
   /** Pet dogs (including ones that have passed away, for memory). */
   dogs?: Dog[];
+  /** Pet cats (including ones that have passed away). */
+  cats?: Cat[];
+  /** A cat tree at home: happier cats, fewer scratched couches. */
+  catTree?: boolean;
   /** Who runs the household (owns the home, decides who lives here). Falls back by age when unset. */
   headId?: string;
 }
@@ -304,4 +308,24 @@ export interface Friendship {
   distant?: boolean;
   /** How you met ("from work", "at the dog park"...). */
   how?: string;
+}
+
+export interface Cat {
+  id: string;
+  name: string;
+  breed: import('../content/cats').CatBreed;
+  /** Index into the breed's coat colors (fixed for life). */
+  coat: number;
+  birthYear: number;
+  deathYear?: number;
+  /** 0–100: how close the cat is to the family (on the cat's terms). */
+  bond: number;
+  /** 0–100. */
+  health: number;
+  /** The cat moves with this person when households split. */
+  ownerId?: string;
+  /** Came from the shelter, or showed up at the door. */
+  rescued?: boolean;
+  stray?: boolean;
+  lastPlayYear?: number;
 }

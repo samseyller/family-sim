@@ -339,6 +339,21 @@ for random). When your baby is born, a naming event offers suggestions or lets y
   Events: a sick dog (vet bill), puppy mischief, and kids begging for a dog.
 - Achievements: Best Friend, Rescue Hero, Pack Leader (3 dogs), Who's a Good Walker? (20 walks), Good Old Dog (14).
 
+## Cats
+
+- **Five breeds** (Family tab → Cats): Domestic Shorthair, Maine Coon, Siamese, Persian, Ragdoll. Each has generated
+  portraits (`src/ui/CatAvatar.tsx`; gallery at `/dev/cats.html`) that stay recognizable as a kitten, adult and
+  senior: tabby stripes, tuxedo bibs, colorpoint masks, ear tufts and ruffs. Content cats squint (the slow blink).
+- Kittens from a breeder ($250–$2,000) or an adult from the shelter ($150), up to 4 per home (2 in a small
+  apartment). Cats cost less than dogs ($900–$1,250 a year; long-haired cats more, seniors more at the vet), need
+  no walks, and live about 13–15 years, often longer. Bond drifts slowly without playtime (aloof breeds barely
+  notice); a cat tree helps and saves the couch. Cats go with their owner when someone moves out.
+- **Activities → Pets:** play with the cats, nap with the cat, brushing (long-haired), vet check-ups, and a cat café
+  (no cat needed: you might make a friend, meet someone, or go home with a cat).
+- **Events:** a sick cat, a scratched couch, a stray at the door (rare), a "present" on the doormat, and introducing a
+  cat and a dog.
+- Achievements: Cat Person, Chosen (a stray moved in), The Cat House (4 cats), Nine Lives (hidden), Living Together.
+
 ## Homes and cars
 
 - The Money tab stays compact: car details, car shopping, home improvements, insurance, mortgage payments, moving

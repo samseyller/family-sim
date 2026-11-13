@@ -17,6 +17,8 @@ import { GEAR, type GearId } from '../content/gear';
 import { SPORTS, SPORT_IDS, type SportId } from '../content/sports';
 import { ACTIVITY_BY_ID, activityBlocker, candidatesFor, performActivity } from '../engine/activities';
 import { dogAction, dogsOf } from '../engine/dogs';
+import { catAction, catsOf } from '../engine/cats';
+import { MAX_CATS } from '../content/cats';
 import { capacityOf, carsOf, financeAction, homeOf, type FinanceAction } from '../engine/finance';
 import { friendsOf } from '../engine/friends';
 import { sanitizePlan, type StartKind } from '../engine/generate';
@@ -305,6 +307,10 @@ function socialiteAct(s: GameState, ctx: StyleCtx): GameState {
     s = dogsOf(hh(s)).length % 2 ? dogAction(s, { kind: 'adoptShelter', name: 'Scout' }) : dogAction(s, { kind: 'adoptPuppy', breed: 'labrador', name: 'Biscuit' });
   }
   s = doAll(s, ['walk_dogs', 'play_fetch', 'dog_park']);
+  // And cats: a full house of them, a cat tree, playtime, naps, and the odd café visit.
+  if (a >= 22 && catsOf(hh(s)).length < MAX_CATS && cash(s) > 8_000) s = catAction(s, catsOf(hh(s)).length % 2 ? { kind: 'adoptShelterCat', name: '' } : { kind: 'adoptKitten', breed: (['tabby', 'maine_coon', 'siamese', 'persian', 'ragdoll'] as const)[(ctx.seed + catsOf(hh(s)).length) % 5], name: '' });
+  s = catAction(s, { kind: 'catTree' });
+  s = doAll(s, ['play_with_cats', 'cat_nap', 'cat_grooming', 'cat_vet', 'cat_cafe']);
   // A new city every few years (up to four).
   const moved = Number(ctx.mem.moves) || 0;
   if (a >= 24 && moved < 4 && s.year - (Number(ctx.mem.lastMove) || 0) >= 6 && cash(s) > 20_000) {

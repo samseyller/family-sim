@@ -10,6 +10,7 @@ import { takeUpHobby } from '../engine/hobbies';
 import { enlistNow } from '../engine/military';
 import { sportsAction, type SportsAction } from '../engine/sports';
 import { relationAction, type RelationAction } from '../engine/relations';
+import { catAction, type CatAction } from '../engine/cats';
 import type { Hobby } from '../engine/types';
 import {
   choose, chooseHeir, devKill, devSkip, dismissOutcome, nextYear, resolveYear, updatePlan,
@@ -76,6 +77,7 @@ interface Store {
   enlist(asOfficer: boolean): void;
   sports(a: SportsAction): void;
   relation(a: RelationAction): void;
+  cat(a: CatAction): void;
   activity(id: string, people: string[]): void;
   dismissActivity(): void;
   askEndYear(open: boolean): void;
@@ -217,6 +219,7 @@ export const useGame = create<Store>((set, get) => {
     enlist: (asOfficer) => withGame((g) => enlistNow(g, asOfficer)),
     sports: (a) => withGame((g) => sportsAction(g, a)),
     relation: (a) => withGame((g) => relationAction(g, a)),
+    cat: (a) => withGame((g) => catAction(g, a)),
     activity: (id, people) => withGame((g) => performActivity(g, id, people)),
     dismissActivity: () => withGame(dismissActivity),
     markTip: (id) => withGame((g) => markSeen(g, id)),

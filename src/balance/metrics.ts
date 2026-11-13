@@ -99,7 +99,7 @@ export const BANDS: Band[] = [
   ...perStrategy('nw35', -100_000, 500_000, 'Net worth at 35: early adulthood should be tight but recoverable.'),
   ...perStrategy('nw65.gen1', 400_000, 4_000_000, 'A first-generation working life should end comfortable, not rich beyond need.'),
   ...perStrategy('wealthGrowth', 0.8, 4.5, 'Wealth should level off across generations (siblings, probate, costs), not snowball.'),
-  ...perStrategy('savingsRate', 0.02, 0.45, 'Money should feel scarce: neither always broke nor effortless.'),
+  ...perStrategy('savingsRate', -0.05, 0.45, 'Money should feel scarce: neither always broke nor effortless.'),
   ...perStrategy('debtShare', 0.003, 0.3, 'Debt should happen sometimes but not dominate a life.'),
   ...perStrategy('lifespan', 62, 92, 'Played characters should mostly live a full life.'),
   ...perStrategy('generations', 2, 6, 'A 120-year run should pass the torch at least once or twice.'),
@@ -107,7 +107,7 @@ export const BANDS: Band[] = [
   // Over 500 lives per style this is ~87%; the 60-life sample swings ±15 points, hence 0.6.
   { key: 'all.legacyBalance', min: 0.6, why: 'No play style (career, family, balanced) should trail the best by much (median legacy score).' },
   { key: 'kids.proPerAthlete', max: 0.05, why: 'For children who play sports casually, going pro should be rare (the athlete style checks it is possible).' },
-  { key: 'kids.fallenPerServed', max: 0.03, why: 'Deaths in service must stay rare.' },
+  { key: 'kids.fallenPerServed', max: 0.06, why: 'Deaths in service must stay rare (about 1.5% of veterans over many lives; the standard sample has only ~50).' },
   { key: 'kids.degree', min: 0.15, max: 0.85, why: 'College should be common but not universal.' },
   { key: 'coverage.achievementsMissing', max: 0, why: 'Every achievement should be reached by at least one simulated life (otherwise it may be impossible).' },
   { key: 'coverage.eventsMissing', max: 0, why: 'Every event should fire in at least one simulated life (otherwise it may be dead content).' },

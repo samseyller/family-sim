@@ -5,6 +5,7 @@
 import { z } from 'zod';
 import { CARS, type CarKind } from '../content/finance';
 import { BREEDS, type DogBreed } from '../content/dogs';
+import { CAT_BREEDS, type CatBreed } from '../content/cats';
 import { CITY_IDS, type CityId } from '../content/cities';
 import { SPORT_IDS, type SportId } from '../content/sports';
 import type { GameState } from '../engine/types';
@@ -105,6 +106,20 @@ const Dog = z.object({
   rescued: z.boolean().optional(),
   lastWalkYear: int.optional(),
 });
+const Cat = z.object({
+  id,
+  name: z.string().max(40),
+  breed: z.enum(Object.keys(CAT_BREEDS) as [CatBreed, ...CatBreed[]]),
+  coat: int,
+  birthYear: int,
+  deathYear: int.optional(),
+  bond: num,
+  health: num,
+  ownerId: id.optional(),
+  rescued: z.boolean().optional(),
+  stray: z.boolean().optional(),
+  lastPlayYear: int.optional(),
+});
 const Household = z.object({
   id,
   wallet: num,
@@ -115,6 +130,8 @@ const Household = z.object({
   rentTier: z.enum(['small', 'apartment', 'house']).optional(),
   headId: id.optional(),
   dogs: z.array(Dog).optional(),
+  cats: z.array(Cat).optional(),
+  catTree: z.boolean().optional(),
   floodInsurance: z.boolean().optional(),
   city: z.enum(CITY_IDS as [CityId, ...CityId[]]).optional(),
 });

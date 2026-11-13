@@ -9,6 +9,7 @@ import { Avatar } from '../Avatar';
 import { Section, Segmented } from '../components';
 import { FamilyTree } from '../tree/FamilyTree';
 import { DogsCard } from './DogsCard';
+import { CatsCard } from './CatsCard';
 import { FriendsCard } from './FriendsCard';
 import { PersonOptions } from './PersonOptions';
 import { cityName, cityOf } from '../../engine/location';
@@ -99,6 +100,7 @@ function FamilyList({ g }: { g: GameState }) {
       <Section title="Family">{living.length ? living.map(card) : <p className="muted">No living relatives yet.</p>}</Section>
       <FriendsCard g={g} />
       <DogsCard g={g} />
+      <CatsCard g={g} />
       {dead.length > 0 && <Section title="In memory">{dead.map(card)}</Section>}
     </div>
   );

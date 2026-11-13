@@ -12,6 +12,7 @@ import type { GameState, Person, Plan, StatKey } from './types';
 import { defaultPlan, sanitizePlan } from './generate';
 import { applyPlan, driftBonds, runEconomy, runHealth, runPeople } from './systems';
 import { dogYear } from './dogs';
+import { catYear } from './cats';
 import { friendsYear } from './friends';
 import { homeLife, rollMisfortunes } from './lifeEvents';
 import { militaryYear } from './military';
@@ -71,6 +72,7 @@ export function resolveYear(state: GameState): GameState {
   runPeople(s, rng); //             3. births, kids, NPC decisions
   driftBonds(s); //                 4. relationship drift
   dogYear(s, rng); //                  pets: mood, bonds, aging
+  catYear(s, rng); //                  cats too
   friendsYear(s, rng); //              friendships fade, drift apart, move away
   runHealth(s, rng); //             6. aging effects, deaths at year end
   militaryYear(s, rng); //              tours, deployments, and their risks

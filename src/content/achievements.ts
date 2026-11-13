@@ -3,6 +3,8 @@ import { active, ageOf, alive, childrenOf, getBond, kidsAtHome, membersOf, money
 import { BASE_PARKING, HOMES } from './finance';
 import { MAX_DOGS } from './dogs';
 import { dogsOf } from '../engine/dogs';
+import { MAX_CATS } from './cats';
+import { catsOf } from '../engine/cats';
 import { friendsOf, friendshipsOf } from '../engine/friends';
 
 const DATE_IDS = new Set(['date_night', 'picnic', 'concert_date', 'weekend_getaway']);
@@ -150,6 +152,42 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     desc: 'Walk the dog 20 times.',
     icon: '🦮',
     test: (s) => (s.activityLog ?? []).filter((x) => x.id === 'walk_dogs').length >= 20,
+  },
+  {
+    id: 'cat_person',
+    title: 'Cat Person',
+    desc: 'Bring a cat into the family.',
+    icon: '🐈',
+    test: (s) => !!(active(s).flags.adopted_cat || active(s).flags.rescued_cat || active(s).flags.stray_cat),
+  },
+  {
+    id: 'picked_by_a_stray',
+    title: 'Chosen',
+    desc: 'Let a stray cat move in.',
+    icon: '🚪',
+    test: (s) => !!active(s).flags.stray_cat,
+  },
+  {
+    id: 'cat_colony',
+    title: 'The Cat House',
+    desc: `Have ${MAX_CATS} cats at once.`,
+    icon: '🐱',
+    test: (s) => catsOf(household(s)).length >= MAX_CATS,
+  },
+  {
+    id: 'nine_lives',
+    title: 'Nine Lives',
+    desc: 'Have a cat reach 18.',
+    icon: '🎂',
+    hidden: true,
+    test: (s) => !!active(s).flags.old_cat,
+  },
+  {
+    id: 'cats_and_dogs',
+    title: 'Living Together',
+    desc: 'A cat and a dog who became best friends.',
+    icon: '🤝',
+    test: (s) => !!active(s).flags.cats_dogs_friends,
   },
   {
     id: 'good_old_dog',

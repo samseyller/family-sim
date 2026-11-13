@@ -11,6 +11,7 @@ import { drawdown, statePension } from './retirement';
 import { commuters, fundRoom, homeOf, loanPayment, rentIn, rentTierOf } from './finance';
 import { streetParkingCost, workingCars } from './cars';
 import { petCosts } from './dogs';
+import { catCosts } from './cats';
 import { tuitionFor } from './school';
 import { practiceCostPerBlock } from './hobbies';
 import { isActiveDuty, veteranIncome } from './military';
@@ -134,7 +135,7 @@ export function householdBudget(s: GameState, householdId: string, activePay: nu
   if (!homeOf(hh)) add(exp, 'Rent', rentIn(rentTierOf(hh), cityOfHousehold(hh)));
   if (!workingCars(hh).length && commuters(s, householdId)) add(exp, 'Transit', TRANSIT_BY_CITY[city.transit]);
   add(exp, 'Street parking', streetParkingCost(hh));
-  add(exp, 'Pet care', petCosts(s, hh));
+  add(exp, 'Pet care', petCosts(s, hh) + catCosts(s, hh));
   const sportsBill = sportsCosts(s, mem);
   add(exp, 'Club memberships', sportsBill.clubs);
   add(exp, "Kids' travel teams", sportsBill.travel);

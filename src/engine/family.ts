@@ -52,6 +52,9 @@ export function mergeHouseholds(s: GameState, fromId: string, intoId: string) {
   from.assets = [];
   into.dogs = [...(into.dogs ?? []), ...(from.dogs ?? [])];
   from.dogs = [];
+  into.cats = [...(into.cats ?? []), ...(from.cats ?? [])];
+  from.cats = [];
+  into.catTree = into.catTree || from.catTree;
   from.settled = true;
   for (const p of Object.values(s.people)) if (p.householdId === fromId) p.householdId = intoId;
 }
