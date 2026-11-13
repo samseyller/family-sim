@@ -3,7 +3,7 @@
  * rent, living costs, pay, and how hard it is to get around without a car. Two people
  * are "near" when their households are in the same city.
  */
-import { CITIES, CITY_IDS, type CityId } from '../content/cities';
+import { CITIES, CITY_IDS, DRIVE_REGIONS, type CityId } from '../content/cities';
 import { HOMES, RENTALS, type HomeTier, type RentTier } from '../content/finance';
 import type { Rng } from './rng';
 import type { GameState, Household, Person } from './types';
@@ -17,6 +17,13 @@ export const cityOf = (s: GameState, p: Person): CityId => cityOfHousehold(s.hou
 export const cityDef = (id: CityId) => CITIES[id];
 export const cityName = (id: CityId) => CITIES[id].name;
 export const myCity = (s: GameState) => cityOf(s, active(s));
+
+/** How far apart two cities are: the same city, a few hours' drive, or a flight away. */
+export type Distance = 'near' | 'drive' | 'far';
+export function travelDistance(a: CityId, b: CityId): Distance {
+  if (a === b) return 'near';
+  return DRIVE_REGIONS.some((r) => r.includes(a) && r.includes(b)) ? 'drive' : 'far';
+}
 
 /** Same city as the player? */
 export const isNear = (s: GameState, p: Person, other: Person = active(s)) => cityOf(s, p) === cityOf(s, other);

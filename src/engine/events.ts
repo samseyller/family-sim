@@ -15,6 +15,7 @@ import { FULL_HOUSE_EVENTS, GUIDED_KID, NAME_BABY, PARTNERSHIP_EVENTS, RAISING_E
 import { FRIEND_EVENTS } from './socialEvents';
 import { DOG_EVENTS } from './dogEvents';
 import { CAR_EVENTS, HOUSE_EVENTS } from './moneyEvents';
+import { HEALTH_EVENTS } from './healthEvents';
 import { scriptedPhase, severeGuard } from './tutorial';
 import { makeRng, type Rng } from './rng';
 import type { GameState, PendingEvent } from './types';
@@ -31,6 +32,7 @@ const ALL_EVENTS: EventDef[] = [
   ...FULL_HOUSE_EVENTS, ...LEARNING_EVENTS,
   ...CHILD_EVENTS, ...LIFE_EVENTS, ...HOBBY_EVENTS, ...MILITARY_EVENTS, ...SPORTS_EVENTS, ...HOME_EVENTS, ...CAT_EVENTS, ...ROMANCE_EVENTS,
   NAME_BABY, GUIDED_KID,
+  ...HEALTH_EVENTS,
 ];
 
 export const EVENT_BY_ID: Record<string, EventDef> = Object.fromEntries(ALL_EVENTS.map((e) => [e.id, e]));
@@ -49,7 +51,7 @@ export function generateEvents(s: GameState, rng: Rng) {
     const def = EVENT_BY_ID[sch.eventId];
     if (!def) continue; // unknown (older-rules) event: never crash, just skip it
     let sub = sch.subjectId ? s.people[sch.subjectId] : undefined;
-    if (sub && (!alive(sub) || (sch.eventId === 'health_scare' && sub.id !== s.activeId))) continue;
+    if (sub && (!alive(sub) || (['health_scare', 'test_results'].includes(sch.eventId) && sub.id !== s.activeId))) continue;
     if (def.severe && severeGuard(s)) continue; // held back early in the guided playthrough
     // Scripted beats only happen if they still make sense (e.g. a proposal needs someone to propose to).
     if (def.candidates && !sch.subjectId) {

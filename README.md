@@ -358,7 +358,9 @@ for random). When your baby is born, a naming event offers suggestions or lets y
   - Every household is in a city: home prices, rent and upkeep, living costs, pay and the cost of getting
     around without a car follow it. The $15M mansion costs the same everywhere.
   - Parents sometimes live in another city; grown kids sometimes move away for work; relatives and friends
-    show their city. Family visits to another city cost more energy and money.
+    show their city. Relatives live in the same city, a few hours' drive away
+    (the Northeast corridor, the Texas cities, Southern California), or a flight away; visits cost more energy and
+    money the farther they go ($40, $250 or $600), and flying is an option for the far ones.
   - **Money → (your city) → Compare cities and move**: moving sells your home (you rent at first), ends the jobs
     of everyone working in your household, and moves the kids to new schools. Pets, cars and savings come along.
     A partner's job offer now names the city and moves the family there; the partner keeps their job.
@@ -426,12 +428,18 @@ for random). When your baby is born, a naming event offers suggestions or lets y
   hiking, run a 5k, and a secret **marathon** that appears once your fitness passes 95 and you've run five 5ks.
   *Learning:* attend a conference (full-time careers that require a degree; your employer pays; work performance
   up). *Family visits:* fly to see a relative in another city (less tiring than driving, a bigger bond boost).
-  *Money & luck:* bet on the horse races. *Kid stuff:* ask to have a sleepover (6–14; parents may say no). *Vices:* shut down a bar, doom scroll for hours.
+  *Money & luck:* bet on the horse races. *Kid stuff:* ask to have a sleepover (6–14) or go to music camp (8–16; parents may say no to either).
+  *Health:* a yearly dentist visit, and a diet plan (harder to stick with when stressed). *Family visits:* host a
+  family reunion (three or more relatives from other homes): bonds all round, and sometimes an old rift heals or an
+  argument starts.
+- **Check-up follow-ups:** a worrying check-up (over 40, health under 60) orders more tests; the results come the next
+  year. Treating it then (payable from investments, like other medical bills) restores health; waiting is a coin flip. *Vices:* shut down a bar, doom scroll for hours.
 - **Dating while attached:** dating activities stay open when you're in a relationship, with an orange "You are
   already seeing someone" warning. You may start seeing someone in secret, and every date out raises the chance
   (6%, 12%, 18%... up to 50%) that your partner finds out. Then you can apologize (trust takes a huge hit and they
   may leave anyway), leave them for the other person, or let them go. Hidden achievements: Cheater, Found Out.
-- **Achievements:** Clean Bill of Health (five clean check-ups) and the hidden Lucky Ticket (a lottery jackpot).
+- **Achievements:** Clean Bill of Health (five clean check-ups), Globetrotter (three trips abroad), Family Reunion,
+  and the hidden Lucky Ticket (a lottery jackpot).
 - **🎯 Activities** (key 6): one-off things to do while planning, outside the 12 time blocks. Each costs
   energy (100 a year, less when unhealthy or stressed, never below 50) and usually money.
 - **🏖️ Retirement** (Money tab): early retirement from 55, full at 65. Pension jobs pay 1.5% of best

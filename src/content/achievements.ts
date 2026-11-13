@@ -311,6 +311,20 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     test: (s) => !!active(s).flags.champion,
   },
   {
+    id: 'globetrotter',
+    title: 'Globetrotter',
+    desc: 'Take three trips abroad.',
+    icon: '🌍',
+    test: (s) => (active(s).flags.trips_abroad ?? 0) >= 3,
+  },
+  {
+    id: 'family_reunion',
+    title: 'Family Reunion',
+    desc: 'Bring the family together for a reunion.',
+    icon: '🎪',
+    test: (s) => !!active(s).flags.reunion,
+  },
+  {
     id: 'clean_bill',
     title: 'Clean Bill of Health',
     desc: 'Get a clean bill of health at five check-ups.',

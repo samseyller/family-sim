@@ -172,8 +172,10 @@ function soldierAct(s: GameState): GameState {
   const p = me(s);
   if (age(s) >= 18 && age(s) <= 30 && !p.flags.tours && !p.jobId && !p.studyingUntil) s = enlistNow(s, !!p.flags.degree);
   if (age(s) < 18) return s;
-  // A yearly check-up, and a few lottery tickets (a jackpot is about 1 in 2,000 tickets).
+  // A yearly check-up, a trip abroad when there's money for it, and a few lottery tickets (a jackpot is about 1 in
+  // 2,000 tickets).
   s = tryActivity(s, 'checkup');
+  if (hh(s).wallet > 30_000) s = tryActivity(s, 'world_trip');
   for (let i = 0; i < 5; i++) s = tryActivity(s, 'lottery');
   return s;
 }
@@ -315,7 +317,7 @@ function spenderAct(s: GameState, ctx: StyleCtx): GameState {
   }
   const home = homeOf(hh(s));
   // Keep the family close (invites need a real bond).
-  s = doAll(s, ['world_trip', 'vacation', 'host_holiday', 'visit', 'game_night', 'heart_to_heart']);
+  s = doAll(s, ['world_trip', 'vacation', 'family_reunion', 'host_holiday', 'visit', 'game_night', 'heart_to_heart']);
   if (home && tierOf(home.name) === 'mansion') {
     // Fill it: everyone in the family is welcome.
     // Grown kids come home once their own family is complete (nobody living with you has babies).

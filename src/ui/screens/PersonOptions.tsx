@@ -1,5 +1,5 @@
 import type { ReactElement } from 'react';
-import { ACTIVITY_BY_ID, activityBlocker, relativesOutside } from '../../engine/activities';
+import { ACTIVITY_BY_ID, activityBlocker, distanceOf, relativesOutside } from '../../engine/activities';
 import { separatedFrom } from '../../engine/family';
 import { friendship, isDistant } from '../../engine/friends';
 import { householdBlocker, invitable, type HouseholdAction } from '../../engine/household';
@@ -55,7 +55,9 @@ export function PersonOptions({ g, p }: { g: GameState; p: Person }) {
   // Relatives in another home: jump straight to a visit.
   if (relativesOutside(g, me).some((r) => r.id === p.id)) {
     const cost = (id: string) => money(ACTIVITY_BY_ID[id].cost(g, [p]));
-    if (isNear(g, p)) act('visit', `🚗 Visit ${p.firstName}`, `Same city · ${cost('visit')}`);
+    const dist = distanceOf(g, p);
+    if (dist === 'near') act('visit', `🚗 Visit ${p.firstName}`, `Same city · ${cost('visit')}`);
+    else if (dist === 'drive') act('visit', `🚗 Drive to see ${p.firstName}`, `A few hours away · ${cost('visit')}`);
     else {
       act('fly_visit', `✈️ Fly to see ${p.firstName}`, `A few days together · ${cost('fly_visit')}`);
       act('visit', `🚗 Drive to see ${p.firstName}`, `A long, tiring drive · ${cost('visit')}`);

@@ -2,6 +2,8 @@
 import type { GameState, PendingChoice, PendingEvent, Person } from './types';
 import type { Rng } from './rng';
 import { ageOf, newId } from './util';
+import { CITIES } from '../content/cities';
+import { cityOfHousehold } from './location';
 
 export interface Ctx {
   s: GameState;
@@ -39,6 +41,8 @@ export interface EventDef {
 
 export const wallet = (c: Ctx) => c.s.households[c.me.householdId];
 export const age = (c: Ctx, p: Person) => ageOf(p, c.s.year);
+/** Prices scale with the city's everyday costs, rounded to $50. */
+export const local = (c: Ctx, n: number) => Math.round((n * CITIES[cityOfHousehold(wallet(c))].living) / 50) * 50;
 export const one = (cond: boolean, weight: number, urgent = false, subject?: Person): Candidate[] =>
   cond ? [{ weight, urgent, subject }] : [];
 /** You have a job you've held since before this year (no office drama in your first days). */

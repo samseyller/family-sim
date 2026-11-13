@@ -203,6 +203,16 @@ export const SOCIAL_ACTIVITIES: ActivityDef[] = [
     run: (c) => { stat(c.me, 'happiness', 7); stat(c.me, 'fitness', 4); if (c.me.hobby) addHobbySkill(c.s, c.me, c.me.hobby, 4); return { text: 'Campfires, bug bites, and a friend for life.', tone: 'good' }; },
   },
   {
+    id: 'music_camp', category: 'kid', icon: '🎻', label: 'Ask to go to music camp', who: 'solo', ages: [8, 16], kidAsk: true, perYear: 1,
+    desc: 'A week of lessons, jam sessions and a concert on the last night.',
+    energy: flat(20), cost: flat(800),
+    run: (c) => {
+      stat(c.me, 'happiness', 6);
+      addHobbySkill(c.s, c.me, 'music', c.me.hobby === 'music' ? 8 : 4);
+      return { text: c.me.hobby === 'music' ? 'You played a solo at the final concert. Your parents filmed all of it.' : 'You learned three chords and a song about the camp cook.', tone: 'good' };
+    },
+  },
+  {
     id: 'science_fair', category: 'kid', icon: '🔬', label: 'Science fair project', who: 'solo', ages: [8, 17], perYear: 1, desc: 'A volcano? A robot? Glory awaits.',
     energy: flat(15), cost: flat(0),
     run: (c) => {

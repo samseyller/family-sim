@@ -14,7 +14,7 @@ import { CITIES } from '../content/cities';
 import { DEDUCTIBLE } from '../content/economy';
 import { makeCar, parkingFree, workingCars } from './cars';
 import { canCover, charge, coverHint, credit, hasCash, payEmergency } from './money';
-import { pushPending, type Ctx, type EventDef } from './eventKit';
+import { pushPending, type Ctx, type EventDef, local } from './eventKit';
 import { homeOf, upgradeCount } from './finance';
 import { cityOfHousehold } from './location';
 import type { Rng } from './rng';
@@ -26,8 +26,6 @@ import {
 
 const wallet = (c: Ctx) => c.s.households[c.me.householdId];
 const age = (c: Ctx, p: Person) => ageOf(p, c.s.year);
-/** Prices scale with the city's everyday costs, rounded to $50. */
-const local = (c: Ctx, n: number) => Math.round((n * CITIES[cityOfHousehold(wallet(c))].living) / 50) * 50;
 const pay = (c: Ctx, n: number) => { charge(wallet(c), n); };
 /** Pay for an emergency fix: cash first, then investments. */
 const payE = (c: Ctx, n: number) => { payEmergency(wallet(c), n); };

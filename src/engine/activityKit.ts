@@ -4,10 +4,10 @@ import type { ActivityResult, GameState, Hobby, Person, StatKey } from './types'
 import { HOBBY_BY_ID } from '../content/actions';
 import { CAREER_BY_ID } from '../content/careers';
 import type { UpgradeId } from '../content/finance';
-import { adjustBond, ageOf, alive, childrenOf, flag, money, parentsOf, stat } from './util';
+import { active, adjustBond, ageOf, alive, childrenOf, flag, money, parentsOf, stat } from './util';
 import { dogsOf } from './dogs';
 import { catsOf } from './cats';
-import { isNear } from './location';
+import { cityOf, travelDistance, type Distance } from './location';
 import { afterTogether, willJoin } from './friends';
 import { dateWhileAttached, isSingle, jobBlurb, meetSomeone } from './romance';
 import { credit } from './money';
@@ -29,9 +29,9 @@ export function relativesOutside(s: GameState, me: Person): Person[] {
   return [...ids].map((id) => s.people[id]);
 }
 
-/** "near" when the person lives in the player's city, "far" otherwise. */
-export function distanceOf(s: GameState, p: Person): 'near' | 'far' {
-  return isNear(s, p) ? 'near' : 'far';
+/** How far someone lives from the player: same city, a few hours' drive, or a flight away. */
+export function distanceOf(s: GameState, p: Person): Distance {
+  return travelDistance(cityOf(s, active(s)), cityOf(s, p));
 }
 
 // ── Catalog ──────────────────────────────────────────────────────────

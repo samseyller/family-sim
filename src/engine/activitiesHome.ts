@@ -1,8 +1,12 @@
 /** Activities: At home, health, learning, fun and travel, and family visits. */
 import { activePartnership, adjustBond, ageOf, flag, getBond, membersOf, partnerOf, stat } from './util';
+import { TEST_RESULTS_DELAY } from './healthEvents';
 import { maybeMeetFriend } from './friends';
 import { distanceOf, type ActivityDef, flat, each, names, bondAll, moodAll, hasHobby, professional, kidAges } from './activityKit';
 import { charge } from './money';
+
+/** What a visit takes: across town, a few hours' drive, or a long trip. */
+export const VISIT = { near: { energy: 10, cost: 40 }, drive: { energy: 20, cost: 250 }, far: { energy: 35, cost: 600 } } as const;
 
 export const HOME_ACTIVITIES: ActivityDef[] = [
   // 🏡 At home — cheap, repeatable, great for bonds with anyone in the household (any age)
@@ -124,13 +128,44 @@ export const HOME_ACTIVITIES: ActivityDef[] = [
     run: (c) => {
       c.me.flags.checkup_year = c.s.year;
       if (ageOf(c.me, c.s.year) > 40 && c.me.stats.health < 60 && c.rng.chance(0.4)) {
-        stat(c.me, 'health', 6);
         stat(c.me, 'stress', 6);
-        return { text: 'The doctor caught something early. Treatment started right away.', tone: 'neutral' };
+        c.s.scheduled.push({ dueYear: c.s.year + TEST_RESULTS_DELAY, eventId: 'test_results', subjectId: c.me.id });
+        return { text: 'The doctor didn’t like something in your bloodwork and ordered more tests. The results come back next year.', tone: 'neutral' };
       }
       stat(c.me, 'health', 2);
       flag(c.me, 'clean_checkups');
       return { text: 'A clean bill of health. The doctor says keep it up.', tone: 'good' };
+    },
+  },
+  {
+    id: 'dentist', category: 'health', icon: '🦷', label: 'Dentist visit', who: 'solo', perYear: 1, desc: 'A cleaning and a check. Hopefully no drilling.',
+    energy: flat(5), cost: flat(200),
+    run: (c) => {
+      flag(c.me, 'dentist_visits');
+      stat(c.me, 'health', 1);
+      if (c.rng.chance(0.25)) {
+        charge(c.s.households[c.me.householdId], 300);
+        stat(c.me, 'happiness', -2);
+        return { text: 'A cavity. Another $300 and a numb, drooly afternoon.', tone: 'neutral' };
+      }
+      stat(c.me, 'happiness', 1);
+      return { text: 'No cavities. Your teeth have never felt so smooth.', tone: 'good' };
+    },
+  },
+  {
+    id: 'diet_plan', category: 'health', icon: '🥗', label: 'Start a diet plan', who: 'solo', perYear: 1, desc: 'A nutritionist and a year of better groceries.',
+    energy: flat(25), cost: flat(400),
+    run: (c) => {
+      flag(c.me, 'diet');
+      // Hard to stick with when life is stressful.
+      if (c.me.stats.stress >= 70 && c.rng.chance(0.4)) {
+        stat(c.me, 'health', 1);
+        return { text: 'You lasted three weeks before the takeout menus won. Still, you eat more vegetables now.', tone: 'neutral' };
+      }
+      stat(c.me, 'health', 4);
+      stat(c.me, 'fitness', 2);
+      stat(c.me, 'happiness', -1);
+      return { text: 'Meal prep Sundays, fewer snacks, more energy. You miss dessert a little.', tone: 'good' };
     },
   },
   {
@@ -252,14 +287,39 @@ export const HOME_ACTIVITIES: ActivityDef[] = [
   },
   {
     id: 'visit', category: 'visits', icon: '🚗', label: 'Visit a relative', who: 'relative', max: 1, desc: 'Drop by, or travel to see someone.',
-    energy: (s, ppl) => (ppl[0] && distanceOf(s, ppl[0]) === 'far' ? 35 : 10),
-    cost: (s, ppl) => (ppl[0] && distanceOf(s, ppl[0]) === 'far' ? 600 : 40),
+    energy: (s, ppl) => (ppl[0] ? VISIT[distanceOf(s, ppl[0])].energy : VISIT.near.energy),
+    cost: (s, ppl) => (ppl[0] ? VISIT[distanceOf(s, ppl[0])].cost : VISIT.near.cost),
     run: (c) => {
       const [p] = c.people;
       adjustBond(c.s, c.me.id, p.id, 8, 5);
       stat(p, 'happiness', 6);
       for (const m of membersOf(c.s, p.householdId)) if (m.id !== p.id) adjustBond(c.s, c.me.id, m.id, 3, 2);
       return { text: `${p.firstName} lit up when you walked in.`, tone: 'good' };
+    },
+  },
+  {
+    id: 'family_reunion', category: 'visits', icon: '🎪', label: 'Host a family reunion', who: 'guests', min: 3, perYear: 1,
+    desc: 'Bring the whole family together from near and far: aunts, cousins, grandparents.',
+    energy: flat(40), cost: each(800, 120),
+    run: (c) => {
+      flag(c.me, 'reunion');
+      bondAll(c, 6, 4);
+      moodAll(c, 'happiness', 5);
+      for (const m of membersOf(c.s, c.me.householdId)) if (m.id !== c.me.id) adjustBond(c.s, c.me.id, m.id, 3, 2);
+      // Someone you've drifted from may make peace; or old tensions flare up.
+      const cold = c.people.find((p) => getBond(c.s, c.me.id, p.id).affinity < 15);
+      if (cold && c.rng.chance(0.5)) {
+        adjustBond(c.s, c.me.id, cold.id, 15, 10);
+        return { text: `${cold.firstName} pulled you aside by the grill. Years of silence ended with a long hug.`, tone: 'good' };
+      }
+      if (c.rng.chance(0.2)) {
+        const p = c.rng.pick(c.people);
+        adjustBond(c.s, c.me.id, p.id, -10, -6);
+        stat(c.me, 'stress', 6);
+        return { text: `It was lovely until ${p.firstName} brought up the inheritance. The potato salad went untouched.`, tone: 'neutral' };
+      }
+      stat(c.me, 'happiness', 4);
+      return { text: 'Matching T-shirts, a three-legged race, and a group photo with forty people squinting into the sun.', tone: 'good' };
     },
   },
   {

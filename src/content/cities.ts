@@ -49,6 +49,13 @@ export const CITIES: Record<CityId, CityDef> = {
 
 export const CITY_IDS = Object.keys(CITIES) as CityId[];
 
+/** Cities a few hours' drive apart. Any other pair of different cities is a flight away. */
+export const DRIVE_REGIONS: CityId[][] = [
+  ['new_york', 'philadelphia', 'boston'],
+  ['houston', 'san_antonio', 'dallas', 'austin'],
+  ['los_angeles', 'san_diego'],
+];
+
 /** Yearly cost of getting to work without a car, by how good transit is. */
 export const TRANSIT_BY_CITY: Record<Transit, number> = { great: 1400, good: 1800, poor: 3200 };
 /** Relocating to another city: base cost plus a share per person. */

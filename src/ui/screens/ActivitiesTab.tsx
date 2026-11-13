@@ -70,7 +70,7 @@ function ActivitySheet({ g, def, onClose }: { g: GameState; def: ActivityDef; on
                   <span className="hint">
                     {' '}
                     {ageOf(p, g.year)}
-                    {def.who === 'relative' || def.who === 'guests' || def.who === 'friends' ? ` · ${distanceOf(g, p) === 'far' ? `in ${cityName(cityOf(g, p))}` : 'nearby'}` : ''}
+                    {def.who === 'relative' || def.who === 'guests' || def.who === 'friends' ? ` · ${distanceOf(g, p) === 'near' ? 'nearby' : `in ${cityName(cityOf(g, p))}${distanceOf(g, p) === 'drive' ? ' (a drive away)' : ''}`}` : ''}
                   </span>
                 </span>
               </label>
