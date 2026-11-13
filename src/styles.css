@@ -468,3 +468,9 @@ kbd {
 .chip.best { background: color-mix(in srgb, #e8c547 35%, var(--surface)); }
 @media (max-width: 420px) { .topbar-city { display: none; } }
 .money-sep { border: none; border-top: 1px solid var(--border); margin: 10px 0 2px; }
+
+/* Reveal: compact sections that open on demand. */
+.reveal { margin-top: 8px; }
+.reveal-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.reveal-body { margin-top: 8px; padding-left: 10px; border-left: 2px solid var(--border); }
+.car-line { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px; }

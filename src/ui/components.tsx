@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { focusFirst } from './input';
 
 export function StatBar({ label, value, invert = false, delta }: { label: string; value: number; invert?: boolean; delta?: number }) {
@@ -98,5 +98,21 @@ export function Section({ title, children, aside }: { title: string; children: R
       </div>
       {children}
     </section>
+  );
+}
+
+/** Compact by default: a toggle button that reveals more (shopping lists, upgrades, details). */
+export function Reveal({ label, openLabel, children, summary }: { label: string; openLabel?: string; children: ReactNode; summary?: ReactNode }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="reveal">
+      <div className="reveal-bar">
+        <button className={`small${open ? ' primary' : ''}`} aria-expanded={open} onClick={() => setOpen(!open)}>
+          {open ? `▾ ${openLabel ?? label}` : `▸ ${label}`}
+        </button>
+        {!open && summary && <span className="hint">{summary}</span>}
+      </div>
+      {open && <div className="reveal-body">{children}</div>}
+    </div>
   );
 }

@@ -18,6 +18,8 @@ test('take up a hobby, see practice costs, and browse hobby gear', async ({ page
 
   await page.keyboard.press('5');
   const gear = page.locator('section', { has: page.getByRole('heading', { name: /Hobby gear/ }) });
+  await expect(gear).not.toContainText('Single-engine plane'); // compact until you shop
+  await gear.getByRole('button', { name: /Shop for hobby gear/ }).click();
   await expect(gear).toContainText('Single-engine plane');
   await expect(gear).toContainText('Project car');
   await gear.scrollIntoViewIfNeeded();

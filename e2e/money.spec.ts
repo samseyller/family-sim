@@ -17,6 +17,8 @@ test('money tab: overview, invest, buy a home with confirmation', async ({ page 
   await expect(page.locator('.networth-grid')).toContainText('$1,000');
 
   // Buying needs a confirm tap; give the household enough cash via dev skip if needed.
+  await expect(page.getByRole('button', { name: /10% down/ })).toHaveCount(0); // compact until you shop
+  await page.getByRole('button', { name: /Shop for a home to buy/ }).click();
   const buy = page.getByRole('button', { name: /10% down/ }).first();
   if (await buy.isDisabled()) {
     await expect(buy).toContainText(/up front/);

@@ -33,12 +33,28 @@ describe('homes', () => {
     expect(estimateYear(s).expenses.find((l) => l.label === 'Mortgage')?.amount).toBe(h.payment);
   });
 
-  it('cannot buy without the cash, or twice', () => {
+  it('cannot buy without the cash, or the same kind of home twice', () => {
     const poor = rich(602, 5000);
     expect(financeBlocker(poor, { kind: 'buyHome', tier: 'starter', downPct: 0.1 })).toMatch(/up front/);
     expect(financeAction(poor, { kind: 'buyHome', tier: 'starter', downPct: 0.1 })).toBe(poor);
     const owner = financeAction(rich(603), { kind: 'buyHome', tier: 'starter', downPct: 0.1 });
-    expect(financeBlocker(owner, { kind: 'buyHome', tier: 'large', downPct: 0.1 })).toMatch(/already own/);
+    expect(financeBlocker(owner, { kind: 'buyHome', tier: 'starter', downPct: 0.1 })).toMatch(/already live/);
+  });
+
+  it('owners can move: the old home is sold and its equity goes toward the new one', () => {
+    const owner = financeAction(rich(605, 200_000), { kind: 'buyHome', tier: 'starter', downPct: 0.2 });
+    const before = hhOf(owner).wallet;
+    const equity = Math.round(homeOf(hhOf(owner))!.value * (1 - SELL_COSTS) - homeOf(hhOf(owner))!.mortgage);
+    const moved = financeAction(owner, { kind: 'buyHome', tier: 'family', downPct: 0.2 });
+    const houses = hhOf(moved).assets.filter((a) => a.kind === 'house');
+    expect(houses).toHaveLength(1);
+    expect(houses[0].name).toBe('Family home');
+    expect(hhOf(moved).wallet).toBe(before + equity - homeUpfront('family', 0.2, cityOfHousehold(hhOf(moved))));
+    expect(moved.journal.at(-1)!.text).toMatch(/You sold the starter home .* and bought a family home/);
+    // Equity counts: an owner with little cash can still trade down.
+    const cashPoor = structuredClone(owner);
+    hhOf(cashPoor).wallet = 0;
+    expect(financeBlocker(cashPoor, { kind: 'buyHome', tier: 'condo', downPct: 0.1 })).toBeNull();
   });
 
   it('selling returns value minus fees and the mortgage', () => {

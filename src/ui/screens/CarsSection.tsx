@@ -6,7 +6,7 @@ import {
 import type { FinanceAction } from '../../engine/finance';
 import type { GameState } from '../../engine/types';
 import { active, money } from '../../engine/util';
-import { Section } from '../components';
+import { Reveal, Section } from '../components';
 
 type ActFn = (p: { g: GameState; action: FinanceAction; label: string; hint?: string; confirm?: string }) => ReactElement;
 
@@ -19,7 +19,7 @@ export function CarsSection({ g, Act }: { g: GameState; Act: ActFn }) {
   const cars = allCars(hh);
   const spots = parkingSpots(hh);
   const garaged = garagedIds(hh);
-  const [shopping, setShopping] = useState<null | 'used' | 'new'>(null);
+  const [shopping, setShopping] = useState<'used' | 'new'>('used');
   const over = Math.max(0, cars.length - spots);
 
   return (
@@ -31,33 +31,33 @@ export function CarsSection({ g, Act }: { g: GameState; Act: ActFn }) {
         const risk = Math.round(breakdownChance(c, garaged.has(c.id)) * 100);
         return (
           <div key={c.id} className="car-row">
-            <div className="row"><span>{carDef(c).icon} {c.name}</span><strong>{money(c.value)}</strong></div>
-            <div className="row hint">
-              <span>
-                {carAge(c)} yr{carAge(c) === 1 ? '' : 's'} old · <span className={cond.tone === 'bad' ? 'neg' : cond.tone === 'good' ? 'pos-text' : ''}>{cond.label}</span>
-                {c.broken ? '' : ` · ${risk}% breakdown risk${garaged.has(c.id) ? ' (garaged)' : ''}`}
-              </span>
+            <div className="car-line">
+              <span>{carDef(c).icon} {c.name} · <span className={cond.tone === 'bad' ? 'neg' : cond.tone === 'good' ? 'pos-text' : ''}>{cond.label}</span></span>
+              <strong>{money(c.value)}</strong>
             </div>
-            {!c.broken && (
-              <div className="row hint">
-                <span>Upkeep {money(c.upkeep)}/yr (next year {money(upkeepAt(carModel(c), carAge(c) + 1))}) · typical repair {money(repairCost(c))}</span>
+            <Reveal label={c.broken ? 'Scrap it' : 'Details'} summary={c.broken ? undefined : `${carAge(c)} yr${carAge(c) === 1 ? '' : 's'} old · ${risk}% breakdown risk${c.mortgage > 0 ? ` · loan ${money(c.mortgage)}` : ''}`}>
+              {!c.broken && (
+                <div className="row hint">
+                  <span>Upkeep {money(c.upkeep)}/yr (next year {money(upkeepAt(carModel(c), carAge(c) + 1))}) · typical repair {money(repairCost(c))}{garaged.has(c.id) ? ' · garaged' : ''}</span>
+                </div>
+              )}
+              {c.mortgage > 0 && <div className="row hint"><span>Loan {money(c.mortgage)} ({money(c.payment ?? 0)}/yr)</span></div>}
+              <div className="choices">
+                {c.mortgage > 0 && <Act g={g} action={{ kind: 'payLoan', assetId: c.id, amount: c.mortgage }} label={`Pay off the loan (${money(c.mortgage)})`} />}
+                {c.broken
+                  ? <Act g={g} action={{ kind: 'sellCar', assetId: c.id }} label={`Scrap it (${money(c.value - c.mortgage)})`} hint="Frees the parking spot" />
+                  : <Act g={g} action={{ kind: 'sellCar', assetId: c.id }} label={`Sell for ${money(c.value - c.mortgage)}`} confirm="Confirm: sell the car" />}
               </div>
-            )}
-            {c.mortgage > 0 && <div className="row hint"><span>Loan {money(c.mortgage)} ({money(c.payment ?? 0)}/yr)</span></div>}
-            <div className="choices">
-              {c.mortgage > 0 && <Act g={g} action={{ kind: 'payLoan', assetId: c.id, amount: c.mortgage }} label={`Pay off the loan (${money(c.mortgage)})`} />}
-              {c.broken
-                ? <Act g={g} action={{ kind: 'sellCar', assetId: c.id }} label={`Scrap it (${money(c.value - c.mortgage)})`} hint="Frees the parking spot" />
-                : <Act g={g} action={{ kind: 'sellCar', assetId: c.id }} label={`Sell for ${money(c.value - c.mortgage)}`} confirm="Confirm: sell the car" />}
-            </div>
+            </Reveal>
           </div>
         );
       })}
 
-      <div className="row" style={{ gap: 8, justifyContent: 'flex-start', marginTop: 8 }}>
-        <button className={`small${shopping === 'used' ? ' primary' : ''}`} onClick={() => setShopping(shopping === 'used' ? null : 'used')}>Shop used cars</button>
-        <button className={`small${shopping === 'new' ? ' primary' : ''}`} onClick={() => setShopping(shopping === 'new' ? null : 'new')}>Shop new cars</button>
-      </div>
+      <Reveal label="Shop for a car" openLabel="Car shopping">
+        <div className="row" style={{ gap: 8, justifyContent: 'flex-start' }}>
+          <button className={`small${shopping === 'used' ? ' primary' : ''}`} aria-pressed={shopping === 'used'} onClick={() => setShopping('used')}>Used</button>
+          <button className={`small${shopping === 'new' ? ' primary' : ''}`} aria-pressed={shopping === 'new'} onClick={() => setShopping('new')}>New</button>
+        </div>
       {shopping && (
         <div className="choices">
           {(shopping === 'used' ? USED : NEW).map((k) => {
@@ -86,6 +86,7 @@ export function CarsSection({ g, Act }: { g: GameState; Act: ActFn }) {
           <p className="hint">Cars lose value every year, cost more to keep up as they age, and break down more often. Near the end of their life they can die for good. A garage space cuts breakdowns.</p>
         </div>
       )}
+      </Reveal>
     </Section>
   );
 }

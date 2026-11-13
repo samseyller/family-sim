@@ -5,7 +5,7 @@ import type { FinanceAction } from '../../engine/finance';
 import { gearOf } from '../../engine/hobbies';
 import type { GameState } from '../../engine/types';
 import { active, money } from '../../engine/util';
-import { Section } from '../components';
+import { Reveal, Section } from '../components';
 
 type ActFn = (p: { g: GameState; action: FinanceAction; label: string; hint?: string; confirm?: string }) => ReactElement;
 
@@ -32,16 +32,19 @@ export function GearSection({ g, Act }: { g: GameState; Act: ActFn }) {
           </div>
         );
       })}
-      <div className="choices">
-        {(Object.keys(GEAR) as GearId[]).map((id) => {
-          const d = GEAR[id];
-          return (
-            <Act key={id} g={g} action={{ kind: 'buyGear', gear: id }} label={`${d.icon} ${d.label}: ${money(d.price)}`}
-              hint={`${d.desc} · upkeep ${money(d.upkeep)}/yr`} confirm={`Confirm: buy for ${money(d.price)}`} />
-          );
-        })}
-      </div>
-      <p className="hint">Gear passes down to your children with the family estate.</p>
+      {!owned.length && <p className="muted">No planes, boats or project cars.</p>}
+      <Reveal label="Shop for hobby gear">
+        <div className="choices">
+          {(Object.keys(GEAR) as GearId[]).map((id) => {
+            const d = GEAR[id];
+            return (
+              <Act key={id} g={g} action={{ kind: 'buyGear', gear: id }} label={`${d.icon} ${d.label}: ${money(d.price)}`}
+                hint={`${d.desc} · upkeep ${money(d.upkeep)}/yr`} confirm={`Confirm: buy for ${money(d.price)}`} />
+            );
+          })}
+        </div>
+        <p className="hint">Gear passes down to your children with the family estate.</p>
+      </Reveal>
     </Section>
   );
 }

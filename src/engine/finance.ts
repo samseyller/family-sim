@@ -41,6 +41,8 @@ export type FinanceAction =
   | { kind: 'moveCity'; city: CityId };
 
 export const homeOf = (hh: Household) => hh.assets.find((a) => a.kind === 'house');
+/** What selling the home would leave after fees and the mortgage (0 when renting). */
+export const homeEquity = (hh: Household) => { const h = homeOf(hh); return h ? Math.round(h.value * (1 - SELL_COSTS) - h.mortgage) : 0; };
 export const carsOf = (hh: Household) => hh.assets.filter((a) => a.kind === 'car');
 export const rentTierOf = (hh: Household): RentTier => hh.rentTier ?? 'apartment';
 export const capacityOf = (hh: Household) => {
@@ -87,9 +89,10 @@ export function financeBlocker(s: GameState, a: FinanceAction): string | null {
       if (rentTierOf(hh) === a.tier) return 'You already live here.';
       return hh.wallet < MOVING_COST ? `Moving costs ${money(MOVING_COST)}.` : null;
     case 'buyHome':
-      if (home) return 'You already own a home.';
+      if (home && home.name === HOMES[a.tier].label) return 'You already live in one.';
       if (![0.1, 0.2].includes(a.downPct)) return 'Choose a 10% or 20% down payment.';
-      return hh.wallet < homeUpfront(a.tier, a.downPct, cityOfHousehold(hh)) ? `You need ${money(homeUpfront(a.tier, a.downPct, cityOfHousehold(hh)))} up front.` : null;
+      // Moving house: the current home is sold first and its equity goes toward the new one.
+      return hh.wallet + homeEquity(hh) < homeUpfront(a.tier, a.downPct, cityOfHousehold(hh)) ? `You need ${money(homeUpfront(a.tier, a.downPct, cityOfHousehold(hh)))} up front${home ? ' (counting the sale of this home)' : ''}.` : null;
     case 'sellHome':
       return home ? null : 'You do not own a home.';
     case 'upgradeHome': {
@@ -171,12 +174,14 @@ export function applyFinance(s: GameState, a: FinanceAction) {
       break;
     }
     case 'buyHome': {
+      const old = home ? { name: home.name, equity: homeEquity(hh) } : undefined;
+      if (home) { applyFinance(s, { kind: 'sellHome' }); s.journal.pop(); } // moving: sell the old place first
       const city = cityOfHousehold(hh);
       hh.wallet -= homeUpfront(a.tier, a.downPct, city);
-      const home = makeHome(s, a.tier, city, a.downPct);
-      hh.assets.push(home);
+      const bought = makeHome(s, a.tier, city, a.downPct);
+      hh.assets.push(bought);
       for (const m of membersOf(s, hh.id)) stat(m, 'happiness', 6);
-      journal(s, `You bought a ${HOMES[a.tier].label.toLowerCase()} in ${cityName(city)} for ${money(home.value)}.`, 'major');
+      journal(s, `${old ? `You sold the ${old.name.toLowerCase()} (${money(old.equity)} after the mortgage) and bought` : 'You bought'} a ${HOMES[a.tier].label.toLowerCase()} in ${cityName(city)} for ${money(bought.value)}.`, 'major');
       break;
     }
     case 'sellHome': {

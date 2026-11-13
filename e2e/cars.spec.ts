@@ -13,14 +13,16 @@ test('car dealership: buy a new car on a loan until parking runs out', async ({ 
   await expect(cars).toContainText('Used compact');
   await expect(cars).toContainText('yrs old');
 
-  await cars.getByRole('button', { name: 'Shop new cars' }).click();
+  await expect(cars.getByRole('button', { name: /Buy:/ })).toHaveCount(0); // compact until you go shopping
+  await cars.getByRole('button', { name: /Shop for a car/ }).click();
+  await cars.getByRole('button', { name: 'New', exact: true }).click();
   const minivan = cars.locator('.buy-home', { hasText: 'Minivan' });
   await minivan.getByRole('button', { name: /Loan:/ }).click();
   await expect(cars).toContainText('2/2 parking');
   await expect(cars).toContainText('Like new');
 
   // Parking is full: every purchase now explains why it's blocked.
-  await cars.getByRole('button', { name: 'Shop used cars' }).click();
+  await cars.getByRole('button', { name: 'Used', exact: true }).click();
   await expect(cars.getByRole('button', { name: /Buy:/ }).first()).toBeDisabled();
   await expect(cars).toContainText('No parking left');
   await cars.scrollIntoViewIfNeeded();
