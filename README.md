@@ -4,7 +4,7 @@ A turn-based family life simulator. Each turn is one year: split your limited ti
 between work, yourself, and your family, guide your children, face life events, and
 when your character dies, continue as your spouse, child, or grandchild.
 
-See [PLAN.md](PLAN.md) for the full design and roadmap. Done so far: **Stage 1** (family loop), **Stage 2** (reliable saves), **Stage 3** (profile & data format), **Stage 4** (dating & divorce, night school, a fuller household), **Stage 5** (aging avatars, family tree, memorials).
+Done so far: **Stage 1** (family loop), **Stage 2** (reliable saves), **Stage 3** (profile & data format), **Stage 4** (dating & divorce, night school, a fuller household), **Stage 5** (aging avatars, family tree, memorials).
 
 ## Commands
 
@@ -202,7 +202,6 @@ for random). When your baby is born, a naming event offers suggestions or lets y
   (by stake) is split among all their children, even if the household carries on with an heir, so a
   child who stayed home doesn't keep it all. The `econ` report shows net worth and inheritances by generation:
   wealth now levels off by the third generation instead of compounding.
-- Next: hobby → training → gear → career paths (`docs/plans/hobby-career-paths.md`).
 
 ## Sports
 
