@@ -4,7 +4,7 @@ import { activityBlocker, candidatesFor, ACTIVITY_BY_ID, performActivity } from 
 import { newGame } from './generate';
 import { splitOff } from './household';
 import { choose, nextYear, resolveYear } from './phases';
-import { exesOf, isSingle } from './romance';
+import { exesOf, isSingle, pregnancyChance, TRY_FOR_BABY_CHANCE } from './romance';
 import type { GameState, Person } from './types';
 import { active, activePartnership, adjustBond, childrenOf, partnerOf } from './util';
 import { parseSaveFile, serializeGame } from '../persistence/exportImport';
@@ -144,5 +144,31 @@ describe('pregnancy', () => {
     adjustBond(s, me.id, p.id, 200, 0);
     s = repeat(s, 'spend_the_night', () => [p.id], () => false, 120);
     expect(s.scheduled.some((e) => e.eventId === 'unplanned_pregnancy')).toBe(false);
+  });
+});
+
+describe('trying for a baby', () => {
+  it('is for married couples living together; a success is a planned pregnancy (no surprise decision)', () => {
+    let s = newGame(8101);
+    const me = active(s);
+    const spouse = partnerOf(s, me.id)!;
+    me.birthYear = s.year - 30;
+    spouse.birthYear = s.year - 30;
+    expect(activityBlocker(s, 'try_for_baby', [spouse.id])).toBeNull();
+    let tries = 0;
+    let expecting = false;
+    for (; tries < 40 && !expecting; tries++) {
+      s = performActivity({ ...s, energy: { year: s.year, max: 100, used: 0 }, activityLog: [], rngState: 8100 + tries }, 'try_for_baby', [spouse.id]);
+      expecting = !!s.households[active(s).householdId].pendingBirth;
+    }
+    expect(expecting).toBe(true);
+    expect(s.scheduled.some((x) => x.eventId === 'unplanned_pregnancy')).toBe(false);
+    expect(s.households[active(s).householdId].pendingBirth!.year).toBe(s.year + 1);
+    // Already expecting: no more tries until the baby arrives.
+    expect(activityBlocker(s, 'try_for_baby', [spouse.id])).not.toBeNull();
+  });
+
+  it('is better odds than leaving it to chance', () => {
+    expect(TRY_FOR_BABY_CHANCE).toBeGreaterThan(pregnancyChance(newGame(8102), active(newGame(8102))));
   });
 });

@@ -61,6 +61,8 @@ export function canConceive(s: GameState, me: Person, partner: Person) {
 
 /** Chance per night together, before luck. Married couples are assumed to be less careful. */
 export const pregnancyChance = (s: GameState, me: Person) => (activePartnership(s, me.id)?.status === 'married' ? 0.15 : 0.08);
+/** Chance per try when a married couple is trying for a baby on purpose. */
+export const TRY_FOR_BABY_CHANCE = 0.45;
 
 /**
  * A pregnancy happened: the partner decides now whether they'd like to keep it (shown to

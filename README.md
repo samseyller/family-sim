@@ -149,7 +149,9 @@ for random). When your baby is born, a naming event offers suggestions or lets y
 - Running your own home you can buy your parents a home of their own (or ask them to leave), ask grown children
   to move out (with a gift or their share), and invite grown children or parents to live with you when you're
   close enough. Their whole household moves in and their home is sold. Invited children don't leave on their own.
-- **Family tab options:** open a person's **Options** for actions that fit them: break up with someone you're dating
+- **Family tab options:** open a person's **Options** for actions that fit them: date night and make love with your
+  partner or spouse, **try for a baby** with your spouse (about 45% each try, versus 15% by chance; a planned
+  pregnancy), break up with someone you're dating
   (if you live together they move out with half the savings), separate from a spouse (they move out with half;
   the divorce follows) and file for divorce, ask parents or grown children living with you to find their own
   place, ask a grown brother or sister living in a home you run to move out (they may refuse; asking costs trust,

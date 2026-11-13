@@ -22,7 +22,7 @@ import { adoptCatInto, catsOf, maxCats } from './cats';
 import { CAT_BREEDS, CAT_SHELTER_FEE } from '../content/cats';
 import { cityName, cityOf, isNear } from './location';
 import { afterTogether, friendsOf, maybeMeetFriend, willJoin } from './friends';
-import { canConceive, conceive, exesOf, isSingle, jobBlurb, meetSomeone, pregnancyChance } from './romance';
+import { canConceive, carrierOf, conceive, exesOf, isSingle, jobBlurb, meetSomeone, pregnancyChance, TRY_FOR_BABY_CHANCE } from './romance';
 import { unlockedTabs } from './tutorial';
 
 // ── Energy ───────────────────────────────────────────────────────────
@@ -799,7 +799,31 @@ export const ACTIVITIES: ActivityDef[] = [
     },
   },
   {
-    id: 'spend_the_night', category: 'romance', icon: '🌙', label: 'Spend the night together', who: 'partner', max: 1, perYear: 4,
+    id: 'try_for_baby', category: 'romance', icon: '👶', label: 'Try for a baby', who: 'partner', max: 1, perYear: 4,
+    desc: 'Married and ready: a much better chance of a baby than leaving it to luck.',
+    energy: flat(8), cost: flat(0),
+    eligible: (s, p) => {
+      const me = active(s);
+      return activePartnership(s, me.id)?.status === 'married' && p.householdId === me.householdId && canConceive(s, me, p);
+    },
+    run: (c) => {
+      const p = c.people[0];
+      bondAll(c, 6, 5);
+      moodAll(c, 'stress', -2);
+      flag(c.me, 'romantic_nights');
+      if (canConceive(c.s, c.me, p) && c.rng.chance(TRY_FOR_BABY_CHANCE)) {
+        const carrier = carrierOf(c.s, c.me, p)!;
+        c.s.households[c.me.householdId].pendingBirth = { year: c.s.year + 1, parents: [carrier.id, carrier.id === c.me.id ? p.id : c.me.id] };
+        moodAll(c, 'happiness', 8);
+        journal(c.s, `You and ${p.firstName} are expecting a baby!`, 'major');
+        return { text: `A few weeks later: two pink lines. You and ${p.firstName} just stared at each other, grinning.`, tone: 'good' };
+      }
+      moodAll(c, 'happiness', 3);
+      return { text: 'Not this time. There is always next month.', tone: 'neutral' };
+    },
+  },
+  {
+    id: 'spend_the_night', category: 'romance', icon: '🌙', label: 'Make love', who: 'partner', max: 1, perYear: 4,
     desc: 'Things get romantic. There’s always some chance of a pregnancy.',
     energy: flat(8), cost: flat(0),
     eligible: (s, p) => getBond(s, active(s).id, p.id).affinity >= 20,

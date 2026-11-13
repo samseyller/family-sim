@@ -8,6 +8,7 @@ import { isSibling, relationBlocker, siblingLeaveChance, type RelationAction } f
 import type { GameState, Person } from '../../engine/types';
 import { active, activePartnership, ageOf } from '../../engine/util';
 import { useGame } from '../../store/gameStore';
+import { TRY_FOR_BABY_CHANCE } from '../../engine/romance';
 import { ActionButton, Reveal } from '../components';
 
 /** Actions that fit who this person is to you, behind an "Options" toggle (hidden if there are none). */
@@ -32,6 +33,11 @@ export function PersonOptions({ g, p }: { g: GameState; p: Person }) {
   const atHome = p.householdId === me.householdId;
   const adult = ageOf(p, g.year) >= 18;
 
+  if (isPartner && (ps!.status === 'dating' || ps!.status === 'married')) {
+    act('date_night', '🍷 Date night', 'Dinner out, just the two of you · $120');
+    act('spend_the_night', '❤️ Make love', 'Closer than ever (there is always some chance of a baby)');
+    if (ps!.status === 'married') act('try_for_baby', '👶 Try for a baby', `About ${Math.round(TRY_FOR_BABY_CHANCE * 100)}% chance each time`);
+  }
   if (isPartner && ps!.status === 'dating') rel({ kind: 'breakUp', personId: p.id }, `💔 Break up with ${p.firstName}`, atHome ? 'They move out with half the savings' : 'It’s over', 'Confirm: break up');
   if (isPartner && ps!.status === 'married' && atHome) rel({ kind: 'separate', personId: p.id }, '💔 Separate', `${p.firstName} moves out with half the savings; the divorce comes after`, 'Confirm: separate');
   if (separatedFrom(g, me.id)?.id === p.id) rel({ kind: 'divorce', personId: p.id }, '📝 File for divorce', 'They get half the equity in your home', 'Confirm: divorce');

@@ -11,6 +11,9 @@ test('family options: separate from your spouse, then file for divorce', async (
   const spouse = page.locator('article.person', { has: page.locator('.chip', { hasText: 'Spouse' }) });
   await expect(spouse.getByRole('button', { name: /Separate/ })).toHaveCount(0); // compact until opened
   await spouse.getByRole('button', { name: /Options/ }).click();
+  await expect(spouse.getByRole('button', { name: /Date night/ })).toBeVisible();
+  await expect(spouse.getByRole('button', { name: /Make love/ })).toBeVisible();
+  await expect(spouse.getByRole('button', { name: /Try for a baby/ })).toBeVisible();
   const separate = spouse.getByRole('button', { name: /separate/i });
   await separate.click();
   await expect(separate).toContainText('Confirm: separate');
