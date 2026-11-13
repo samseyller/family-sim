@@ -440,6 +440,24 @@ for random). When your baby is born, a naming event offers suggestions or lets y
   break down less. Near the end of its lifespan a car dies for good. It's then worth scrap, no longer gets anyone
   to work, and keeps its parking spot until you scrap it.
 
+## Personality
+
+Traits change how someone *reacts* to what they do, never what they can do or what it costs (`src/engine/personality.ts`).
+
+- **Reactions:** exercise, rest, learning, practice, socializing, helping, travel, trying something new, and time with a
+  partner, children or the whole family do about 5–15% more or less for some traits (stacked traits are capped at
+  0.8–1.25×). Activities do the same, and the result card says why ("Making things feeds you.").
+- **Small costs and comforts each year:** ambitious people enjoy going the extra mile but feel a stalled year; kind people
+  build bonds faster but pay for helping while stressed; anxious people feel big changes but settle in steady years;
+  easygoing people carry a little less stress; creative and curious people feel a long stretch without an outlet or
+  anything new (once per stretch); athletic people feel a year without exercise. The yearly recap names the trait
+  that mattered most.
+- **Tooltips:** hover a trait on Home or Family to see what it tends to bring and cost.
+- **New activities:** try something new together, help with their project, and a quiet day together. **New moments:**
+  your help being noticed, and a new interest that sticks.
+- **Balance:** the balance suite compares legacy by the first character's traits; the weakest trait's median must stay
+  within 30% of the strongest (`traits.legacySpread`). `npx tsx scripts/personality.ts` prints a by-trait report.
+
 ## Activities, retirement, and the guided first life
 
 - **More activities:** *At home:* do your spouse's chores (named for them; tiring, but they notice). *Health:* go

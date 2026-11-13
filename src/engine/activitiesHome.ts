@@ -142,6 +142,40 @@ export const HOME_ACTIVITIES: ActivityDef[] = [
     },
   },
   {
+    id: 'try_new_together', category: 'home', icon: '🎨', label: 'Try something new together', who: 'household', min: 1, max: 3, ages: [10, 120],
+    desc: 'A pottery class, an escape room, a cooking challenge: something none of you have done before.',
+    energy: flat(15), cost: each(0, 60),
+    run: (c) => {
+      bondAll(c, 5, 3);
+      moodAll(c, 'happiness', 3);
+      const pick = ['a pottery class', 'an escape room', 'a cooking challenge', 'a climbing gym', 'a painting night'][c.s.year % 5];
+      return { text: `You and ${names(c.people)} tried ${pick}. Nobody was good at it, which was the fun part.`, tone: 'good' };
+    },
+  },
+  {
+    id: 'help_project', category: 'home', icon: '🛠️', label: 'Help with their project', who: 'household', max: 1, ages: [8, 120],
+    labelFor: (_s, me) => (ageOf(me, _s.year) < 18 ? 'Help a parent with a project' : 'Help with their project'),
+    desc: 'A science project, a side business, a garden plan: whatever they’re working on, lend a hand.',
+    energy: flat(12), cost: flat(0),
+    run: (c) => {
+      const [p] = c.people;
+      adjustBond(c.s, c.me.id, p.id, 6, 5);
+      stat(p, 'happiness', 3);
+      if (p.hobby) p.skills[p.hobby] = Math.min(100, (p.skills[p.hobby] ?? 0) + 2);
+      return { text: `You spent a weekend on ${p.firstName}'s project. It works now, mostly thanks to the duct tape.`, tone: 'good' };
+    },
+  },
+  {
+    id: 'quiet_day', category: 'home', icon: '🫖', label: 'A quiet day together', who: 'household', min: 1, max: 2, ages: [8, 120],
+    desc: 'No plans, no phones. Tea, a walk, a nap.',
+    energy: flat(8), cost: flat(0),
+    run: (c) => {
+      moodAll(c, 'stress', -6);
+      bondAll(c, 3, 3);
+      return { text: `A slow day with ${names(c.people)}. You didn't do much, and that was the point.`, tone: 'good' };
+    },
+  },
+  {
     id: 'build_treehouse', category: 'home', icon: '🌳', label: 'Build the kids a treehouse', who: 'kids', min: 1,
     eligible: (s, p) => kidAges(p, s, 4, 12),
     requires: (s, me) => {

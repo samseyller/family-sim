@@ -72,6 +72,17 @@ export function summarize(samples: SamplesByStrategy): Metrics {
     }
   }
 
+  // Personality: no trait should be a clearly better (or worse) way to live. Core styles only.
+  const core = STRATEGIES.flatMap((st) => samples[st] ?? []);
+  const traitLegacy: number[] = [];
+  for (const t of ['ambitious', 'kind', 'stubborn', 'curious', 'anxious', 'easygoing', 'creative', 'athletic']) {
+    const lives = core.filter((l) => l.firstTraits.includes(t));
+    if (lives.length < 8) continue;
+    m[`traits.${t}.legacy`] = median(lives.map((l) => l.legacy.total));
+    traitLegacy.push(m[`traits.${t}.legacy`]);
+  }
+  if (traitLegacy.length) m['traits.legacySpread'] = ratio(Math.min(...traitLegacy), Math.max(...traitLegacy));
+
   // Hobby careers: the best a dedicated hobbyist earns on their path, against a career-focused player's best pay.
   const hobby = (samples.hobbyist ?? []).map((l) => l.peakHobbyPay).filter((x) => x > 0);
   if (hobby.length) {
@@ -119,6 +130,7 @@ export const BANDS: Band[] = [
   { key: 'kids.degree', min: 0.15, max: 0.85, why: 'College should be common but not universal.' },
   { key: 'coverage.achievementsMissing', max: 0, why: 'Every achievement should be reached by at least one simulated life (otherwise it may be impossible).' },
   { key: 'coverage.eventsMissing', max: 0, why: 'Every event should fire in at least one simulated life (otherwise it may be dead content).' },
+  { key: 'traits.legacySpread', min: 0.7, why: 'No personality trait should be a clearly better way to live: the weakest trait’s median legacy stays within 30% of the strongest.' },
   { key: 'hobbyist.hobbyPayVsCareer', min: 0.7, max: 1.5, why: 'A dedicated hobbyist’s best pay on their path should land near a career-focused player’s best (hobby careers are a real alternative to university, with more variance).' },
   { key: 'athlete.first.went_pro', min: 0.03, max: 0.35, why: 'Even a fully dedicated young athlete should only sometimes have the talent to go pro.' },
 ];
@@ -145,7 +157,8 @@ export interface Drift { key: string; before: number; after: number; reason: str
 export function tolerance(key: string): { rel?: number; abs?: number; deadOnly?: boolean } {
   if (key.startsWith('ach.') || key.startsWith('event.')) return { deadOnly: true };
   if (key === 'all.violations' || key.startsWith('coverage.')) return { abs: 0 };
-  if (key.includes('.first.')) return { abs: 0.35 }; // explorer milestones: 20–60 lives each, so noisy
+  if (key.includes('.first.')) return { abs: 0.35 };
+  if (key.startsWith('traits.')) return key === 'traits.legacySpread' ? { abs: 0.2 } : { rel: 0.5 }; // 20–45 lives per trait: noisy // explorer milestones: 20–60 lives each, so noisy
   if (key === 'kids.perLife') return { rel: 0.25 };
   if (key.startsWith('kids.')) return { abs: 0.03, rel: 0.6 };
   if (key.endsWith('.inheritance')) return { rel: 2.5 }; // few inheritances per life: very noisy, so only flags huge shifts

@@ -176,6 +176,7 @@ function soldierAct(s: GameState): GameState {
   // 2,000 tickets).
   s = tryActivity(s, 'checkup');
   if (hh(s).wallet > 30_000) s = tryActivity(s, 'world_trip');
+  if (hh(s).wallet > 20_000) s = tryActivity(s, 'family_reunion');
   for (let i = 0; i < 5; i++) s = tryActivity(s, 'lottery');
   return s;
 }

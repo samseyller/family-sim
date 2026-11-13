@@ -50,6 +50,8 @@ export interface LifeSample {
   /** The first character's best yearly pay in any full-time job, and in a career built on a hobby skill (0 if none). */
   peakPay: number;
   peakHobbyPay: number;
+  /** The first character's traits (for by-trait comparisons). */
+  firstTraits: string[];
   /** Broken invariants (NaN money, stats out of range, events with no possible choice, ...). */
   violations: string[];
 }
@@ -87,7 +89,7 @@ export function playLife(styleId: string | PlayStyle, seed: number, maxYears = 1
   const sample: LifeSample = {
     seed, years: 0, ended: false, generations: 0, legacy: { wealth: 0, bonds: 0, achievement: 0, wellbeing: 0, total: 0 },
     lifespans: [], netWorthAt: {}, netWorth65: [], income: 0, expenses: 0, adultYears: 0, debtYears: 0, inheritances: [],
-    runawayDebt: false, milestones: [], peakPay: 0, peakHobbyPay: 0, achievements: [], events: {}, kids: { n: 0, athlete: 0, varsity: 0, scholarship: 0, pro: 0, allStar: 0, served: 0, fallen: 0, degree: 0, topDegree: 0 }, violations: [],
+    runawayDebt: false, milestones: [], peakPay: 0, peakHobbyPay: 0, firstTraits: [], achievements: [], events: {}, kids: { n: 0, athlete: 0, varsity: 0, scholarship: 0, pro: 0, allStar: 0, served: 0, fallen: 0, degree: 0, topDegree: 0 }, violations: [],
   };
   const violate = (v: string) => { if (sample.violations.length < 20) sample.violations.push(`${s.year}: ${v}`); };
   let deepDebt = 0;
@@ -148,6 +150,7 @@ export function playLife(styleId: string | PlayStyle, seed: number, maxYears = 1
   sample.achievements = Object.keys(profile.achievements).sort();
   const first = s.people[s.lineage[0]];
   sample.milestones = MILESTONES.filter((k) => first?.flags[k]);
+  sample.firstTraits = first ? [...first.traits] : [];
   for (const p of Object.values(s.people)) {
     if (p.birthYear < startYear || (alive(p) && ageOf(p, s.year) < 25)) continue;
     const k = sample.kids;

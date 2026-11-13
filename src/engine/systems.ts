@@ -1,3 +1,5 @@
+import { CREATIVE_HOBBIES, reaction, scaled, yearTendencies, type Reaction, type Situation } from './personality';
+import { activitySituation } from './activitySituations';
 import { HOBBY_BY_ID } from '../content/actions';
 import { DEBT_RATE, LIFESTYLES, NPC_DEBT_FLOOR, SAVINGS_RATE } from '../content/economy';
 import { charge, credit, payDownDebt } from './money';
@@ -38,6 +40,12 @@ export function applyPlan(s: GameState, rng: Rng): number {
   const me = active(s);
   const plan = s.plan;
   const g = (k: string) => Math.max(0, plan.alloc[k] ?? 0);
+  // Big, uncertain changes this year (anxious people feel them).
+  const bigChange = plan.jobIntents.length > 0 || !!plan.eduIntent || me.flags.moved_year === s.year;
+  let workSurplus = 0;
+  let neglect = false;
+  const notes: Reaction[] = [];
+  const react = (sit: Situation) => { const r = reaction(me, sit); if (r.note) notes.push(r); return r; };
 
   // Job intents take effect this year (one per slot).
   for (const it of plan.jobIntents) {
@@ -75,6 +83,7 @@ export function applyPlan(s: GameState, rng: Rng): number {
     const work = g('work');
     const req = requiredBlocks(c, me.jobLevel);
     pay = fullTimePay(c, me.jobLevel, work);
+    workSurplus = work - req;
     me.workPerf = Math.round(clamp(me.workPerf + (work - req) * 12 + (work >= req ? 4 : -8) + rng.int(-5, 5), 0, 100));
     stat(me, 'stress', (c.stress * work) / req + Math.max(0, work - req) * 4);
     me.jobYears++;
@@ -104,25 +113,32 @@ export function applyPlan(s: GameState, rng: Rng): number {
   const ex = g('exercise');
   if (ex) {
     const m = dim(ex) * (me.flags.health_vow ? 1.5 : 1);
+    const r = react('exercise');
     stat(me, 'fitness', 6 * m);
     stat(me, 'health', 3 * m);
-    stat(me, 'stress', -4 * m);
+    stat(me, 'stress', scaled(-4 * m, r));
+    stat(me, 'happiness', scaled(10 * m, r) - 10 * m); // only the trait's extra joy
   }
   const rx = g('relax');
   if (rx) {
-    stat(me, 'stress', -10 * dim(rx));
-    stat(me, 'happiness', 4 * dim(rx));
+    const r = react('relax');
+    stat(me, 'stress', scaled(-10 * dim(rx), r));
+    stat(me, 'happiness', scaled(4 * dim(rx), r));
   }
   const ln = g('learn');
-  if (ln) stat(me, 'smarts', 3 * dim(ln));
+  if (ln) {
+    stat(me, 'smarts', 3 * dim(ln));
+    stat(me, 'happiness', scaled(10 * dim(ln), react('learn')) - 10 * dim(ln)); // only the trait's extra joy
+  }
 
   // Hobby practice (kids and adults alike).
   const pr = g('practice');
   if (pr && me.hobby) {
     // Gear and a home setup (workshop, studio, plane, boat...) speed up practice.
     addHobbySkill(s, me, me.hobby, practiceGain(s, me) * dim(pr));
-    if (me.hobby === 'fishing' || me.hobby === 'gardening') stat(me, 'stress', -3 * dim(pr));
-    stat(me, 'happiness', 2 * dim(pr));
+    const r = react('practice');
+    if (me.hobby === 'fishing' || me.hobby === 'gardening') stat(me, 'stress', scaled(-3 * dim(pr), r));
+    stat(me, 'happiness', scaled(2 * dim(pr), r));
   }
 
   // Time with parents who live at home (as a kid, a grown child who stayed, or a parent who moved in).
@@ -136,8 +152,9 @@ export function applyPlan(s: GameState, rng: Rng): number {
 
   const soc = g('socialize');
   if (soc) {
-    stat(me, 'happiness', 3 * dim(soc));
-    stat(me, 'stress', -2 * dim(soc));
+    const r = react('socialize');
+    stat(me, 'happiness', scaled(3 * dim(soc), r));
+    stat(me, 'stress', scaled(-2 * dim(soc), r));
   }
 
   // Night school: enroll/drop take effect now; each study block is 1 progress.
@@ -184,13 +201,14 @@ export function applyPlan(s: GameState, rng: Rng): number {
 
   const outing = g('family_outing');
   if (outing) {
+    const r = react('familyOuting');
     for (const m of membersOf(s, me.householdId)) {
       if (m.id === me.id) continue;
-      adjustBond(s, me.id, m.id, 4 * dim(outing), 2 * dim(outing));
+      adjustBond(s, me.id, m.id, scaled(4 * dim(outing), r), 2 * dim(outing));
       stat(m, 'happiness', 4 * dim(outing));
     }
-    stat(me, 'happiness', 3 * dim(outing));
-    stat(me, 'stress', -3 * dim(outing));
+    stat(me, 'happiness', scaled(3 * dim(outing), r));
+    stat(me, 'stress', scaled(-3 * dim(outing), r));
   }
 
   const partner = partnerOf(s, me.id);
@@ -198,11 +216,12 @@ export function applyPlan(s: GameState, rng: Rng): number {
     const n = g('partner_time');
     const together = partner.householdId === me.householdId;
     if (n) {
-      adjustBond(s, me.id, partner.id, 8 * dim(n), 5 * dim(n));
+      adjustBond(s, me.id, partner.id, scaled(8 * dim(n), react('partnerTime')), 5 * dim(n));
       stat(me, 'happiness', 2 * dim(n));
       stat(partner, 'happiness', 3 * dim(n));
     } else if (!outing || !together) {
       adjustBond(s, me.id, partner.id, -9, -4);
+      neglect = true;
       journal(s, `${partner.firstName} felt you were never around this year.`, 'bad');
     }
   }
@@ -211,7 +230,7 @@ export function applyPlan(s: GameState, rng: Rng): number {
     const t = g(`child_time:${kid.id}`);
     const h = ageOf(kid, s.year) >= 5 ? g(`homework:${kid.id}`) : 0;
     if (t) {
-      adjustBond(s, me.id, kid.id, 8 * dim(t), 6 * dim(t));
+      adjustBond(s, me.id, kid.id, scaled(8 * dim(t), react('childTime')), 6 * dim(t));
       stat(kid, 'happiness', 3 * dim(t));
     }
     if (h) {
@@ -221,6 +240,7 @@ export function applyPlan(s: GameState, rng: Rng): number {
     if (!t && !h && !outing) {
       adjustBond(s, me.id, kid.id, -10, -6);
       flag(kid, 'neglected');
+      neglect = true;
       stat(kid, 'happiness', -4);
       journal(s, `${kid.firstName} barely saw you this year.`, 'bad');
     }
@@ -245,6 +265,37 @@ export function applyPlan(s: GameState, rng: Rng): number {
       stat(m, 'stress', ls.stress);
     }
   }
+
+  // Personality: the year's small costs and comforts, and one line in the recap if a trait really mattered.
+  const thisYear = (s.activityLog ?? []).filter((x) => x.year === s.year).map((x) => x.id);
+  const earlier = new Set((s.activityLog ?? []).filter((x) => x.year < s.year).map((x) => x.id));
+  const age = ageOf(me, s.year);
+  // Long stretches (counted in flags, reset when the year has what was missing).
+  const outlet = (!!pr && !!me.hobby && CREATIVE_HOBBIES.includes(me.hobby)) || thisYear.some((id) => activitySituation(id) === 'practice');
+  const novel = !!ln || thisYear.some((id) => !earlier.has(id));
+  if (outlet) delete me.flags.no_outlet_years; else me.flags.no_outlet_years = (me.flags.no_outlet_years ?? 0) + 1;
+  if (novel) delete me.flags.routine_years; else me.flags.routine_years = (me.flags.routine_years ?? 0) + 1;
+  const tendencies = yearTendencies(me, {
+    yearsWithoutOutlet: me.flags.no_outlet_years ?? 0,
+    yearsInRoutine: me.flags.routine_years ?? 0,
+    worked: !!c,
+    workSurplus,
+    idle: age >= 18 && age < 63 && !me.jobId && !me.retired && !me.studyingUntil && !me.education,
+    learned: !!ln || !!g('study') || thisYear.some((id) => activitySituation(id) === 'learn'),
+    practicedCreative: outlet,
+    exercised: !!ex || thisYear.some((id) => activitySituation(id) === 'exercise'),
+    triedSomethingNew: thisYear.some((id) => !earlier.has(id)),
+    bigChange,
+    neglect,
+    helpedWhileStressed: me.stats.stress >= 70 && thisYear.filter((id) => activitySituation(id) === 'help').length >= 2,
+  });
+  for (const t of tendencies) {
+    if (t.happiness) stat(me, 'happiness', t.happiness);
+    if (t.stress) stat(me, 'stress', t.stress);
+  }
+  const felt = [...tendencies].sort((a, b) => Math.abs(b.happiness ?? 0) + Math.abs(b.stress ?? 0) - Math.abs(a.happiness ?? 0) - Math.abs(a.stress ?? 0))[0];
+  const line = felt && Math.abs(felt.happiness ?? 0) + Math.abs(felt.stress ?? 0) >= 2 ? { trait: felt.trait, note: felt.note } : notes.find((r) => Math.abs(r.factor - 1) >= 0.1);
+  if (line?.note && age >= 18) journal(s, `(${line.trait}) ${line.note}`, 'info');
 
   // Baseline life pressure.
   stat(me, 'stress', 5);

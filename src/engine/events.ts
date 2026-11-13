@@ -16,6 +16,7 @@ import { FRIEND_EVENTS } from './socialEvents';
 import { DOG_EVENTS } from './dogEvents';
 import { CAR_EVENTS, HOUSE_EVENTS } from './moneyEvents';
 import { HEALTH_EVENTS } from './healthEvents';
+import { PERSONALITY_EVENTS } from './personalityEvents';
 import { scriptedPhase, severeGuard } from './tutorial';
 import { makeRng, type Rng } from './rng';
 import type { GameState, PendingEvent } from './types';
@@ -33,6 +34,7 @@ const ALL_EVENTS: EventDef[] = [
   ...CHILD_EVENTS, ...LIFE_EVENTS, ...HOBBY_EVENTS, ...MILITARY_EVENTS, ...SPORTS_EVENTS, ...HOME_EVENTS, ...CAT_EVENTS, ...ROMANCE_EVENTS,
   NAME_BABY, GUIDED_KID,
   ...HEALTH_EVENTS,
+  ...PERSONALITY_EVENTS,
 ];
 
 export const EVENT_BY_ID: Record<string, EventDef> = Object.fromEntries(ALL_EVENTS.map((e) => [e.id, e]));

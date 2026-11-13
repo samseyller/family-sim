@@ -1,3 +1,4 @@
+import { TRAIT_INFO } from '../../engine/personality';
 import type { GameState } from '../../engine/types';
 import { active, ageOf, getBond, journalText, membersOf, money, partnerOf } from '../../engine/util';
 import { jobTitle, CAREER_BY_ID } from '../../content/careers';
@@ -21,7 +22,7 @@ export function HomeTab({ g }: { g: GameState }) {
         <div>
           <h2>{me.firstName} {me.lastName}</h2>
           <div className="muted">Age {ageOf(me, g.year)} · {ageOf(me, g.year) < 18 && !me.partJobId ? '🎒 In school' : !me.flags.came_of_age && !me.jobId ? '🎓 Just finished high school' : `${job?.icon ?? '🧭'} ${jobTitle(me)}`}</div>
-          <div className="traits">{me.traits.map((t) => <span key={t} className="chip">{t}</span>)}</div>
+          <div className="traits">{me.traits.map((t) => <span key={t} className="chip" title={TRAIT_INFO[t]}>{t}</span>)}</div>
         </div>
       </section>
 

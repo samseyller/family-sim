@@ -5,7 +5,7 @@
  */
 import { makeRng } from './rng';
 import type { ActivityResult, GameState, Person, StatKey } from './types';
-import { active, ageOf, clamp, getBond, journal, kidsAtHome, membersOf, money, partnerOf, stat } from './util';
+import { active, adjustBond, ageOf, clamp, getBond, journal, kidsAtHome, membersOf, money, partnerOf, stat } from './util';
 import { homeParents } from './generate';
 import { isNear } from './location';
 import { friendsOf } from './friends';
@@ -19,6 +19,8 @@ import { PET_ACTIVITIES } from './activitiesPets';
 import { ROMANCE_ACTIVITIES } from './activitiesRomance';
 import { SOCIAL_ACTIVITIES } from './activitiesSocial';
 import { charge, hasCash } from './money';
+import { reaction, type Situation } from './personality';
+import { activitySituation } from './activitySituations';
 
 export { CATEGORIES, distanceOf, relativesOutside } from './activityKit';
 export type { ActivityCtx, ActivityDef, Category, Who } from './activityKit';
@@ -129,6 +131,17 @@ export function performActivity(state: GameState, id: string, ids: string[] = []
   } else {
     charge(hh, cost);
     result = def.run({ s, rng, me, people });
+    // Personality: someone like this gets a little more (or less) out of it. Only the reaction changes, never the price.
+    const isNew = !(s.activityLog ?? []).slice(0, -1).some((x) => x.id === id);
+    const options = [activitySituation(id), isNew ? 'newThing' : undefined].filter(Boolean) as Situation[];
+    const r = options.map((sit) => reaction(me, sit)).sort((a, b) => Math.abs(b.factor - 1) - Math.abs(a.factor - 1))[0];
+    if (r && r.factor !== 1) {
+      const extra = r.factor - 1;
+      stat(me, 'happiness', (me.stats.happiness - before.stats.happiness) * extra);
+      stat(me, 'stress', (me.stats.stress - before.stats.stress) * extra);
+      people.forEach((p, i) => adjustBond(s, me.id, p.id, (getBond(s, me.id, p.id).affinity - before.bonds[i]) * extra, 0));
+      if (r.note && Math.abs(extra) >= 0.1) result = { ...result, text: `${result.text} ${r.note}` };
+    }
   }
 
   const changes: string[] = [];

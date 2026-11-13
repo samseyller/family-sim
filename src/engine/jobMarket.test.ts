@@ -65,7 +65,7 @@ describe('job listings', () => {
     s.plan.jobIntents = [{ kind: 'apply', careerId: closed.id }];
     applyPlan(s, makeRng(1));
     expect(me.jobId).toBeUndefined();
-    expect(s.journal.at(-1)!.text).toMatch(/filled/);
+    expect(s.journal.filter((j) => j.year === s.year).map((j) => j.text).join(' ')).toMatch(/filled/);
     const listed = [...open].map((id) => CAREER_BY_ID[id])[0];
     let hired = false;
     for (let i = 0; i < 20 && !hired; i++) {
