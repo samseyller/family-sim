@@ -5,10 +5,10 @@
  * running a deficit, dropping it again once money is comfortable.
  */
 import { TIME_BUDGET } from '../content/actions';
-import { CAREER_BY_ID, qualifies, requiredBlocks, salaryOf, type Career, type JobSlot } from '../content/careers';
+import { CAREER_BY_ID, PROGRAMS, programBlocker, qualifies, requiredBlocks, salaryOf, type Career, type JobSlot } from '../content/careers';
 import { estimateYear } from './budget';
 import { defaultPlan, sanitizePlan } from './generate';
-import type { GameState, JobIntent, Plan } from './types';
+import type { GameState, JobIntent, Plan, Program } from './types';
 import { active, ageOf, kidsAtHome, partnerOf } from './util';
 import { openingsFor } from './jobMarket';
 
@@ -100,4 +100,37 @@ export function strategyPlan(s: GameState, kind: Strategy): Plan {
     plan = build(false, [{ kind: 'quit', slot: 'part' }]);
   }
   return plan;
+}
+
+// ── Plan edits (used by the explorer play styles on top of strategyPlan) ─────────────
+
+/** Move time blocks from relaxing (then exercise, socializing, learning) to `want`. */
+export function shiftBlocks(s: GameState, plan: Plan, want: Record<string, number>): Plan {
+  const alloc = { ...plan.alloc };
+  for (const [k, n] of Object.entries(want)) {
+    let need = n - (alloc[k] ?? 0);
+    // Like a sensible player, keep one block each of rest and exercise (stress 80+ means burnout).
+    for (const from of ['relax', 'socialize', 'learn', 'parttime', 'partner_time', ...Object.keys(alloc).filter((x) => x.startsWith('child_time')), 'exercise']) {
+      if (need <= 0) break;
+      const keep = from === 'relax' || from === 'exercise' ? 1 : 0;
+      const take = Math.min(need, Math.max(0, (alloc[from] ?? 0) - keep));
+      if (take > 0) { alloc[from] -= take; alloc[k] = (alloc[k] ?? 0) + take; need -= take; }
+    }
+  }
+  const used = Object.values(alloc).reduce((a, b) => a + b, 0);
+  if (used < TIME_BUDGET) alloc.relax = (alloc.relax ?? 0) + TIME_BUDGET - used;
+  return sanitizePlan(s, { ...plan, alloc });
+}
+
+/** Plan to apply for `careerId` (replacing other job moves in that slot). */
+export function planApply(plan: Plan, careerId: string): Plan {
+  const slot = CAREER_BY_ID[careerId].hours;
+  return { ...plan, jobIntents: [...plan.jobIntents.filter((i) => i.kind !== 'apply' || CAREER_BY_ID[i.careerId].hours !== slot), { kind: 'apply', careerId }] };
+}
+
+/** Enroll in a night-school program when eligible and not studying already. */
+export function planEnroll(s: GameState, plan: Plan, program: Program): Plan {
+  const p = active(s);
+  if (p.education || p.flags[program] || programBlocker(p, PROGRAMS[program], ageOf(p, s.year))) return plan;
+  return { ...plan, eduIntent: { kind: 'enroll', program } };
 }

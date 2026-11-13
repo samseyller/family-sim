@@ -8,8 +8,8 @@
  * (buy things, do activities, move), and may prefer some event choices; anything it has no
  * preference for is picked at random among the enabled choices.
  */
-import { HOBBY_BY_ID, TIME_BUDGET } from '../content/actions';
-import { CAREER_BY_ID, PROGRAMS, programBlocker, qualifies, requiredBlocks } from '../content/careers';
+import { HOBBY_BY_ID } from '../content/actions';
+import { CAREER_BY_ID, qualifies, requiredBlocks } from '../content/careers';
 import { CITY_IDS, type CityId } from '../content/cities';
 import { MAX_DOGS } from '../content/dogs';
 import { HOMES, type HomeTier, type UpgradeId } from '../content/finance';
@@ -21,7 +21,7 @@ import { catAction, catsOf } from '../engine/cats';
 import { MAX_CATS } from '../content/cats';
 import { capacityOf, carsOf, financeAction, homeOf, type FinanceAction } from '../engine/finance';
 import { friendsOf } from '../engine/friends';
-import { sanitizePlan, type StartKind } from '../engine/generate';
+import { type StartKind } from '../engine/generate';
 import { ownsGear, takeUpHobby } from '../engine/hobbies';
 import { householdAction } from '../engine/household';
 import { cityOfHousehold } from '../engine/location';
@@ -29,7 +29,7 @@ import { listings } from '../engine/jobMarket';
 import { enlistNow } from '../engine/military';
 import type { Rng } from '../engine/rng';
 import { isPro, sportsAction } from '../engine/sports';
-import { strategyPlan, type Strategy } from '../engine/strategies';
+import { planApply, planEnroll, shiftBlocks, strategyPlan, type Strategy } from '../engine/strategies';
 import type { GameState, Hobby, PendingEvent, Person, Plan, Program } from '../engine/types';
 import { active, activePartnership, ageOf, alive, childrenOf, getBond, kidsAtHome, membersOf, parentsOf } from '../engine/util';
 
@@ -59,24 +59,6 @@ const me = (s: GameState) => active(s);
 const age = (s: GameState) => ageOf(active(s), s.year);
 const hh = (s: GameState) => s.households[active(s).householdId];
 const cash = (s: GameState) => hh(s).wallet;
-
-/** Move time blocks from relaxing (then exercise, socializing, learning) to `want`. */
-export function shiftBlocks(s: GameState, plan: Plan, want: Record<string, number>): Plan {
-  const alloc = { ...plan.alloc };
-  for (const [k, n] of Object.entries(want)) {
-    let need = n - (alloc[k] ?? 0);
-    // Like a sensible player, keep one block each of rest and exercise (stress 80+ means burnout).
-    for (const from of ['relax', 'socialize', 'learn', 'parttime', 'partner_time', ...Object.keys(alloc).filter((x) => x.startsWith('child_time')), 'exercise']) {
-      if (need <= 0) break;
-      const keep = from === 'relax' || from === 'exercise' ? 1 : 0;
-      const take = Math.min(need, Math.max(0, (alloc[from] ?? 0) - keep));
-      if (take > 0) { alloc[from] -= take; alloc[k] = (alloc[k] ?? 0) + take; need -= take; }
-    }
-  }
-  const used = Object.values(alloc).reduce((a, b) => a + b, 0);
-  if (used < TIME_BUDGET) alloc.relax = (alloc.relax ?? 0) + TIME_BUDGET - used;
-  return sanitizePlan(s, { ...plan, alloc });
-}
 
 /** Do an activity with whoever can come (up to its limit). Same state back if it can't happen. */
 export function tryActivity(s: GameState, id: string, pick?: (pool: Person[]) => Person[]): GameState {
@@ -127,19 +109,6 @@ function cityHiring(s: GameState, careerId: string, coastalOnly = false): CityId
 }
 
 const listedHere = (s: GameState, careerId: string) => listings(s.seed, cityOfHousehold(hh(s)), s.year, CAREER_BY_ID[careerId].hours).some((c) => c.id === careerId);
-
-/** Plan to apply for `careerId` (replacing other job moves in that slot). */
-function applyFor(plan: Plan, careerId: string): Plan {
-  const slot = CAREER_BY_ID[careerId].hours;
-  return { ...plan, jobIntents: [...plan.jobIntents.filter((i) => i.kind !== 'apply' || CAREER_BY_ID[i.careerId].hours !== slot), { kind: 'apply', careerId }] };
-}
-
-/** Enroll in a night-school program when eligible and not studying already. */
-function enroll(s: GameState, plan: Plan, program: Program): Plan {
-  const p = me(s);
-  if (p.education || p.flags[program] || programBlocker(p, PROGRAMS[program], age(s))) return plan;
-  return { ...plan, eduIntent: { kind: 'enroll', program } };
-}
 
 const corePlan = (kind: Strategy) => (s: GameState) => strategyPlan(s, kind);
 
@@ -238,13 +207,13 @@ function hobbyistPlan(s: GameState, ctx: StyleCtx): Plan {
   const p = me(s);
   if (p.hobby !== path.hobby) return plan;
   if (age(s) < 18) return shiftBlocks(s, plan, { practice: 4 }); // a kid with a passion
-  for (const prog of path.programs) plan = enroll(s, plan, prog);
+  for (const prog of path.programs) plan = planEnroll(s, plan, prog);
   // In a career on the path: stay put (no hopping to better-paid work elsewhere).
   if (path.careers.includes(p.jobId ?? '')) plan = { ...plan, jobIntents: plan.jobIntents.filter((i) => i.kind !== 'apply' || CAREER_BY_ID[i.careerId].hours !== 'full') };
   const next = nextCareer(p, path);
   const want: Record<string, number> = { practice: 3, ...(p.education || plan.eduIntent ? { study: 3 } : {}) };
   if (next && age(s) < 60 && qualifies(p, CAREER_BY_ID[next]) && listedHere(s, next) && (!CAREER_BY_ID[next].startup || cash(s) > CAREER_BY_ID[next].startup! + 30_000)) {
-    plan = applyFor(plan, next);
+    plan = planApply(plan, next);
     if (CAREER_BY_ID[next].hours === 'full') want.work = requiredBlocks(CAREER_BY_ID[next], 1) + 1;
   } else if (p.jobId && path.careers.includes(p.jobId)) {
     // Go the extra mile in the dream job (that earns promotions) without burning out.
