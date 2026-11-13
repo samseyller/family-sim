@@ -14,6 +14,7 @@ import type { GameState } from '../engine/types';
 import { active, ageOf, alive } from '../engine/util';
 import { track } from '../profile/tracker';
 import { newProfile } from '../profile/types';
+import type { FlagKey } from '../engine/flags';
 
 /** The core play styles: the economy and difficulty metrics come from these. */
 export const STRATEGIES = ['career', 'family', 'balanced'] as const;
@@ -169,4 +170,4 @@ export const DEEP_RUN = { seedFrom: 100_000, scale: 500 / 60, maxYears: 120 };
 export const livesFor = (style: { lives: number }, scale: number) => Math.max(1, Math.round(style.lives * scale));
 
 /** First-life milestones worth tracking for the explorer styles. */
-export const MILESTONES = ['varsity', 'full_ride', 'went_pro', 'all_star', 'champion', 'tours', 'mil_pension', 'purple_heart', 'degree', 'top_degree', 'ppl', 'cpl', 'restored_car', 'big_catch', 'blue_ribbon'];
+export const MILESTONES: FlagKey[] = ['varsity', 'full_ride', 'went_pro', 'all_star', 'champion', 'tours', 'mil_pension', 'purple_heart', 'degree', 'top_degree', 'ppl', 'cpl', 'restored_car', 'big_catch', 'blue_ribbon'];

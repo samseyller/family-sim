@@ -1,3 +1,4 @@
+import type { FlagKey } from './flags';
 import type { Bond, GameState, JournalKind, Person, StatKey } from './types';
 
 export const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v));
@@ -35,7 +36,7 @@ export function stat(p: Person, k: StatKey, d: number) {
   p.stats[k] = Math.round(clamp(p.stats[k] + d, 0, 100));
 }
 
-export function flag(p: Person, k: string, d = 1) {
+export function flag(p: Person, k: FlagKey, d = 1) {
   p.flags[k] = (p.flags[k] ?? 0) + d;
 }
 

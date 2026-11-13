@@ -127,7 +127,7 @@ export function sportsAction(state: GameState, a: SportsAction): GameState {
   const hh = s.households[me.householdId];
   if (a.kind === 'gear') {
     charge(hh, sp.gear.price);
-    me.flags[`gear_${me.sport}`] = 1;
+    me.flags[`gear_${me.sport!}`] = 1;
     journal(s, `You bought ${sp.gear.label.toLowerCase()}.`, 'info');
   } else if (a.join) {
     me.club = me.sport;

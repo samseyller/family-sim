@@ -169,7 +169,7 @@ export function applyPlan(s: GameState, rng: Rng): number {
     } else if (!st) {
       // Two idle years in a row and the school drops you, so tuition can't silently drain the wallet.
       flag(me, 'idle_study');
-      if (me.flags.idle_study >= 2) {
+      if ((me.flags.idle_study ?? 0) >= 2) {
         journal(s, `You stopped showing up to night school and were withdrawn from the ${PROGRAMS[me.education.program].short.toLowerCase()} program.`, 'bad');
         me.education = undefined;
         flag(me, 'dropped_out');

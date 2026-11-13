@@ -58,7 +58,7 @@ describe('job listings', () => {
     const s = newGame(1401);
     const me = active(s);
     me.stats.smarts = 100;
-    for (const f of ['degree', 'trade_cert', 'top_degree']) me.flags[f] = 1;
+    for (const f of ['degree', 'trade_cert', 'top_degree'] as const) me.flags[f] = 1;
     me.jobId = undefined;
     const open = new Set(openingsFor(s, 'full').map((c) => c.id));
     const closed = CAREERS.find((c) => c.hours === 'full' && !open.has(c.id))!;

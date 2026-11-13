@@ -52,7 +52,7 @@ export interface Person {
   /** Natural athletic ceiling (hidden; rolled the first time it matters). Most people peak below pro level. */
   athleticCeiling?: number;
   /** Memories and counters, e.g. degree, resents, parent_missed_events. */
-  flags: Record<string, number>;
+  flags: import('./flags').Flags;
   /** Full-time job. */
   jobId?: string;
   jobLevel: number;
