@@ -53,7 +53,8 @@ export const CATEGORIES: Record<Category, { label: string; icon: string }> = {
   kid: { label: 'Kid stuff', icon: '🧸' },
 };
 
-export type Who = 'solo' | 'household' | 'partner' | 'kids' | 'relative' | 'guests' | 'ex' | 'friends';
+/** close: anyone in your home, your partner, and relatives elsewhere. */
+export type Who = 'solo' | 'household' | 'partner' | 'kids' | 'relative' | 'guests' | 'ex' | 'friends' | 'close';
 
 export interface ActivityCtx {
   s: GameState;

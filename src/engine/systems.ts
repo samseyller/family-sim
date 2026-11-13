@@ -1,5 +1,6 @@
 import { CREATIVE_HOBBIES, reaction, scaled, yearTendencies, type Reaction, type Situation } from './personality';
 import { activitySituation } from './activitySituations';
+import { receiverFactor, remember } from './relationships';
 import { HOBBY_BY_ID } from '../content/actions';
 import { DEBT_RATE, LIFESTYLES, NPC_DEBT_FLOOR, SAVINGS_RATE } from '../content/economy';
 import { charge, credit, payDownDebt } from './money';
@@ -204,7 +205,7 @@ export function applyPlan(s: GameState, rng: Rng): number {
     const r = react('familyOuting');
     for (const m of membersOf(s, me.householdId)) {
       if (m.id === me.id) continue;
-      adjustBond(s, me.id, m.id, scaled(4 * dim(outing), r), 2 * dim(outing));
+      adjustBond(s, me.id, m.id, scaled(4 * dim(outing), r) * receiverFactor(m, 'experiences'), 2 * dim(outing));
       stat(m, 'happiness', 4 * dim(outing));
     }
     stat(me, 'happiness', scaled(3 * dim(outing), r));
@@ -216,13 +217,28 @@ export function applyPlan(s: GameState, rng: Rng): number {
     const n = g('partner_time');
     const together = partner.householdId === me.householdId;
     if (n) {
-      adjustBond(s, me.id, partner.id, scaled(8 * dim(n), react('partnerTime')), 5 * dim(n));
+      adjustBond(s, me.id, partner.id, scaled(8 * dim(n), react('partnerTime')) * receiverFactor(partner, 'time', n >= 3), 5 * dim(n));
       stat(me, 'happiness', 2 * dim(n));
       stat(partner, 'happiness', 3 * dim(n));
     } else if (!outing || !together) {
       adjustBond(s, me.id, partner.id, -9, -4);
+      remember(partner, 'missed', me.id, s.year);
       neglect = true;
       journal(s, `${partner.firstName} felt you were never around this year.`, 'bad');
+    }
+  }
+
+  // A promise of more time together, made last year, is kept or broken now.
+  if (partner && partner.flags.promised_time === s.year) {
+    delete partner.flags.promised_time;
+    if (g('partner_time') >= 2) {
+      remember(partner, 'promise_kept', me.id, s.year);
+      adjustBond(s, me.id, partner.id, 4, 8);
+      journal(s, `You kept your promise to ${partner.firstName}: more time together this year.`, 'good');
+    } else {
+      remember(partner, 'promise_broken', me.id, s.year);
+      adjustBond(s, me.id, partner.id, -4, -10);
+      journal(s, `You promised ${partner.firstName} more time together, and it didn't happen.`, 'bad');
     }
   }
 
@@ -230,7 +246,7 @@ export function applyPlan(s: GameState, rng: Rng): number {
     const t = g(`child_time:${kid.id}`);
     const h = ageOf(kid, s.year) >= 5 ? g(`homework:${kid.id}`) : 0;
     if (t) {
-      adjustBond(s, me.id, kid.id, scaled(8 * dim(t), react('childTime')), 6 * dim(t));
+      adjustBond(s, me.id, kid.id, scaled(8 * dim(t), react('childTime')) * receiverFactor(kid, 'time', t >= 3), 6 * dim(t));
       stat(kid, 'happiness', 3 * dim(t));
     }
     if (h) {
@@ -240,6 +256,7 @@ export function applyPlan(s: GameState, rng: Rng): number {
     if (!t && !h && !outing) {
       adjustBond(s, me.id, kid.id, -10, -6);
       flag(kid, 'neglected');
+      remember(kid, 'missed', me.id, s.year);
       neglect = true;
       stat(kid, 'happiness', -4);
       journal(s, `${kid.firstName} barely saw you this year.`, 'bad');

@@ -1,5 +1,6 @@
 /** Activities: At home, health, learning, fun and travel, and family visits. */
-import { activePartnership, adjustBond, ageOf, flag, getBond, membersOf, partnerOf, stat } from './util';
+import { connectionOf, forget, harmFrom, harmText } from './relationships';
+import { active, activePartnership, adjustBond, ageOf, flag, getBond, membersOf, partnerOf, stat } from './util';
 import { TEST_RESULTS_DELAY } from './healthEvents';
 import { maybeMeetFriend } from './friends';
 import { distanceOf, type ActivityDef, flat, each, names, bondAll, moodAll, hasHobby, professional, kidAges } from './activityKit';
@@ -139,6 +140,53 @@ export const HOME_ACTIVITIES: ActivityDef[] = [
       stat(c.me, 'health', 2);
       flag(c.me, 'clean_checkups');
       return { text: 'A clean bill of health. The doctor says keep it up.', tone: 'good' };
+    },
+  },
+  {
+    id: 'check_in', category: 'home', icon: '💬', label: 'Check in with them', who: 'close', max: 1, ages: [8, 120],
+    desc: 'Ask how they’re really doing, and listen. It won’t fix everything, but you’ll know where things stand.',
+    energy: flat(5), cost: flat(0),
+    run: (c) => {
+      const [p] = c.people;
+      // Asking first matters most to someone who needs room. Once a year per person counts (no farming trust).
+      if (p.flags.checked_in !== c.s.year) adjustBond(c.s, c.me.id, p.id, 2, connectionOf(p) === 'space' ? 5 : 3);
+      p.flags.checked_in = c.s.year;
+      const harm = harmFrom(p, c.me.id);
+      if (harm) return { text: `${p.firstName} admits ${p.sex === 'F' ? 'she' : 'he'}’s still hurt about you ${harmText(harm)}.`, tone: 'neutral' };
+      if (p.stats.stress >= 70) return { text: `${p.firstName} is overwhelmed and hadn’t wanted to say so. Now you know.`, tone: 'neutral' };
+      if (getBond(c.s, c.me.id, p.id).affinity < 0) return { text: `${p.firstName} answered in one word. There’s distance between you.`, tone: 'neutral' };
+      return { text: `${p.firstName} is doing well, and glad you asked.`, tone: 'good' };
+    },
+  },
+  {
+    id: 'ask_need', category: 'home', icon: '🤲', label: 'Ask what they need', who: 'close', max: 1, ages: [8, 120],
+    desc: 'Ask how they like to be supported. Their answer shows on the Family tab.',
+    energy: flat(6), cost: flat(0),
+    run: (c) => {
+      const [p] = c.people;
+      if (!p.flags.pref_known) adjustBond(c.s, c.me.id, p.id, 1, 2); // feeling heard, the first time
+      p.flags.pref_known = 1;
+      const pref = connectionOf(p);
+      if (pref === 'support' && p.stats.stress >= 70) stat(p, 'stress', -4);
+      const answer = { time: 'Just more time together, honestly.', support: 'A hand with the everyday stuff would mean a lot.', experiences: 'Let’s do something new together.', space: 'Some room to figure things out myself.' }[pref];
+      return { text: `${p.firstName} thought about it: "${answer}"`, tone: 'good' };
+    },
+  },
+  {
+    id: 'apologize', category: 'home', icon: '🕊️', label: 'Make a specific apology', who: 'close', max: 1, ages: [8, 120],
+    eligible: (s, p) => !!harmFrom(p, active(s).id),
+    desc: 'Name what you did and own it. Only for something that actually happened.',
+    energy: flat(8), cost: flat(0),
+    run: (c) => {
+      const [p] = c.people;
+      const harm = harmFrom(p, c.me.id)!;
+      forget(p, harm.kind, c.me.id);
+      if (getBond(c.s, c.me.id, p.id).trust < -30) {
+        adjustBond(c.s, c.me.id, p.id, 2, 4);
+        return { text: `You apologized for ${harmText(harm)}. ${p.firstName} heard you, but it will take time.`, tone: 'neutral' };
+      }
+      adjustBond(c.s, c.me.id, p.id, 4, 8);
+      return { text: `You apologized for ${harmText(harm)}, and meant it. ${p.firstName} let out a long breath and hugged you.`, tone: 'good' };
     },
   },
   {

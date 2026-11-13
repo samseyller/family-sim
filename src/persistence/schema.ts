@@ -58,6 +58,8 @@ const Person = z.object({
   pensionSalary: num.optional(),
   retirementSavings: num.optional(),
   stake: num.optional(),
+  connection: z.enum(['time', 'support', 'experiences', 'space']).optional(),
+  memories: z.array(z.object({ kind: z.enum(['missed', 'pressure', 'support', 'promise_kept', 'promise_broken']), of: id, year: int })).optional(),
   householdId: id,
   biologicalParents: z.array(id),
   adoptiveParents: z.array(id),
@@ -236,6 +238,7 @@ export function integrityProblems(s: GameState): string[] {
   for (const p of Object.values(s.people)) {
     if (!s.households[p.householdId]) problems.push(`${p.id} lives in missing household ${p.householdId}`);
     [...p.biologicalParents, ...p.adoptiveParents].forEach((pid) => person(pid, `${p.id}.parents`));
+    (p.memories ?? []).forEach((m) => person(m.of, `${p.id}.memories`));
   }
   for (const ps of s.partnerships) {
     person(ps.a, 'partnership');

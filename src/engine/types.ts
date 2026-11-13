@@ -17,6 +17,16 @@ export type Hobby = 'music' | 'sports' | 'art' | 'flying' | 'woodworking' | 'fis
 export type Program = 'degree' | 'trade_cert' | 'ppl' | 'cpl' | 'carpentry_cert' | 'auto_cert' | 'culinary_cert' | 'captains_license';
 
 /** Genome for the SVG avatar. Children inherit each gene from a parent. */
+/** A soft preference for how someone likes to be cared for. */
+export type Connection = 'time' | 'support' | 'experiences' | 'space';
+
+/** Something a person remembers about someone else (`of`). */
+export interface Memory {
+  kind: 'missed' | 'pressure' | 'support' | 'promise_kept' | 'promise_broken';
+  of: string;
+  year: number;
+}
+
 export interface Looks {
   skin: number;
   hairColor: number;
@@ -81,6 +91,10 @@ export interface Person {
   stake?: number;
   /** Part-time adult education (night school) in progress. */
   education?: { program: Program; progress: number; required: number; startYear: number };
+  /** How they most like to be cared for (set once it has changed; otherwise derived: see relationships.ts). */
+  connection?: Connection;
+  /** A few things they remember about how someone treated them (bounded and fading; see relationships.ts). */
+  memories?: Memory[];
   householdId: string;
   biologicalParents: string[];
   adoptiveParents: string[];

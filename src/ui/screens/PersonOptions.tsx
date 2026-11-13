@@ -1,5 +1,6 @@
 import type { ReactElement } from 'react';
-import { ACTIVITY_BY_ID, activityBlocker, distanceOf, relativesOutside } from '../../engine/activities';
+import { ACTIVITY_BY_ID, activityBlocker, candidatesFor, distanceOf, relativesOutside } from '../../engine/activities';
+import { harmFrom, harmText } from '../../engine/relationships';
 import { separatedFrom } from '../../engine/family';
 import { friendship, isDistant } from '../../engine/friends';
 import { householdBlocker, invitable, type HouseholdAction } from '../../engine/household';
@@ -24,6 +25,14 @@ export function PersonOptions({ g, p }: { g: GameState; p: Person }) {
     out.push(<ActionButton key={key} label={label} hint={hint} confirm={confirm} blocker={householdBlocker(g, a)} onClick={() => household(a)} />);
   const act = (id: string, label: string, hint: string) =>
     out.push(<ActionButton key={id} label={label} hint={hint} blocker={activityBlocker(g, id, [p.id])} onClick={() => activity(id, [p.id])} />);
+
+  // Anyone close: talk, listen, and own a mistake.
+  if (candidatesFor(g, ACTIVITY_BY_ID.check_in).some((x) => x.id === p.id)) {
+    act('check_in', `💬 Check in with ${p.firstName}`, 'See how they’re really doing');
+    if (!p.flags.pref_known) act('ask_need', '🤲 Ask what they need', 'Learn how they like to be supported');
+    const harm = harmFrom(p, me.id);
+    if (harm) act('apologize', '🕊️ Apologize', `For ${harmText(harm)}`);
+  }
 
   const ps = activePartnership(g, me.id);
   const isPartner = !!ps && (ps.a === p.id || ps.b === p.id);

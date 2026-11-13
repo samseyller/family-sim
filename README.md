@@ -455,8 +455,29 @@ Traits change how someone *reacts* to what they do, never what they can do or wh
 - **Tooltips:** hover a trait on Home or Family to see what it tends to bring and cost.
 - **New activities:** try something new together, help with their project, and a quiet day together. **New moments:**
   your help being noticed, and a new interest that sticks.
-- **Balance:** the balance suite compares legacy by the first character's traits; the weakest trait's median must stay
-  within 30% of the strongest (`traits.legacySpread`). `npx tsx scripts/personality.ts` prints a by-trait report.
+- **Balance:** the balance suite compares how lives go (bonds, achievement and wellbeing) by the first character's
+  traits; the weakest trait must stay within 15% of the strongest (`traits.legacySpread`; wealth is left out because
+  it swings too much between seeds to compare small groups). `npx tsx scripts/personality.ts` prints a by-trait report.
+
+## Relationships and close people
+
+- **Connection preferences** (`src/engine/relationships.ts`): each person most likes quality time, practical support,
+  shared experiences, or personal space (derived from their traits, and it can shift when they become an adult or
+  retire). Their preferred form of care builds the bond about 20% more; every form still helps, and every form has
+  a free activity. Pressing lots of time on someone who needs space helps a little less. When a preference shows, the
+  result card says so ("Maya loves time together.") and the Family card shows a clue from then on.
+- **Memories:** people remember a few things about you (a missed year, pressure, support, a kept or broken promise),
+  for up to 12 years and at most four each.
+- **Family actions** (Options on the Family tab, or Activities): check in (once a year per person counts), ask what
+  they need (reveals their preference), and make a specific apology (only for something they actually remember).
+- **Arcs:** someone still hurt about a missed year (talk, make amends, or let it be); time or money (promise more time
+  next year, and it is checked); a partner juggling work and the kids while you're rarely around (help, or give them
+  room).
+- **Close people act on their own** (`src/engine/agency.ts`): once a year a partner, child, parent or sibling may take
+  up a hobby or drop by (noted in the recap), or bring you a decision: a grown child's job offer in another city, a
+  partner's night school (household money: your call), an estranged relative reaching out, a sibling's reunion, or a
+  boundary after you pushed too hard. Stable rolls, at most one decision a year, each person at most every four
+  years; nobody spends household money without your decision. Children you invited home don't leave on their own.
 
 ## Activities, retirement, and the guided first life
 

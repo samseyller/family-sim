@@ -72,13 +72,15 @@ export function summarize(samples: SamplesByStrategy): Metrics {
     }
   }
 
-  // Personality: no trait should be a clearly better (or worse) way to live. Core styles only.
+  // Personality: no trait should be a clearly better (or worse) way to live. Core styles only. Measured on the
+  // non-wealth part of legacy (bonds, achievement, wellbeing): wealth swings far too much between seeds to compare
+  // groups of 30–60 lives (the total's spread ranged 0.62–0.84 across seed sets; this one 0.92–0.95).
   const core = STRATEGIES.flatMap((st) => samples[st] ?? []);
   const traitLegacy: number[] = [];
   for (const t of ['ambitious', 'kind', 'stubborn', 'curious', 'anxious', 'easygoing', 'creative', 'athletic']) {
     const lives = core.filter((l) => l.firstTraits.includes(t));
     if (lives.length < 8) continue;
-    m[`traits.${t}.legacy`] = median(lives.map((l) => l.legacy.total));
+    m[`traits.${t}.legacy`] = mean(lives.map((l) => l.legacy.bonds + l.legacy.achievement + l.legacy.wellbeing));
     traitLegacy.push(m[`traits.${t}.legacy`]);
   }
   if (traitLegacy.length) m['traits.legacySpread'] = ratio(Math.min(...traitLegacy), Math.max(...traitLegacy));
@@ -130,7 +132,7 @@ export const BANDS: Band[] = [
   { key: 'kids.degree', min: 0.15, max: 0.85, why: 'College should be common but not universal.' },
   { key: 'coverage.achievementsMissing', max: 0, why: 'Every achievement should be reached by at least one simulated life (otherwise it may be impossible).' },
   { key: 'coverage.eventsMissing', max: 0, why: 'Every event should fire in at least one simulated life (otherwise it may be dead content).' },
-  { key: 'traits.legacySpread', min: 0.7, why: 'No personality trait should be a clearly better way to live: the weakest trait’s median legacy stays within 30% of the strongest.' },
+  { key: 'traits.legacySpread', min: 0.85, why: 'No personality trait should be a clearly better way to live: the weakest trait’s average life (bonds, achievement, wellbeing) stays within 15% of the strongest.' },
   { key: 'hobbyist.hobbyPayVsCareer', min: 0.7, max: 1.5, why: 'A dedicated hobbyist’s best pay on their path should land near a career-focused player’s best (hobby careers are a real alternative to university, with more variance).' },
   { key: 'athlete.first.went_pro', min: 0.03, max: 0.35, why: 'Even a fully dedicated young athlete should only sometimes have the talent to go pro.' },
 ];

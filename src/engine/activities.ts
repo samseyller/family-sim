@@ -21,6 +21,7 @@ import { SOCIAL_ACTIVITIES } from './activitiesSocial';
 import { charge, hasCash } from './money';
 import { reaction, type Situation } from './personality';
 import { activitySituation } from './activitySituations';
+import { connectionOf, connectionPhrase, formOf, receiverFactor } from './relationships';
 
 export { CATEGORIES, distanceOf, relativesOutside } from './activityKit';
 export type { ActivityCtx, ActivityDef, Category, Who } from './activityKit';
@@ -62,6 +63,10 @@ export function candidatesFor(s: GameState, def: ActivityDef): Person[] {
   else if (def.who === 'partner') list = partnerOf(s, me.id) ? [partnerOf(s, me.id)!] : [];
   else if (def.who === 'kids') list = kidsAtHome(s, me);
   else if (def.who === 'relative' || def.who === 'guests') list = relativesOutside(s, me);
+  else if (def.who === 'close') {
+    const p = partnerOf(s, me.id);
+    list = [...membersOf(s, me.householdId).filter((x) => x.id !== me.id), ...(p && p.householdId !== me.householdId ? [p] : []), ...relativesOutside(s, me)];
+  }
   else if (def.who === 'ex') list = exesOf(s, me);
   else if (def.who === 'friends') list = friendsOf(s, me).filter((f) => def.where === 'near' ? isNear(s, f) : def.where === 'far' ? !isNear(s, f) : true);
   return def.eligible ? list.filter((p) => def.eligible!(s, p)) : list;
@@ -142,6 +147,20 @@ export function performActivity(state: GameState, id: string, ids: string[] = []
       people.forEach((p, i) => adjustBond(s, me.id, p.id, (getBond(s, me.id, p.id).affinity - before.bonds[i]) * extra, 0));
       if (r.note && Math.abs(extra) >= 0.1) result = { ...result, text: `${result.text} ${r.note}` };
     }
+    // Each person receives it their own way (a preferred form of care helps a bit more).
+    const form = formOf(activitySituation(id));
+    let explained = false;
+    people.forEach((p, i) => {
+      const f = receiverFactor(p, form);
+      const gained = getBond(s, me.id, p.id).affinity - before.bonds[i];
+      if (f === 1 || gained <= 0) return;
+      adjustBond(s, me.id, p.id, gained * (f - 1), 0);
+      if (f >= 1.15 && !explained && connectionOf(p) === form) {
+        explained = true;
+        p.flags.pref_known = 1;
+        result = { ...result, text: `${result.text} ${p.firstName} loves ${connectionPhrase[form!]}.` };
+      }
+    });
   }
 
   const changes: string[] = [];

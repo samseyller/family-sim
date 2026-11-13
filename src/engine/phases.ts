@@ -22,6 +22,8 @@ import { strategyPlan } from './strategies';
 import { applyCushion } from './tutorial';
 import { autoComeOfAge, die, settleEstates } from './family';
 import { pruneHistory, trimJournal } from './history';
+import { relationshipsYear } from './relationships';
+import { npcIntentions } from './agency';
 import { active, ageOf, alive, childrenOf, fullName, journal, partnerOf } from './util';
 
 function begin(state: GameState): { s: GameState; rng: Rng } {
@@ -72,6 +74,7 @@ export function resolveYear(state: GameState): GameState {
   applyCushion(s); //                  (guided playthrough: no ruin before 24)
   runPeople(s, rng); //             3. births, kids, NPC decisions
   driftBonds(s); //                 4. relationship drift
+  relationshipsYear(s); //             memories fade; preferences can shift at life transitions
   dogYear(s, rng); //                  pets: mood, bonds, aging
   catYear(s, rng); //                  cats too
   friendsYear(s, rng); //              friendships fade, drift apart, move away
@@ -81,6 +84,7 @@ export function resolveYear(state: GameState): GameState {
   settleEstates(s);
   homeLife(s); //                       perks of pools, gyms and the like
   rollMisfortunes(s, rng); //           accidents, fires, floods, bills, family in need
+  npcIntentions(s); //                  close people act on intentions of their own
   if (alive(active(s))) generateEvents(s, rng); // 5 + 7. due consequences and events
 
   if (s.pending.length) s.phase = 'DECISIONS';

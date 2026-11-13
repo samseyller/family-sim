@@ -1,6 +1,6 @@
 /**
  * Personality report: how lives go by the first character's traits, for the three core play styles.
- * Run before and after personality changes to compare (npx tsx scripts/personality.ts [livesPerStyle]).
+ * Run before and after personality changes to compare (npx tsx scripts/personality.ts [livesPerStyle] [firstSeed]).
  *
  * For each trait: lives with it, median legacy, average adult happiness and stress, average bond with own children
  * at 60, median net worth at 65, plus the average save size at the end of the line.
@@ -18,7 +18,7 @@ const med = (xs: number[]) => { const a = xs.filter((x) => Number.isFinite(x)).s
 const avg = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : NaN);
 
 for (const style of STRATEGIES) {
-  for (const seed of seedRange(1000, LIVES)) {
+  for (const seed of seedRange(Number(process.argv[3] ?? 1000), LIVES)) {
     let first: Trait[] = [];
     const row: Row = { legacy: 0, happy: [], stress: [], fulfil: [], kb: 0 };
     let last: GameState | undefined;

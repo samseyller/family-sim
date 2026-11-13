@@ -1,4 +1,5 @@
 import { TRAIT_INFO } from '../../engine/personality';
+import { connectionClue } from '../../engine/relationships';
 import { SPORTS } from '../../content/sports';
 import { useState } from 'react';
 import type { GameState, Person } from '../../engine/types';
@@ -83,6 +84,7 @@ function FamilyList({ g }: { g: GameState }) {
             {alive(p) && p.studyingUntil ? ` · at ${p.studyKind === 'top' ? 'a top university' : p.studyKind === 'trade' ? 'trade school' : 'university'}` : ''}
           </div>
           <div className="traits">{p.traits.map((t) => <span key={t} className="chip subtle" title={TRAIT_INFO[t]}>{t}</span>)}</div>
+          {alive(p) && p.flags.pref_known ? <div className="hint">💡 {connectionClue(p)}</div> : null}
           {alive(p) && (
             <>
               <BondMeter label="Affinity" v={b.affinity} />
