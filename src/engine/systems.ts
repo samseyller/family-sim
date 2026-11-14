@@ -1,3 +1,4 @@
+import { noteThread } from './threads';
 import { HOBBY_SETTLE } from './agency';
 import { CREATIVE_HOBBIES, reaction, scaled, yearTendencies, type Reaction, type Situation } from './personality';
 import { activitySituation } from './activitySituations';
@@ -185,6 +186,7 @@ export function applyPlan(s: GameState, rng: Rng): number {
       stat(me, 'smarts', prog.id === 'degree' ? 6 : 3);
       stat(me, 'happiness', 8);
       journal(s, `You earned your ${prog.short.toLowerCase()}!`, 'major');
+      noteThread(s, 'trained', me, undefined, { detail: prog.id });
       me.education = undefined;
     } else if (!st) {
       // Two idle years in a row and the school drops you, so tuition can't silently drain the wallet.
@@ -245,6 +247,13 @@ export function applyPlan(s: GameState, rng: Rng): number {
   }
 
   for (const kid of kidsAtHome(s, me)) {
+    if (kid.flags.promised_time === s.year) {
+      delete kid.flags.promised_time;
+      const kept = g(`child_time:${kid.id}`) >= 2;
+      remember(kid, kept ? 'promise_kept' : 'promise_broken', me.id, s.year);
+      adjustBond(s, me.id, kid.id, kept ? 4 : -4, kept ? 8 : -10);
+      journal(s, kept ? `You kept your promise to ${kid.firstName}: more time together this year.` : `You promised ${kid.firstName} more time, and it didn't happen.`, kept ? 'good' : 'bad');
+    }
     const t = g(`child_time:${kid.id}`);
     const h = ageOf(kid, s.year) >= 5 ? g(`homework:${kid.id}`) : 0;
     if (t) {
@@ -433,6 +442,7 @@ function childYear(s: GameState, rng: Rng, c: Person) {
   if (a >= 6 && !c.hobby && c.id !== me.id) {
     if (cp?.suggestHobby && rng.chance(r)) {
       c.hobby = cp.suggestHobby;
+      noteThread(s, 'encouraged', me, c, { detail: c.hobby });
       journal(s, `${c.firstName} took up ${HOBBY_BY_ID[c.hobby].label.toLowerCase()} at your suggestion.`, 'good');
     } else if (s.year - (c.flags.dropped_interest ?? -99) >= HOBBY_SETTLE && rng.chance(0.5)) {
       // A child who just let a hobby go gets a few years before trying something new (the player can still suggest one).
@@ -447,11 +457,13 @@ function childYear(s: GameState, rng: Rng, c: Person) {
 
   let study = 1.5 + (c.traits.includes('curious') ? 1 : 0) + (cp?.tutoring ? 3 : 0);
   let practice = c.hobby ? 2 + (cp?.lessons ? 3 : 0) + (c.flags.advanced ? 4 : 0) : 0;
+  if (cp?.lessons && c.hobby) noteThread(s, 'encouraged', me, c, { detail: c.hobby });
   if (cp && cp.focus !== 'free') {
     if (rng.chance(r)) {
       if (cp.focus === 'studies') study += 3;
-      else if (c.hobby) practice += 4;
+      else if (c.hobby) { practice += 4; noteThread(s, 'encouraged', me, c, { detail: c.hobby }); }
     } else {
+      if (a >= 10) noteThread(s, 'pushed', me, c);
       flag(c, 'resents');
       adjustBond(s, me.id, c.id, -3, -4);
       stat(c, 'happiness', -3);

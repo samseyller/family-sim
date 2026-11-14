@@ -3,6 +3,7 @@
  * time budget): homes, rentals, cars, investments, and college funds. Each is a
  * pure (state, …) → state transition, validated here so the UI can't cheat.
  */
+import { noteThread } from './threads';
 import {
   annuityPayment, BUY_COSTS, CARS, COLLEGE_FUND_CAP, GARAGE_BUILD, HOME_UPGRADES, HOMES, MORTGAGE_RATE, MORTGAGE_YEARS, MOVING_COST,
   type UpgradeId,
@@ -10,7 +11,7 @@ import {
 } from '../content/finance';
 import type { Asset, GameState, Household, Person } from './types';
 import { financeable, garageOf, makeCar, parkingFree, parkingSpots } from './cars';
-import { cityName, cityOfHousehold, homePriceIn, homeUpkeepIn, rentIn } from './location';
+import { cityName, cityOf, cityOfHousehold, homePriceIn, homeUpkeepIn, rentIn } from './location';
 import { CITIES, RELOCATION, type CityId } from '../content/cities';
 import { runsHousehold } from './household';
 import { gearBlocker, makeGear } from './hobbies';
@@ -19,7 +20,7 @@ import { retirePerson } from './retirement';
 import { unlockedTabs } from './tutorial';
 import { sanitizePlan } from './generate';
 import { EARLY_RETIREMENT_AGE } from '../content/retirement';
-import { active, ageOf, alive, journal, kidsAtHome, membersOf, money, newId, stat } from './util';
+import { active, ageOf, alive, journal, kidsAtHome, membersOf, money, newId, parentsOf, stat } from './util';
 import { bestSkill, diyFactor } from './handy';
 import { charge, credit, hasCash, invest, withdraw } from './money';
 
@@ -308,6 +309,7 @@ export function applyFinance(s: GameState, a: FinanceAction) {
       break;
     case 'retire': {
       const age = ageOf(me, s.year);
+      noteThread(s, 'retired', me, undefined, { detail: me.jobId ?? me.partJobId ?? '' });
       retirePerson(me, s.year);
       stat(me, 'happiness', 8);
       stat(me, 'stress', -15);
@@ -323,6 +325,9 @@ export function applyFinance(s: GameState, a: FinanceAction) {
     }
     case 'moveCity': {
       charge(hh, relocationCost(s, hh));
+      // Leaving a parent behind is a story that can come back.
+      const from = cityOfHousehold(hh);
+      if (parentsOf(s, me).some((p) => alive(p) && p.householdId !== hh.id && cityOf(s, p) === from)) noteThread(s, 'moved', me, undefined, { detail: from });
       const note = relocate(s, hh, a.city);
       s.plan = sanitizePlan(s, s.plan);
       journal(s, `You moved to ${cityName(a.city)}, ${CITIES[a.city].state}.${note}`, 'major');

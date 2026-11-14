@@ -2,7 +2,9 @@
  * Choosing what you want from life, and noticing when something's missing. Low fulfillment opens choices; it is
  * never a spiral: refocusing, talking it over, or choosing a new aspiration (with a grace period) all help.
  */
-import { local, type EventDef } from './eventKit';
+import { CAREER_BY_ID } from '../content/careers';
+import { closeThread, noteSiblings, openThread } from './threads';
+import { local, type Ctx, type EventDef } from './eventKit';
 import { ASPIRATION_INFO, ASPIRATIONS, aspirationOf, REFLECT_REASONS, setAspiration, suggestAspiration } from './fulfillment';
 import { charge, hasCash } from './money';
 import type { Aspiration, Person } from './types';
@@ -15,6 +17,21 @@ const grandkidsAndKids = (s: Parameters<typeof childrenOf>[0], p: Person) => [..
 export const ASPIRATION_GRACE = 2;
 /** Fulfillment below this (for a while) brings up "something's missing". */
 export const LOW_FULFILLMENT = 32;
+
+/** "After 31 years of work (last as a nurse), ": only what was recorded when you retired. */
+function retiredFrom(c: Ctx): string {
+  const t = openThread(c.s, 'retired', c.me.id);
+  const job = t?.detail ? CAREER_BY_ID[t.detail] : undefined;
+  const years = c.me.careerYears ?? 0;
+  if (years < 5) return '';
+  return `After ${years} years of work${job ? ` (last as a ${job.name.toLowerCase()})` : ''}, the mornings are yours. `;
+}
+
+/** " Work has come first in 2031, 2032 and 2034.": only recorded years. */
+function workFirstYears(c: Ctx): string {
+  const t = openThread(c.s, 'work_first', c.me.id);
+  return t && t.hits.length >= 3 ? ` Work has come first in ${t.hits.slice(-3).slice(0, -1).join(', ')} and ${t.hits[t.hits.length - 1]}.` : '';
+}
 
 export const ASPIRATION_EVENTS: EventDef[] = [
   {
@@ -128,11 +145,12 @@ export const ASPIRATION_EVENTS: EventDef[] = [
     candidates: (c) => {
       const young = kidsAtHome(c.s, c.me).filter((k) => ageOf(k, c.s.year) < 12);
       const driven = aspirationOf(c.me) === 'achievement' || c.me.traits.includes('ambitious');
-      return driven && young.length && c.me.jobId && (c.s.plan.alloc.work ?? 0) >= 6 && !c.me.flags.crossroads ? [{ weight: 2 }] : [];
+      const pattern = (openThread(c.s, 'work_first', c.me.id)?.hits.length ?? 0) >= 3;
+      return (driven || pattern) && young.length && c.me.jobId && (c.s.plan.alloc.work ?? 0) >= 6 && !c.me.flags.crossroads ? [{ weight: pattern ? 3 : 2 }] : [];
     },
     build: (c) => ({
       title: 'A crossroads',
-      text: 'A big promotion is in reach if you keep up the pace. Your kids are growing up fast, and you miss bedtime most nights.',
+      text: `A big promotion is in reach if you keep up the pace. Your kids are growing up fast, and you miss bedtime most nights.${workFirstYears(c)}`,
       choices: [
         { id: 'push', label: 'Go for it: this is the moment', hint: 'Career first for a few years' },
         { id: 'scale', label: 'Step back while they’re small', hint: 'Family first for a few years' },
@@ -141,6 +159,8 @@ export const ASPIRATION_EVENTS: EventDef[] = [
     }),
     resolve: (c, ch) => {
       flag(c.me, 'crossroads');
+      const wf = openThread(c.s, 'work_first', c.me.id);
+      if (wf) closeThread(wf, c.s.year, ch);
       c.s.scheduled.push({ dueYear: c.s.year + 3, eventId: 'crossroads_followup', subjectId: c.me.id });
       if (ch === 'push') { c.me.workPerf = Math.min(100, c.me.workPerf + 10); stat(c.me, 'stress', 4); return 'You leaned in. The next few years will tell what it cost.'; }
       if (ch === 'help') { charge(c.s.households[c.me.householdId], local(c, 6000)); stat(c.me, 'stress', -4); return 'A nanny two days a week. You still make it to bedtime, most nights.'; }
@@ -202,9 +222,9 @@ export const ASPIRATION_EVENTS: EventDef[] = [
     major: false,
     cooldown: 0,
     candidates: (c) => (c.me.retired && !c.me.flags.purpose_found && c.s.year - (c.me.flags.retired_year ?? c.s.year) >= 1 && (c.me.fulfillment ?? 50) < 55 ? [{ weight: 1.5 }] : []),
-    build: () => ({
+    build: (c) => ({
       title: 'What now?',
-      text: 'Retirement was supposed to feel like freedom. Some days it just feels long.',
+      text: `${retiredFrom(c)}Retirement was supposed to feel like freedom. Some days it just feels long.`,
       choices: [
         { id: 'service', label: '🤝 Give back: volunteer, mentor, help out', hint: 'Service' },
         { id: 'mastery', label: '🎯 Finally get good at something', hint: 'Mastery' },
@@ -213,6 +233,8 @@ export const ASPIRATION_EVENTS: EventDef[] = [
     }),
     resolve: (c, ch) => {
       flag(c.me, 'purpose_found');
+      const t = openThread(c.s, 'retired', c.me.id);
+      if (t) closeThread(t, c.s.year, ch);
       setAspiration(c.me, ch as Aspiration, c.s.year);
       if (ch === 'mastery' && c.me.hobby) c.me.skills[c.me.hobby] = Math.min(100, (c.me.skills[c.me.hobby] ?? 0) + 5);
       if (ch === 'connection') for (const k of grandkidsAndKids(c.s, c.me)) adjustBond(c.s, c.me.id, k.id, 5, 3);
@@ -244,6 +266,7 @@ export const ASPIRATION_EVENTS: EventDef[] = [
     resolve: (c, ch, k) => {
       const other = kidsAtHome(c.s, c.me).find((x) => x.id !== k!.id && ageOf(x, c.s.year) >= 7);
       const both = [k!, ...(other ? [other] : [])];
+      if (other) noteSiblings(c.s, c.me, k!, other, true);
       if (ch === 'sort') {
         if (c.rng.chance(0.5)) return 'Two days of silence, then they were building a fort together. Kids.';
         for (const x of both) stat(x, 'happiness', -3);

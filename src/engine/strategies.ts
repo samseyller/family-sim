@@ -56,9 +56,11 @@ function allocate(s: GameState, kind: Strategy, intents: JobIntent[], partTime: 
   } else {
     give('work', req);
     if (partTime) give('parttime', 2);
-    if (partner) give('partner_time', kind === 'family' ? 2 : 1);
+    // A promise of more time (made last year) is honored: two blocks for them this year.
+    const promised = (p: { flags: Record<string, number | undefined> }) => p.flags.promised_time === s.year;
+    if (partner) give('partner_time', kind === 'family' || promised(partner) ? 2 : 1);
     for (const k of kids) {
-      give(`child_time:${k.id}`, 1);
+      give(`child_time:${k.id}`, promised(k) ? 2 : 1);
       if (kind === 'family') give(`homework:${k.id}`, 1);
     }
   }

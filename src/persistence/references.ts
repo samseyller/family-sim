@@ -92,6 +92,8 @@ export function repairOlderRules(state: GameState): { state: GameState; notes: s
   }
   if (s.tutorial && !s.people[s.tutorial.personId]) delete s.tutorial;
   if (s.friends) s.friends = s.friends.filter((fs) => s.people[fs.id] && s.people[fs.of]);
+  // Story threads only add stories: ones pointing at people this save no longer has are dropped.
+  if (s.threads) s.threads = s.threads.filter((t) => s.people[t.ownerId] && (!t.subjectId || s.people[t.subjectId]));
   // If every pending decision was dropped, finish the year so play can continue.
   if (s.phase === 'DECISIONS' && s.pending.length === 0) {
     if (s.snapshot) finalizeRecap(s);

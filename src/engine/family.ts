@@ -1,3 +1,4 @@
+import { noteThread } from './threads';
 import { retirePerson } from './retirement';
 import { ESTATE_EXEMPTION, ESTATE_TAX_RATE } from '../content/economy';
 import { makeHousehold } from './generate';
@@ -170,6 +171,9 @@ export function die(s: GameState, p: Person, cause: string) {
   const estate = probateShare(s, p);
   p.deathYear = s.year;
   p.deathCause = cause;
+  // Losing someone close is part of the player's story (later stories can mention them).
+  const me = s.people[s.activeId];
+  if (me && me.id !== p.id && alive(me) && (partnerOf(s, me.id)?.id === p.id || p.biologicalParents.includes(me.id) || p.adoptiveParents.includes(me.id) || me.biologicalParents.includes(p.id) || me.adoptiveParents.includes(p.id))) noteThread(s, 'loss', me, p);
   if (estate) distributeEstate(s, p, estate);
   // Their claim on the household savings passes to whoever carries the household on.
   if ((p.stake ?? 0) > 0) {

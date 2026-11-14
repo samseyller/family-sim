@@ -223,6 +223,19 @@ export const GameStateSchema = z.object({
   lastActivity: z.object({ id: z.string(), title: z.string(), text: z.string(), tone: z.enum(['good', 'bad', 'neutral']), changes: z.array(z.string()) }).optional(),
   friends: z.array(z.object({ id, of: id, since: int, lastSeen: int, distant: z.boolean().optional(), how: z.string().max(60).optional() })).optional(),
   tutorial: z.object({ personId: id, seen: z.array(z.string()) }).optional(),
+  threads: z.array(z.object({
+    kind: z.enum(['strain', 'supported', 'encouraged', 'pushed', 'siblings', 'work_first', 'trained', 'missed_chance', 'aspiration', 'moved', 'retired', 'loss']),
+    ownerId: id,
+    subjectId: id.optional(),
+    detail: z.string().max(60).optional(),
+    since: int,
+    hits: z.array(int).max(20),
+    answers: z.array(int).max(20).optional(),
+    shown: int.optional(),
+    closed: int.optional(),
+    outcome: z.string().max(30).optional(),
+    inherited: id.optional(),
+  })).max(200).optional(),
 });
 
 // Compile-time guard: the schema's output must stay assignable to GameState.

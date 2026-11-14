@@ -244,6 +244,31 @@ export interface JournalEntry {
   who: string;
 }
 
+/** Long-running patterns in a life that can matter years later (see engine/threads.ts). */
+export type ThreadKind = 'strain' | 'supported' | 'encouraged' | 'pushed' | 'siblings' | 'work_first' | 'trained' | 'missed_chance' | 'aspiration' | 'moved' | 'retired' | 'loss';
+
+export interface Thread {
+  kind: ThreadKind;
+  /** The played character whose story this is. */
+  ownerId: string;
+  /** Who it concerns, if anyone. */
+  subjectId?: string;
+  /** What it is about (a hobby, a program, a city, a job, an aspiration, a sibling's id). */
+  detail?: string;
+  since: number;
+  /** Distinct years the pattern showed up (most recent few). */
+  hits: number[];
+  /** Distinct years it was answered (showing up after a strain, siblings clashing...). */
+  answers?: number[];
+  /** Last year a follow-up raised it (so the same conflict isn't raised every year). */
+  shown?: number;
+  /** Year it resolved, faded or ended, and how. */
+  closed?: number;
+  outcome?: string;
+  /** Passed on at succession from this character. */
+  inherited?: string;
+}
+
 export interface Recap {
   year: number;
   statDeltas: Partial<Stats>;
@@ -291,6 +316,8 @@ export interface GameState {
   friends?: Friendship[];
   /** Guided first playthrough: who is being guided, and which tips have been seen. */
   tutorial?: { personId: string; seen: string[] };
+  /** Story threads: bounded records of patterns that can matter years later (engine/threads.ts). */
+  threads?: Thread[];
 }
 
 export interface ActivityResult {

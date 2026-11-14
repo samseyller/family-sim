@@ -1,4 +1,5 @@
 /** Friends: lunches, neighbors, school friends, a friend in need, weddings. */
+import { remember } from './relationships';
 import { cityName, cityOf, isNear, myCity } from './location';
 import { afterTogether, canMakeFriends, friendsOf, makeFriend } from './friends';
 import { makeAdultStranger } from './generate';
@@ -91,6 +92,7 @@ export const FRIEND_EVENTS: EventDef[] = [
       if (ch === 'lend') {
         charge(wallet(c), 2000);
         adjustBond(c.s, c.me.id, f!.id, 12, 12);
+        remember(f!, 'support', c.me.id, c.s.year);
         afterTogether(c.s, c.me, f!);
         // Half the time it comes back with interest in gratitude.
         if (c.rng.chance(0.5)) {

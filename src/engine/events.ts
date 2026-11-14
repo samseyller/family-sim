@@ -2,6 +2,7 @@
  * Events: the registry, yearly pacing (generateEvents), resolving a choice, and keeping waiting events current.
  * The events themselves live in topic files (workEvents, familyEvents, lifeEvents, ...).
  */
+import { STORY_EVENTS } from './storyEvents';
 import { CHILD_EVENTS } from './childhood';
 import { LIFE_EVENTS } from './lifeEvents';
 import { HOBBY_EVENTS } from './hobbyEvents';
@@ -41,6 +42,7 @@ const ALL_EVENTS: EventDef[] = [
   ...RELATIONSHIP_EVENTS,
   ...ASPIRATION_EVENTS,
   ...CAREER_EVENTS,
+  ...STORY_EVENTS,
 ];
 
 export const EVENT_BY_ID: Record<string, EventDef> = Object.fromEntries(ALL_EVENTS.map((e) => [e.id, e]));
@@ -83,9 +85,10 @@ export function generateEvents(s: GameState, rng: Rng) {
     for (const cand of def.candidates(c)) if (cand.weight > 0) eligible.push({ def, cand });
   }
 
-  // At most one work moment a year: once one is pending, other work events wait.
+  // At most one work moment and one story follow-up a year: once one is pending, others of its kind wait.
   let workUsed = s.pending.some((p) => EVENT_BY_ID[p.eventId]?.work);
-  const allowed = (e: { def: EventDef }) => !(workUsed && e.def.work);
+  let storyUsed = s.pending.some((p) => EVENT_BY_ID[p.eventId]?.story);
+  const allowed = (e: { def: EventDef }) => !(workUsed && e.def.work) && !(storyUsed && e.def.story);
   if (!s.pending.some((p) => p.major)) {
     const urgent = eligible.filter((e) => e.def.major && e.cand.urgent && allowed(e));
     let pick = rng.weighted(urgent.map((e) => [e, e.cand.weight] as const));
@@ -97,7 +100,7 @@ export function generateEvents(s: GameState, rng: Rng) {
         pick = rng.weighted(eligible.filter((e) => e.def.major && allowed(e)).map((e) => [e, e.cand.weight] as const));
       }
     }
-    if (pick) { pushPending(c, pick.def, pick.cand.subject, true); if (pick.def.work) workUsed = true; }
+    if (pick) { pushPending(c, pick.def, pick.cand.subject, true); if (pick.def.work) workUsed = true; if (pick.def.story) storyUsed = true; }
   } else {
     // Something major already happened this year; long-overdue news (a promotion earned years
     // ago) still comes, so a run of bad luck can't hold it back forever.
@@ -113,7 +116,9 @@ export function generateEvents(s: GameState, rng: Rng) {
     if (!rng.chance(0.55)) continue;
     pushPending(c, pick.def, pick.cand.subject, true);
     count++;
-    if (pick.def.work) { workUsed = true; minors = minors.filter(allowed); }
+    if (pick.def.work) workUsed = true;
+    if (pick.def.story) storyUsed = true;
+    if (pick.def.work || pick.def.story) minors = minors.filter(allowed);
   }
 }
 

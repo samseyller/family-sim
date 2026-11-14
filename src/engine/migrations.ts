@@ -104,6 +104,11 @@ const STEPS: Record<number, Step> = {
   21: (s) => s,
   // v22 → v23: a short history of earlier aspirations (optional). Nothing to rewrite.
   22: (s) => s,
+  // v23 → v24: story threads (optional). A malformed list is dropped rather than rejected: threads only add stories.
+  23: (s) => {
+    if (s.threads !== undefined && !Array.isArray(s.threads)) delete s.threads;
+    return s;
+  },
   10: (s) => {
     const garages: Record<string, number> = { 'Starter home': 0, 'Family home': 2, 'Large home': 2 };
     for (const hh of isObj(s.households) ? Object.values(s.households).filter(isObj) : []) {

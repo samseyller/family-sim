@@ -39,6 +39,8 @@ export interface EventDef {
   severe?: boolean;
   /** A work moment: at most one comes up a year (see generateEvents and careerEvents.ts). */
   work?: boolean;
+  /** A story follow-up from a recorded thread (storyEvents.ts): at most one comes up a year. */
+  story?: boolean;
 }
 
 export const wallet = (c: Ctx) => c.s.households[c.me.householdId];

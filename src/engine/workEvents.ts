@@ -1,4 +1,5 @@
 /** Work and learning: promotions, burnout, layoffs, retirement, night school and new credentials. */
+import { noteThread } from './threads';
 import { workplace } from './careerEvents';
 import { HOBBY_BY_ID, TIME_BUDGET } from '../content/actions';
 import { readiness } from './retirement';
@@ -22,7 +23,7 @@ const childBlocks = (c: Ctx, k: Person) =>
   (c.s.plan.alloc[`child_time:${k.id}`] ?? 0) + (c.s.plan.alloc[`homework:${k.id}`] ?? 0);
 
 /** Ready for the next rank: the career has one, and any hobby skill it needs is there. */
-function canPromote(p: Person) {
+export function canPromote(p: Person) {
   const job = p.jobId ? CAREER_BY_ID[p.jobId] : undefined;
   if (!job || !hasLadder(job) || job.military || job.pro) return false; // military ranks come with tours; pro ranks with play
   const need = promoSkillFor(job, p.jobLevel);
@@ -74,6 +75,7 @@ export const WORK_EVENTS: EventDef[] = [
         return 'You accepted. The new title feels good. The calendar feels fuller.';
       }
       flag(c.me, 'declined_promotion');
+      noteThread(c.s, 'missed_chance', c.me, undefined, { detail: `${c.me.jobId}:${c.me.jobLevel}` });
       stat(c.me, 'happiness', 2);
       return 'You declined. Your manager seemed surprised, but you went home on time.';
     },
@@ -222,6 +224,7 @@ export const WORK_EVENTS: EventDef[] = [
     },
     resolve: (c, ch) => {
       if (ch === 'retire') {
+        noteThread(c.s, 'retired', c.me, undefined, { detail: c.me.jobId ?? '' });
         retire(c.me, c.s.year);
         stat(c.me, 'happiness', 8);
         stat(c.me, 'stress', -15);

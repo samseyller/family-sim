@@ -15,6 +15,7 @@
  * Rate limits keep it special: per person, one decision every INTENT_GAP years and one private step every NOTE_GAP
  * years; per year, at most one decision and NOTES_PER_YEAR recap notes.
  */
+import { noteSiblings } from './threads';
 import { CAREER_BY_ID, qualifies, type Career } from '../content/careers';
 import { HOBBY_BY_ID } from '../content/actions';
 import { relativesOutside } from './activityKit';
@@ -354,6 +355,7 @@ export const DECISIONS: DecisionDef[] = [
     act: ({ s, me, p }, top) => {
       const sib = siblingAtHome(s, me, p)!;
       adjustBond(s, p.id, sib.id, 5, 3);
+      noteSiblings(s, me, p, sib);
       return top?.id === 'shared_interest'
         ? `${p.firstName} and ${sib.firstName} have been doing ${hobbyName(p.hobby!)} together every chance they get.`
         : `${p.firstName} and ${sib.firstName} have been getting along better than ever.`;

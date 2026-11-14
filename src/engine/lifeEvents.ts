@@ -10,6 +10,7 @@
  * medical bills, an adult child in legal trouble, and relatives asking for money. Insurance
  * (paid every year in the budget) turns most disasters into a deductible.
  */
+import { remember } from './relationships';
 import { CITIES } from '../content/cities';
 import { DEDUCTIBLE } from '../content/economy';
 import { makeCar, parkingFree, workingCars } from './cars';
@@ -481,6 +482,7 @@ export const LIFE_EVENTS: EventDef[] = [
       if (ch === 'no') { adjustBond(c.s, c.me.id, p!.id, -8, -4); return `${p!.firstName} said they understood. They didn't call for a while.`; }
       give(c, p!, ask);
       adjustBond(c.s, c.me.id, p!.id, ch === 'give' ? 8 : 4, 4);
+      remember(p!, 'support', c.me.id, c.s.year);
       if (ch === 'lend') c.s.scheduled.push({ dueYear: c.s.year + 2, eventId: 'loan_repaid', subjectId: p!.id });
       return `${p!.firstName} hugged you and promised to pay it forward.`;
     },

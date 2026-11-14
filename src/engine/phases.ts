@@ -7,6 +7,7 @@
  * Saves happen only at these boundaries (and after each decision), so a reload
  * never repeats salary, aging, or event effects.
  */
+import { inheritThreads, threadsYear } from './threads';
 import { makeRng, type Rng } from './rng';
 import type { GameState, Person, Plan, StatKey } from './types';
 import { defaultPlan, sanitizePlan } from './generate';
@@ -87,6 +88,7 @@ export function resolveYear(state: GameState): GameState {
   rollMisfortunes(s, rng); //           accidents, fires, floods, bills, family in need
   npcIntentions(s); //                  close people act on intentions of their own
   npcFulfillmentYear(s, closePeople(s), (t) => journal(s, t, 'info')); // and how their lives are going
+  threadsYear(s); //                     record long-running patterns; age out stale ones
   if (alive(active(s))) generateEvents(s, rng); // 5 + 7. due consequences and events
 
   if (s.pending.length) s.phase = 'DECISIONS';
@@ -168,6 +170,7 @@ export function chooseHeir(state: GameState, heirId: string | null): GameState {
   s.lineage.push(heirId);
   s.year++;
   const heir = active(s);
+  inheritThreads(s, prev.id, heir); //  the story carries on; the personality doesn't
   // An heir who never had a coming-of-age moment gets one now (stays home).
   if (!heir.flags.came_of_age) autoComeOfAge(s, rng, heir, false);
   // Money rules: the household continues if anyone survives; emptied households

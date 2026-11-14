@@ -504,6 +504,35 @@ Traits change how someone *reacts* to what they do, never what they can do or wh
   - `npx tsx scripts/stories.ts [lives] [seed]` reports how often each decision happens and how much likelier each
     trait makes it.
 
+## Consequences across years (story threads)
+
+Some patterns come back years later (`src/engine/threads.ts`, follow-ups in `src/engine/storyEvents.ts`). A *thread*
+is a small record of something the game actually saw: who it concerns, the distinct years it showed up, the years it
+was answered, and how it ended. Most choices never create one; only recurring patterns and a few significant moments
+do. Follow-ups quote only what a thread recorded, so nobody remembers something that didn't happen.
+
+| Thread | Recorded when | Can lead to |
+|---|---|---|
+| strain | someone remembers you hurting them (missed, pushed, broken promise) in 2+ different years | *Drifting apart* after 3 recent hurts (make real time, which they'll hold you to next year, or give them room); *They noticed* after 3 years of showing up with no new hurt (forgiven, bond restored) |
+| supported | someone remembers your help in 2+ different years | *Gratitude* when you're struggling, or later; passes to your heir ("Your mother was there for me…") |
+| encouraged | your child's interest you backed (lessons, practice they welcomed, a hobby you suggested) | *Hasn't forgotten* when they're grown and still at it; closes quietly if they moved on |
+| pushed | your child pushing back against your plans, year after year | *Brings it up* as an adult (apologize, or explain) |
+| siblings | two of your kids bonding or clashing | *Grown up*: still close, or a dinner to bring them together |
+| work_first | years of heavy work with young kids and little time for them | the *crossroads* event, which now cites those years |
+| trained / missed_chance | a credential earned as an adult / a promotion turned down | *That credential paid off*; *A second chance* (only half ever return, and only while the job still fits) |
+| aspiration | years your fulfillment stayed high under one aspiration | a *milestone* after 7 such years (fades after 2 years without) |
+| moved / retired / loss | leaving a parent behind / retiring / losing someone close | *A parent back home* when they're old or unwell; *What now?* names your last job; loss feeds later stories |
+
+- **Pacing:** follow-ups are ordinary minor events marked `story`; at most one comes up a year and they share the
+  yearly cap. A conflict raised once isn't raised again for five years. About 6 follow-ups per 100 played years.
+- **Lifecycle:** a thread with no new hit for a while fades; one about someone who died ends (except the loss
+  itself); a changed hobby, job or aspiration ends the old one. At succession the heir inherits the story, not the
+  personality: only "supported" threads pass on. Closed threads stay 40 years (for the life story), then go; a save
+  holds at most 60 (simulated lives peak around 25), each keeping at most 8 years.
+- **Saves:** schema 24 adds the optional `threads` list; a malformed list in an old save is dropped, not rejected,
+  and older-rules repair drops threads pointing at missing people.
+- `scripts/stories.ts` also reports thread counts, how they end, and follow-up rates.
+
 ## Aspiration and fulfillment
 
 - **Aspiration** (`src/engine/fulfillment.ts`): what someone wants from life now: connection, mastery, achievement,

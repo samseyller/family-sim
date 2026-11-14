@@ -107,7 +107,7 @@ export const FLAG_INFO = {
   aspiration_asked: 'Year the player was asked to choose an aspiration',
   checked_in: 'Year the player last checked in with them (the bond gain counts once a year)',
   pref_known: 'The player has learned how this person likes to be cared for (shown on the Family tab)',
-  promised_time: 'Year a partner was promised more time together (checked that year)',
+  promised_time: 'Year a partner or child at home was promised more time together (checked that year)',
   no_outlet_years: 'Years in a row without a creative outlet (creative people feel it after 3)',
   routine_years: 'Years in a row with nothing new (curious people feel it after 2)',
   new_interest: 'New interests they kept up',
