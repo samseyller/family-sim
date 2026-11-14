@@ -13,6 +13,7 @@ import { PLAY_STYLES } from '../src/balance/playstyles';
 import { playLife, seedRange } from '../src/balance/simulate';
 import { DECISIONS, decisionRoll, evaluate, type DecisionCtx } from '../src/engine/agency';
 import { buildMemorial } from '../src/engine/memorial';
+import { rememberedFor } from '../src/engine/narrative';
 import { STORY_IDS } from '../src/engine/storyEvents';
 import type { GameState, Thread, Trait } from '../src/engine/types';
 
@@ -53,6 +54,7 @@ const threads = new Map<string, Thread>();
 let maxThreads = 0;
 /** How played characters are remembered, by play style. */
 const remembered: Record<string, Record<string, number>> = {};
+const plain: Record<string, [number, number]> = {};
 for (const style of PLAY_STYLES) for (const seed of seedRange(FIRST, LIVES)) {
   life++;
   let last: GameState | undefined;
@@ -63,6 +65,9 @@ for (const style of PLAY_STYLES) for (const seed of seedRange(FIRST, LIVES)) {
   });
   years += sample.years;
   for (const e of buildMemorial(last!).entries) {
+    const pl = (plain[style.id] ??= [0, 0]);
+    pl[1]++;
+    if (!rememberedFor(last!, e.person)) pl[0]++;
     const k = e.knownFor.replace(/ as an? .*/, '').replace(/^mastering .*/, 'mastering a craft');
     (remembered[style.id] ??= {})[k] = (remembered[style.id][k] ?? 0) + 1;
   }
@@ -120,8 +125,9 @@ console.log('\nRecognized patterns per 100 played years');
 const pats: Record<string, number> = {};
 for (const th of threads.values()) if (th.kind === 'pattern') { const k = th.detail!.split(':')[0]; pats[k] = (pats[k] ?? 0) + 1; }
 for (const [k, n] of Object.entries(pats).sort((a, b) => b[1] - a[1])) console.log(`${k.padEnd(14)}${pad((n / years * 100).toFixed(2), 7)}`);
-console.log('\nRemembered for (played characters, by play style)');
+const allPlain = Object.values(plain).reduce((a, [x, n]) => [a[0] + x, a[1] + n], [0, 0]);
+console.log(`\nRemembered for (played characters, by play style; plain reading overall ${Math.round((allPlain[0] / allPlain[1]) * 100)}%)`);
 for (const [style, ks] of Object.entries(remembered)) {
   const n = Object.values(ks).reduce((a, b) => a + b, 0);
-  console.log(`${style.padEnd(10)} ${Object.entries(ks).sort((a, b) => b[1] - a[1]).slice(0, 4).map(([k, c]) => `${k} ${Math.round(c / n * 100)}%`).join(', ')}`);
+  console.log(`${style.padEnd(10)} plain ${Math.round((plain[style][0] / plain[style][1]) * 100)}% · ${Object.entries(ks).sort((a, b) => b[1] - a[1]).slice(0, 4).map(([k, c]) => `${k} ${Math.round(c / n * 100)}%`).join(', ')}`);
 }

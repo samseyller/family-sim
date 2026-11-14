@@ -38,10 +38,13 @@ function knownFor(s: GameState, p: Person): string {
   // The same reading in a few words, so families don't all sound alike (stable per person).
   const say = (...xs: string[]) => xs[stableHash(`${s.seed}:${p.id}:known`) % xs.length];
   if (kids.length && avgBond >= 40) return say('a devoted parent', 'always being there for the kids', 'a home the kids loved coming back to');
+  if (kids.length >= 3 && (p.careerYears ?? 0) >= 20) return say('a full house and a busy life', 'a crowded kitchen table and a long workweek');
   if (p.jobLevel >= 3) return say('years of steady, good work', 'showing up for work, year after year', 'a steady hand and honest work');
+  if (ageOf(p, p.deathYear ?? s.year) >= 85) return say('a long life, well lived', 'eighty-some years of it, and no regrets they’d admit to');
   if (p.flags.health_vow) return say('a second chance at health', 'turning their health around');
   if (p.stats.happiness >= 70) return say('a contented life', 'finding joy in ordinary days', 'a quick laugh and an easy heart');
   if (p.flags.declined_promotion) return say('choosing family over the corner office', 'going home on time, on purpose');
+  if (kids.length) return say(`raising ${NUMBER_WORDS[kids.length] ?? kids.length} ${kids.length === 1 ? 'child' : 'children'}`, 'bringing up a family');
   return say('quiet perseverance', 'carrying on through hard years', 'getting up and trying again');
 }
 

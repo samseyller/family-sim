@@ -29,7 +29,7 @@
  */
 import { inheritTraditions, traditionsYear } from './traditions';
 import type { GameState, Person, Thread, ThreadKind } from './types';
-import { active, ageOf, alive, kidsAtHome, partnerOf } from './util';
+import { active, ageOf, alive, childrenOf, getBond, kidsAtHome, partnerOf } from './util';
 
 /** Distinct years kept per thread, closed threads kept for the life story, and threads kept at most. */
 const YEARS_KEPT = 8;
@@ -159,6 +159,17 @@ function record(s: GameState, me: Person) {
   if (partner && (alloc.partner_time ?? 0) >= 1 && !hurtNow(partner)) noteThread(s, 'strain', me, partner, { answer: true });
   const kids = kidsAtHome(s, me);
   for (const k of kids) if ((alloc[`child_time:${k.id}`] ?? 0) >= 1 && !hurtNow(k)) noteThread(s, 'strain', me, k, { answer: true });
+
+  // A lifetime tally for the memorial: years with children at home, and how many of them had real family time.
+  if (kids.length) {
+    me.flags.parent_years = (me.flags.parent_years ?? 0) + 1;
+    const time = (alloc.family_outing ?? 0) + (alloc.partner_time ?? 0) + kids.reduce((n, k) => n + (alloc[`child_time:${k.id}`] ?? 0), 0);
+    if (time >= Math.min(2, kids.length)) me.flags.family_years = (me.flags.family_years ?? 0) + 1;
+  }
+  // How close each child was to you when they turned 18 (set once).
+  for (const k of childrenOf(s, me.id)) {
+    if (alive(k) && ageOf(k, s.year) === 18 && k.flags.bond18 === undefined) k.flags.bond18 = getBond(s, me.id, k.id).affinity;
+  }
 
   // Work far ahead of time with young children.
   const young = kids.filter((k) => ageOf(k, s.year) < 12);

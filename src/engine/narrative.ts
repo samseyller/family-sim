@@ -313,14 +313,21 @@ export function rememberedFor(s: GameState, p: Person): string | undefined {
   const kids = childrenOf(s, p.id);
   const kidBond = kids.length ? kids.reduce((n, k) => n + getBond(s, p.id, k.id).affinity, 0) / kids.length : 0;
   const closeKids = kids.length > 0 && kidBond >= 30;
+  // The whole life, not just the end: family time while the kids were home, and how close they were at 18.
+  const parentYears = p.flags.parent_years ?? 0;
+  const timeShare = parentYears >= 5 ? (p.flags.family_years ?? 0) / parentYears : 0;
+  const at18 = kids.map((k) => k.flags.bond18).filter((b): b is number => b !== undefined);
+  const bond18 = at18.length ? at18.reduce((a, b) => a + b, 0) / at18.length : undefined;
   const workFirst = (s.threads ?? []).some((t) => t.ownerId === p.id && t.kind === 'work_first' && t.hits.length >= 3);
   const job = p.jobId ? CAREER_BY_ID[p.jobId] : retiredFrom(s, p);
   const [skill, lvl] = (Object.entries(p.skills) as [Hobby, number][]).sort((a, b) => b[1] - a[1])[0] ?? [];
   // Each candidate scores from the facts that support it; the strongest wins.
   const scores: [string, number][] = [
-    ['a life devoted to family', (closeKids ? 2 + kids.length * 0.3 : 0) + (asp === 'connection' ? 2 : wanted.has('connection') ? 0.8 : 0) + (has('mended') ? 1 : 0) + (has('backed') ? 1 : 0) + (has('tradition') ? 1 : 0) + ((traditionsKeptBy(s, p.id)[0]?.count ?? 0) >= 10 ? 1 : 0) - (workFirst ? 1 : 0)],
+    ['a life devoted to family', (timeShare >= 0.8 ? 1.4 : timeShare >= 0.5 ? 0.7 : 0) + (bond18 === undefined ? 0 : bond18 >= 50 ? 1.4 : bond18 >= 35 ? 0.7 : 0) + (closeKids ? 0.6 + kids.length * 0.2 : 0) + (asp === 'connection' ? 2 : wanted.has('connection') ? 0.8 : 0) + (has('mended') ? 1 : 0) + (has('backed') ? 1 : 0) + (has('tradition') ? 1 : 0) + ((traditionsKeptBy(s, p.id)[0]?.count ?? 0) >= 10 ? 1 : 0) - (workFirst ? 1 : 0)],
     [`mastering ${skill ? hobbyName(skill) : 'a craft'}`, (lvl >= 70 ? 2 + (lvl - 70) / 10 : 0) + (asp === 'mastery' ? 2 : wanted.has('mastery') ? 0.5 : 0) + (job?.skill === skill && lvl >= 70 ? 1 : 0)],
-    [job?.startup ? 'building something of their own' : `a driven career${job ? ` as ${/^[aeiou]/i.test(job.name) ? 'an' : 'a'} ${job.name.toLowerCase()}` : ''}`, (p.jobLevel >= 3 ? 1.2 : 0) + (job?.startup ? 1.5 : 0) + (asp === 'achievement' ? 2 : wanted.has('achievement') ? 0.8 : 0) + (workFirst ? 1 : 0) + (has('second_chance') || has('studied') ? 0.5 : 0)],
+    [job?.startup ? 'building something of their own' : `a driven career${job ? ` as ${/^[aeiou]/i.test(job.name) ? 'an' : 'a'} ${job.name.toLowerCase()}` : ''}`, (p.jobLevel >= 3 ? 1.2 : 0) + (job?.startup ? 1.5 : 0) + (asp === 'achievement' ? 2 : wanted.has('achievement') ? 0.8 : 0) + (workFirst ? 1 : 0)
+      // Mostly at work while the kids were home, and a long career: the whole life says it too.
+      + (parentYears >= 5 && timeShare < 0.3 ? 0.8 : 0) + ((p.careerYears ?? 0) >= 30 ? 0.5 : 0) + (has('second_chance') || has('studied') ? 0.5 : 0)],
     ['a life of exploring', (asp === 'exploration' ? 3 : wanted.has('exploration') ? 1 : 0) + (has('moved') ? 1 : 0)],
     ['a life of service', (asp === 'service' ? 3 : wanted.has('service') ? 1 : 0) + (facts.some((f) => f.id === 'retired' && f.text.includes('service')) ? 1.5 : 0)],
     ['keeping the family safe and steady', asp === 'security' ? 3 : wanted.has('security') ? 1 : 0],
