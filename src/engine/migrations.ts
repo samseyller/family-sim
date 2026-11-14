@@ -109,6 +109,8 @@ const STEPS: Record<number, Step> = {
     if (s.threads !== undefined && !Array.isArray(s.threads)) delete s.threads;
     return s;
   },
+  // v24 → v25: recognized story patterns (a new thread kind) and story-marked journal entries (optional). Nothing to rewrite.
+  24: (s) => s,
   10: (s) => {
     const garages: Record<string, number> = { 'Starter home': 0, 'Family home': 2, 'Large home': 2 };
     for (const hh of isObj(s.households) ? Object.values(s.households).filter(isObj) : []) {

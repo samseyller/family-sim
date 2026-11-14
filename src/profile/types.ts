@@ -53,6 +53,8 @@ export interface ArchivedMember {
   aim?: string;
   /** Generated at the end of the story; the player can rewrite it. */
   epitaph: string;
+  /** A few true lines about the life they lived (optional; older archives have none). */
+  story?: string[];
   children: number;
   highlights: string[];
 }

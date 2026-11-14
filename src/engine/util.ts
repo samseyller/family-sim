@@ -40,8 +40,8 @@ export function flag(p: Person, k: FlagKey, d = 1) {
   p.flags[k] = (p.flags[k] ?? 0) + d;
 }
 
-export function journal(s: GameState, text: string, kind: JournalKind = 'info') {
-  s.journal.push({ year: s.year, text, kind, who: s.activeId });
+export function journal(s: GameState, text: string, kind: JournalKind = 'info', story = false) {
+  s.journal.push({ year: s.year, text, kind, who: s.activeId, ...(story ? { story: true } : {}) });
 }
 
 export const livingPeople = (s: GameState) => Object.values(s.people).filter(alive);

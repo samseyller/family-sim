@@ -31,7 +31,7 @@ import { active, ageOf, alive, kidsAtHome, partnerOf } from './util';
 
 /** Distinct years kept per thread, closed threads kept for the life story, and threads kept at most. */
 const YEARS_KEPT = 8;
-export const CLOSED_KEPT_YEARS = 40;
+export const CLOSED_KEPT_YEARS = 60;
 const MAX_THREADS = 60;
 /** After a thread closes, the same pattern with the same person needs this long to start a new one. */
 const REOPEN_GAP = 6;
@@ -57,6 +57,8 @@ export const THREAD_RULES: Record<ThreadKind, Rule> = {
   moved: { fade: 12 },
   retired: { fade: 6 },
   loss: { fade: 15, keepsDead: true },
+  // Recognized patterns are closed when created (patterns.ts); they only live on for the life story.
+  pattern: { fade: 0, keepsDead: true },
 };
 
 const lastOf = (xs: number[] | undefined) => (xs?.length ? xs[xs.length - 1] : undefined);

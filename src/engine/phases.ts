@@ -7,6 +7,8 @@
  * Saves happen only at these boundaries (and after each decision), so a reload
  * never repeats salary, aging, or event effects.
  */
+import { successionNote } from './narrative';
+import { recognizePatterns } from './patterns';
 import { inheritThreads, threadsYear } from './threads';
 import { makeRng, type Rng } from './rng';
 import type { GameState, Person, Plan, StatKey } from './types';
@@ -89,6 +91,7 @@ export function resolveYear(state: GameState): GameState {
   npcIntentions(s); //                  close people act on intentions of their own
   npcFulfillmentYear(s, closePeople(s), (t) => journal(s, t, 'info')); // and how their lives are going
   threadsYear(s); //                     record long-running patterns; age out stale ones
+  recognizePatterns(s); //               notice a story that's already there (at most one a year)
   if (alive(active(s))) generateEvents(s, rng); // 5 + 7. due consequences and events
 
   if (s.pending.length) s.phase = 'DECISIONS';
@@ -177,7 +180,8 @@ export function chooseHeir(state: GameState, heirId: string | null): GameState {
   // were already settled exactly once in settleEstates. Nothing transfers here.
   settleEstates(s);
   const sought = aimText(prev);
-  journal(s, `After ${prev.firstName}'s passing, the story continues with ${fullName(heir)}.${sought ? ` ${prev.firstName} ${sought.charAt(0).toLowerCase()}${sought.slice(1)}` : ''}${heir.aspiration ? ` ${heir.firstName} wants ${ASPIRATION_INFO[heir.aspiration].label.toLowerCase()} from life.` : ''}`, 'major');
+  const shared = successionNote(s, prev, heir);
+  journal(s, `After ${prev.firstName}'s passing, the story continues with ${fullName(heir)}.${sought ? ` ${prev.firstName} ${sought.charAt(0).toLowerCase()}${sought.slice(1)}` : ''}${shared ? ` ${shared}` : ''}${heir.aspiration ? ` ${heir.firstName} wants ${ASPIRATION_INFO[heir.aspiration].label.toLowerCase()} from life.` : ''}`, 'major');
   s.pending = [];
   s.recap = undefined;
   s.snapshot = undefined;

@@ -1,3 +1,4 @@
+import { memorialStory, rememberedFor } from './narrative';
 import { jobTitle } from '../content/careers';
 import { aimText } from './fulfillment';
 import type { GameState, JournalEntry, Person } from './types';
@@ -12,6 +13,8 @@ export interface MemorialEntry {
   /** What they sought in life ("Sought mastery, and found it."), if known. */
   aim?: string;
   epitaph: string;
+  /** A few true lines about the life they lived (third person). */
+  story: string[];
   highlights: JournalEntry[];
 }
 
@@ -24,10 +27,13 @@ export interface Memorial {
 }
 
 function knownFor(s: GameState, p: Person): string {
+  // The strongest pattern in the life actually lived, when there is one; otherwise the plain reading below.
+  const told = rememberedFor(s, p);
+  if (told) return told;
   const kids = childrenOf(s, p.id);
   const avgBond = kids.length ? kids.reduce((sum, k) => sum + getBond(s, p.id, k.id).affinity, 0) / kids.length : 0;
   if (kids.length && avgBond >= 40) return 'a devoted parent';
-  if (p.jobLevel >= 3) return 'a driven career';
+  if (p.jobLevel >= 3) return 'years of steady, good work';
   if (p.flags.health_vow) return 'a second chance at health';
   if (p.stats.happiness >= 70) return 'a contented life';
   if (p.flags.declined_promotion) return 'choosing family over the corner office';
@@ -45,7 +51,7 @@ export function epitaphFor(s: GameState, p: Person, known: string): string {
     : p.flags.degree ? 'a lifelong learner' : 'a steady friend';
   const work = p.jobId || p.retired ? jobTitle(p).toLowerCase() : '';
   const lines = [
-    `${p.firstName}, ${role}${work && work !== 'unemployed' ? ` and ${/^[aeiou]/.test(work) ? 'an' : 'a'} ${work}` : ''}. Remembered for ${known}.`,
+    `${p.firstName}, ${role}${work && work !== 'unemployed' && work !== 'retired' ? ` and ${/^[aeiou]/.test(work) ? 'an' : 'a'} ${work}` : ''}. Remembered for ${known}.`,
     `${age} years, ${role}. Remembered for ${known}.`,
     `${p.firstName} gave the family ${known}.`,
   ];
@@ -64,6 +70,7 @@ export function buildMemorial(s: GameState): Memorial {
       knownFor: knownFor(s, p),
       aim: aimText(p),
       epitaph: epitaphFor(s, p, knownFor(s, p)),
+      story: memorialStory(s, p),
       highlights: s.journal.filter((j) => j.who === id && (j.kind === 'major' || j.kind === 'birth')).slice(0, 6),
     };
   });

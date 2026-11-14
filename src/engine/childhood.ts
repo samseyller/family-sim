@@ -3,6 +3,7 @@
  * plus the player's own coming of age. Adult events are filtered out for children
  * (see EventDef.stage in events.ts).
  */
+import { childhoodNote } from './narrative';
 import { HOBBY_BY_ID } from '../content/actions';
 import { addHobbySkill } from './hobbies';
 import type { Ctx, EventDef } from './eventKit';
@@ -268,7 +269,7 @@ export const CHILD_EVENTS: EventDef[] = [
       const home = c.s.households[c.me.householdId];
       return {
         title: "You're 18",
-        text: `High school is done. ${gpaText(c.me)}, smarts ${c.me.stats.smarts}${c.me.hobby ? `, ${HOBBY_BY_ID[c.me.hobby].label.toLowerCase()} skill ${skill}` : ''}, college fund and savings ${money(c.me.fund)}. What's next?`,
+        text: `${childhoodNote(c.s, c.me) ? `${childhoodNote(c.s, c.me)} ` : ''}High school is done. ${gpaText(c.me)}, smarts ${c.me.stats.smarts}${c.me.hobby ? `, ${HOBBY_BY_ID[c.me.hobby].label.toLowerCase()} skill ${skill}` : ''}, college fund and savings ${money(c.me.fund)}. What's next?`,
         choices: [
           collegeChoice(c.me, home, 'top', 'top', '🏛️ Apply to a top university'),
           collegeChoice(c.me, home, 'state', 'university', '🎓 Apply to state university'),

@@ -52,6 +52,7 @@ export const ProfileSchema = z.object({
           knownFor: z.string(),
           aim: z.string().optional(),
           epitaph: z.string().max(EPITAPH_MAX),
+          story: z.array(z.string().max(300)).max(6).optional(),
           children: z.number().int().nonnegative(),
           highlights: z.array(z.string()),
         }),

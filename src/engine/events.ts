@@ -132,7 +132,7 @@ export function resolveEvent(s: GameState, rng: Rng, pe: PendingEvent, choiceId:
   const outcome = def.resolve(c, choiceId, sub, text);
   // If the event already wrote its own headline, log the outcome as a normal entry so highlights don't repeat.
   const headlined = s.journal.slice(before).some((j) => j.kind === 'major' || j.kind === 'birth');
-  journal(s, `${pe.title}: ${outcome}`, pe.major && !headlined ? 'major' : 'info');
+  journal(s, `${pe.title}: ${outcome}`, pe.major && !headlined ? 'major' : 'info', !!def.story);
   return outcome;
 }
 

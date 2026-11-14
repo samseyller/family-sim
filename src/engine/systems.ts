@@ -1,3 +1,4 @@
+import { birthNote } from './narrative';
 import { noteThread } from './threads';
 import { HOBBY_SETTLE } from './agency';
 import { CREATIVE_HOBBIES, reaction, scaled, yearTendencies, type Reaction, type Situation } from './personality';
@@ -569,7 +570,7 @@ export function runPeople(s: GameState, rng: Rng) {
     hh.pendingBirth = undefined;
     if (!a || !alive(a)) continue;
     const baby = makeBaby(s, rng, a, b, hh.id);
-    if (isCloseKin(s, baby)) journal(s, `${baby.firstName} ${baby.lastName} was born!`, 'birth');
+    if (isCloseKin(s, baby)) journal(s, `${baby.firstName} ${baby.lastName} was born!${baby.biologicalParents.includes(me.id) ? birthNote(s, me) : ''}`, 'birth');
     // The player names their own babies (a naming event this same year).
     if (baby.biologicalParents.includes(me.id)) s.scheduled.push({ dueYear: s.year, eventId: 'name_baby', subjectId: baby.id });
   }

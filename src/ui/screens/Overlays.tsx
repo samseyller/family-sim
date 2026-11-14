@@ -1,5 +1,6 @@
 import type { GameState, StatKey } from '../../engine/types';
 import { active, ageOf, fullName, money } from '../../engine/util';
+import { yearInReview } from '../../engine/narrative';
 import { eligibleHeirs } from '../../engine/phases';
 import { jobTitle } from '../../content/careers';
 import { useGame } from '../../store/gameStore';
@@ -49,6 +50,35 @@ export function EventModal({ g }: { g: GameState }) {
 
 const STAT_LABEL: Record<StatKey, string> = { health: 'Health', happiness: 'Happiness', smarts: 'Smarts', fitness: 'Fitness', stress: 'Stress' };
 
+/** The year in review: stories that came back first, then what mattered, then the everyday (folded away). */
+function YearStory({ g }: { g: GameState }) {
+  const r = g.recap!;
+  const review = yearInReview(g, r.entries, active(g));
+  const ROUTINE_SHOWN = 3;
+  const folded = review.routine.length > ROUTINE_SHOWN;
+  return (
+    <div className="recap-list">
+      {review.story.length > 0 && (
+        <section className="recap-story" aria-label="Your story">
+          <div className="eyebrow">📖 Your story</div>
+          <ul className="journal-list">{review.story.map((t, i) => <li key={i}>{t}</li>)}</ul>
+        </section>
+      )}
+      <ul className="journal-list">
+        {review.highlights.map((j, i) => <li key={i} className={j.kind}>{j.text}</li>)}
+        {!folded && review.routine.map((j, i) => <li key={`r${i}`} className={j.kind}>{j.text}</li>)}
+        {!r.entries.length && !review.story.length && <li className="muted">A quiet year.</li>}
+      </ul>
+      {folded && (
+        <details className="recap-routine">
+          <summary>Everyday moments ({review.routine.length})</summary>
+          <ul className="journal-list">{review.routine.map((j, i) => <li key={i} className={j.kind}>{j.text}</li>)}</ul>
+        </details>
+      )}
+    </div>
+  );
+}
+
 export function RecapModal({ g }: { g: GameState }) {
   const nextYear = useGame((s) => s.nextYear);
   const r = g.recap!;
@@ -71,10 +101,7 @@ export function RecapModal({ g }: { g: GameState }) {
           <Delta n={r.walletDelta} money />
         </div>
       </div>
-      <ul className="journal-list recap-list">
-        {r.entries.map((j, i) => <li key={i} className={j.kind}>{j.text}</li>)}
-        {!r.entries.length && <li className="muted">A quiet year.</li>}
-      </ul>
+      <YearStory g={g} />
       <button className="primary big" onClick={nextYear}>
         {r.activeDied ? 'Continue…' : `On to ${r.year + 1}`}
       </button>

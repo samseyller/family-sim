@@ -11,7 +11,7 @@ import { TUTORIAL_SEED, TUTORIAL_START_AGE, scheduleScript } from './tutorial';
 import type { GameState, Household, Looks, Person, Plan, Trait } from './types';
 import { adjustBond, ageOf, alive, cleanName, kidsAtHome, newId, parentsOf, partnerOf, active } from './util';
 
-export const SCHEMA_VERSION = 24;
+export const SCHEMA_VERSION = 25;
 /**
  * Bump when content a save can refer to (event ids, choice ids, careers) is removed or renamed, or when rules change
  * enough that old saves play differently. A save with the current rules version that refers to unknown content is

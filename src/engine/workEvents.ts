@@ -1,4 +1,5 @@
 /** Work and learning: promotions, burnout, layoffs, retirement, night school and new credentials. */
+import { careerNote } from './narrative';
 import { noteThread } from './threads';
 import { workplace } from './careerEvents';
 import { HOBBY_BY_ID, TIME_BUDGET } from '../content/actions';
@@ -59,7 +60,7 @@ export const WORK_EVENTS: EventDef[] = [
       const lvl = c.me.jobLevel + 1;
       return {
         title: 'A promotion on the table',
-        text: `You're offered the ${titleOf(job, lvl)} role. Pay rises to ${money(salaryOf(job, lvl))}, but it expects ${requiredBlocks(job, lvl)} blocks of your time each year instead of ${requiredBlocks(job, c.me.jobLevel)}.`,
+        text: `You're offered the ${titleOf(job, lvl)} role. Pay rises to ${money(salaryOf(job, lvl))}, but it expects ${requiredBlocks(job, lvl)} blocks of your time each year instead of ${requiredBlocks(job, c.me.jobLevel)}.${c.me.aspiration === 'achievement' ? ' It’s the kind of step you’ve been working toward.' : ''}`,
         choices: [
           { id: 'accept', label: 'Accept the promotion', hint: 'More money, less time for everything else' },
           { id: 'decline', label: 'Decline politely', hint: 'Keep your current balance' },
@@ -215,7 +216,7 @@ export const WORK_EVENTS: EventDef[] = [
       const verdict = r.status === 'ready' ? 'Your numbers say you can afford it.' : r.status === 'tight' ? 'It would be tight.' : 'Money would be a struggle.';
       return {
       title: 'Time to retire?',
-      text: `Your coworkers keep asking about your plans. Retiring now: employer pension ${money(r.pension)}, state pension ${money(r.state)}, and about ${money(r.savingsIncome)} a year from savings, against a budget of ${money(r.need)}. ${verdict}`,
+      text: `${careerNote(c.s, c.me) ? `${careerNote(c.s, c.me)} ` : ''}Your coworkers keep asking about your plans. Retiring now: employer pension ${money(r.pension)}, state pension ${money(r.state)}, and about ${money(r.savingsIncome)} a year from savings, against a budget of ${money(r.need)}. ${verdict}`,
       choices: [
         { id: 'retire', label: 'Retire', hint: 'All your time is your own' },
         { id: 'stay', label: 'Keep working', hint: 'Full salary, for now' },

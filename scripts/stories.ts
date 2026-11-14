@@ -12,6 +12,7 @@
 import { PLAY_STYLES } from '../src/balance/playstyles';
 import { playLife, seedRange } from '../src/balance/simulate';
 import { DECISIONS, decisionRoll, evaluate, type DecisionCtx } from '../src/engine/agency';
+import { buildMemorial } from '../src/engine/memorial';
 import { STORY_IDS } from '../src/engine/storyEvents';
 import type { GameState, Thread, Trait } from '../src/engine/types';
 
@@ -50,13 +51,21 @@ let years = 0;
 const followUps: Record<string, number> = {};
 const threads = new Map<string, Thread>();
 let maxThreads = 0;
+/** How played characters are remembered, by play style. */
+const remembered: Record<string, Record<string, number>> = {};
 for (const style of PLAY_STYLES) for (const seed of seedRange(FIRST, LIVES)) {
   life++;
+  let last: GameState | undefined;
   const sample = playLife(style, seed, 120, (s: GameState) => {
+    last = s;
     maxThreads = Math.max(maxThreads, s.threads?.length ?? 0);
     for (const th of s.threads ?? []) threads.set(`${life}:${th.kind}:${th.ownerId}:${th.subjectId}:${th.detail}:${th.since}`, structuredClone(th));
   });
   years += sample.years;
+  for (const e of buildMemorial(last!).entries) {
+    const k = e.knownFor.replace(/ as an? .*/, '').replace(/^mastering .*/, 'mastering a craft');
+    (remembered[style.id] ??= {})[k] = (remembered[style.id][k] ?? 0) + 1;
+  }
   for (const [id, n] of Object.entries(sample.events)) if (STORY_IDS.has(id) || id === 'work_family_crossroads' || id === 'retirement_purpose' || id === 'sibling_rivalry') followUps[id] = (followUps[id] ?? 0) + n;
 }
 
@@ -89,3 +98,13 @@ console.log('\nFollow-up events per 100 played years');
 for (const [id, n] of Object.entries(followUps).sort((a, b) => b[1] - a[1])) console.log(`${id.padEnd(26)}${pad((n / years * 100).toFixed(2), 7)}`);
 const storyTotal = Object.entries(followUps).filter(([id]) => STORY_IDS.has(id)).reduce((a, [, n]) => a + n, 0);
 console.log(`all story follow-ups: ${(storyTotal / years * 100).toFixed(1)} per 100 years`);
+
+console.log('\nRecognized patterns per 100 played years');
+const pats: Record<string, number> = {};
+for (const th of threads.values()) if (th.kind === 'pattern') { const k = th.detail!.split(':')[0]; pats[k] = (pats[k] ?? 0) + 1; }
+for (const [k, n] of Object.entries(pats).sort((a, b) => b[1] - a[1])) console.log(`${k.padEnd(14)}${pad((n / years * 100).toFixed(2), 7)}`);
+console.log('\nRemembered for (played characters, by play style)');
+for (const [style, ks] of Object.entries(remembered)) {
+  const n = Object.values(ks).reduce((a, b) => a + b, 0);
+  console.log(`${style.padEnd(10)} ${Object.entries(ks).sort((a, b) => b[1] - a[1]).slice(0, 4).map(([k, c]) => `${k} ${Math.round(c / n * 100)}%`).join(', ')}`);
+}

@@ -183,6 +183,7 @@ const JournalEntry = z.object({
   text: z.string(),
   kind: z.enum(['info', 'major', 'birth', 'death', 'good', 'bad']),
   who: z.string(),
+  story: z.boolean().optional(),
 });
 
 export const GameStateSchema = z.object({
@@ -224,7 +225,7 @@ export const GameStateSchema = z.object({
   friends: z.array(z.object({ id, of: id, since: int, lastSeen: int, distant: z.boolean().optional(), how: z.string().max(60).optional() })).optional(),
   tutorial: z.object({ personId: id, seen: z.array(z.string()) }).optional(),
   threads: z.array(z.object({
-    kind: z.enum(['strain', 'supported', 'encouraged', 'pushed', 'siblings', 'work_first', 'trained', 'missed_chance', 'aspiration', 'moved', 'retired', 'loss']),
+    kind: z.enum(['strain', 'supported', 'encouraged', 'pushed', 'siblings', 'work_first', 'trained', 'missed_chance', 'aspiration', 'moved', 'retired', 'loss', 'pattern']),
     ownerId: id,
     subjectId: id.optional(),
     detail: z.string().max(60).optional(),

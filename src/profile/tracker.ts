@@ -38,6 +38,7 @@ export function archiveEntry(s: GameState, now: string): ArchivedFamily {
       knownFor: e.knownFor,
       ...(e.aim ? { aim: e.aim } : {}),
       epitaph: e.epitaph,
+      ...(e.story.length ? { story: e.story } : {}),
       children: e.children,
       // Told about them ("Joe married Ana"), not "You married Ana".
       highlights: e.highlights.map((h) => `${h.year}: ${retell(h.text, e.person.firstName)}`),

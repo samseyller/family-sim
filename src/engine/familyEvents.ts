@@ -1,4 +1,5 @@
 /** Family life: raising children, partnership and marriage, a full house, naming a baby, the guided child. */
+import { interestNote } from './narrative';
 import { HOBBY_BY_ID } from '../content/actions';
 import { SCHOLARSHIP_SKILL } from '../content/sports';
 import { FEMALE_NAMES, MALE_NAMES } from '../content/names';
@@ -172,7 +173,7 @@ export const RAISING_EVENTS: EventDef[] = [
         : (kid.flags.resents ?? 0) >= 3 ? ' They are tired of being told what to do.' : '';
       return {
         title: `${kid.firstName} turns 18`,
-        text: `${kid.firstName} is graduating high school. ${gpaText(kid)}, smarts ${kid.stats.smarts}${kid.hobby ? `, ${HOBBY_BY_ID[kid.hobby].label.toLowerCase()} skill ${skill}` : ''}, college fund ${money(kid.fund)}. ${receptivenessLabel(r)}.${memory}`,
+        text: `${kid.firstName} is graduating high school.${interestNote(c.s, c.me, kid) ? ` ${interestNote(c.s, c.me, kid)}` : ''} ${gpaText(kid)}, smarts ${kid.stats.smarts}${kid.hobby ? `, ${HOBBY_BY_ID[kid.hobby].label.toLowerCase()} skill ${skill}` : ''}, college fund ${money(kid.fund)}. ${receptivenessLabel(r)}.${memory}`,
         choices: [
           collegeChoice(kid, wallet(c), 'top', 'top_university', 'Encourage a top university'),
           collegeChoice(kid, wallet(c), 'state', 'university', 'Encourage state university'),

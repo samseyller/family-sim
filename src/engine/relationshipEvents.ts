@@ -3,6 +3,7 @@
  * compromise, and disagreement where that makes sense; outcomes depend on trust and how the person likes to be cared
  * for, not on a trait alone. Scheduled follow-ups check that they still make sense when they come up.
  */
+import { relationshipNote } from './narrative';
 import { CITY_IDS } from '../content/cities';
 import { local, type Ctx, type EventDef } from './eventKit';
 import { moveOut } from './family';
@@ -12,10 +13,12 @@ import { assignJob } from './generate';
 import { cityName, cityOf } from './location';
 import { charge, hasCash } from './money';
 import { connectionOf, forget, harmFrom, harmText, receiverFactor, remember, stableHash } from './relationships';
-import type { Person } from './types';
+import type { GameState, Person } from './types';
 import { adjustBond, ageOf, alive, flag, getBond, journal, kidsAtHome, partnerOf, stat } from './util';
 
 const they = (p: Person) => (p.sex === 'F' ? 'she' : 'he');
+/** A sentence of recorded history between you (a strain, or a strain that mended), if any. */
+const note = (c: { s: GameState; me: Person }, p: Person) => { const n = relationshipNote(c.s, c.me, p); return n ? ` ${n}` : ''; };
 const them = (p: Person) => (p.sex === 'F' ? 'her' : 'him');
 const adult = (c: Ctx) => ageOf(c.me, c.s.year) >= 18;
 /** A city other than theirs, stable for this person and year. */
@@ -141,7 +144,7 @@ export const RELATIONSHIP_EVENTS: EventDef[] = [
     cooldown: 0,
     build: (c, k) => ({
       title: `${k!.firstName}’s big offer`,
-      text: `${k!.firstName} has been offered a job in ${cityName(awayCity(c, k!))}. It’s a real step up, and ${they(k!)} wants to know what you think.`,
+      text: `${k!.firstName} has been offered a job in ${cityName(awayCity(c, k!))}. It’s a real step up, and ${they(k!)} wants to know what you think.${note(c, k!)}`,
       choices: [
         { id: 'support', label: 'Tell them to go for it', hint: 'They move away' },
         { id: 'stay', label: 'Ask them to stay', hint: 'They might, if they trust you' },
@@ -260,9 +263,9 @@ export const RELATIONSHIP_EVENTS: EventDef[] = [
     id: 'reaching_out',
     major: false,
     cooldown: 0,
-    build: (_c, p) => ({
+    build: (c, p) => ({
       title: `A message from ${p!.firstName}`,
-      text: `After a long silence, ${p!.firstName} reaches out: “I miss how things used to be. Can we talk?”`,
+      text: `After a long silence, ${p!.firstName} reaches out: “I miss how things used to be. Can we talk?”${note(c, p!)}`,
       choices: [
         { id: 'welcome', label: 'Call back right away' },
         { id: 'cautious', label: 'Reply, but take it slowly' },

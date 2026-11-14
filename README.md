@@ -527,11 +527,40 @@ do. Follow-ups quote only what a thread recorded, so nobody remembers something 
   yearly cap. A conflict raised once isn't raised again for five years. About 6 follow-ups per 100 played years.
 - **Lifecycle:** a thread with no new hit for a while fades; one about someone who died ends (except the loss
   itself); a changed hobby, job or aspiration ends the old one. At succession the heir inherits the story, not the
-  personality: only "supported" threads pass on. Closed threads stay 40 years (for the life story), then go; a save
+  personality: only "supported" threads pass on. Closed threads stay 60 years (a lifetime, for the life story and memorial), then go; a save
   holds at most 60 (simulated lives peak around 25), each keeping at most 8 years.
 - **Saves:** schema 24 adds the optional `threads` list; a malformed list in an old save is dropped, not rejected,
   and older-rules repair drops threads pointing at missing people.
 - `scripts/stories.ts` also reports thread counts, how they end, and follow-up rates.
+
+## The story of the life you lived
+
+Narrative is read-only and comes only from what was recorded (`src/engine/narrative.ts`); nothing here changes
+stats, so stories never move balance.
+
+- **Story facts:** `lifeStory` and `childhoodFacts` turn story threads, aspiration history, work, skills, children
+  and bonds, and friendships into small facts. Each names only people who exist and carries the people and years it
+  rests on (tests check every fact in simulated lives against its thread). Facts are written in the second person
+  and retold by name (`retell`); the strongest few are told, never two of a kind, with stable template variants.
+- **Event context** (one sentence, only when recorded): coming of age ("Your mother backed your music for five
+  years."), a child's graduation ("After four years of you backing her art, Maya has started thinking seriously about
+  it."), a strain or a mended one in a child's job offer or an estranged relative reaching out, a career's story at
+  the retirement decision, a promotion that fits an achievement aspiration, a grandparent who didn't live to meet a
+  new baby.
+- **Year in review:** stories that came back (follow-ups and recognized patterns, journal entries marked `story`)
+  come first under "📖 Your story", then the big moments; everyday entries fold into "Everyday moments (n)" when
+  there are more than three. Round birthdays (40, 50… 80) add a short "At 40:" note from the strongest facts.
+- **Emergent patterns** (`src/engine/patterns.ts`): read from existing facts, recognized once (a closed `pattern`
+  thread), at most one a year: a family tradition (the same family activity in 3 of the last 5 years), a 30-year
+  friendship, a grown child in your career or deep into your craft, a child you pushed who went their own way, a
+  strained relationship that recovered on its own, an interest mastered, priorities that changed after years chasing
+  achievement.
+- **Succession** names what the two generations shared (an interest backed, a rift mended or not) and anyone who
+  still remembers how the late character stood by them. The heir keeps their own personality and aspiration.
+- **Memorials** are remembered for the strongest supported pattern (family, a craft, a driven career or a business,
+  exploring, service, security; a top rank alone isn't "driven"), falling back to the plain reading, and carry up
+  to three true lines, kept in the Family Archive.
+- Schema 25: the `pattern` thread kind and the optional `story` flag on journal entries.
 
 ## Aspiration and fulfillment
 

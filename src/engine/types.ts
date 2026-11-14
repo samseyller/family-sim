@@ -242,10 +242,12 @@ export interface JournalEntry {
   kind: JournalKind;
   /** Active character when this happened (for the memorial). */
   who: string;
+  /** A story coming back (a follow-up or a recognized pattern): the year in review shows these first. */
+  story?: boolean;
 }
 
 /** Long-running patterns in a life that can matter years later (see engine/threads.ts). */
-export type ThreadKind = 'strain' | 'supported' | 'encouraged' | 'pushed' | 'siblings' | 'work_first' | 'trained' | 'missed_chance' | 'aspiration' | 'moved' | 'retired' | 'loss';
+export type ThreadKind = 'strain' | 'supported' | 'encouraged' | 'pushed' | 'siblings' | 'work_first' | 'trained' | 'missed_chance' | 'aspiration' | 'moved' | 'retired' | 'loss' | 'pattern';
 
 export interface Thread {
   kind: ThreadKind;
