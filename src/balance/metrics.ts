@@ -188,6 +188,9 @@ export function tolerance(key: string): { rel?: number; abs?: number; deadOnly?:
   if (key.endsWith('.inheritance')) return { rel: 2.5 }; // few inheritances per life: very noisy, so only flags huge shifts
   if (key.endsWith('.legacy.achievement') || key.endsWith('.legacy.wellbeing')) return { abs: 25 };
   if (key.endsWith('.legacy.bonds')) return { abs: 10 };
+  // Net worth at 45 is the noisiest money metric: mid-career wealth in the standard sample swings about ±50% from
+  // small reshuffles (measured 2026-11-14: $0.9–1.4M for career players across seed sets), so it gets more room.
+  if (key.endsWith('.nw45')) return { rel: 0.6, abs: 60_000 };
   if (/\.(nw\d+|nw65\.gen|legacy\.wealth)/.test(key)) return { rel: 0.4, abs: 60_000 };
   if (key.endsWith('.endedEarly')) return { abs: 0.2 };
   if (key.endsWith('.savingsRate')) return { abs: 0.1 };
