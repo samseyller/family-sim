@@ -1,3 +1,4 @@
+import { HOBBY_SETTLE } from './agency';
 import { CREATIVE_HOBBIES, reaction, scaled, yearTendencies, type Reaction, type Situation } from './personality';
 import { activitySituation } from './activitySituations';
 import { receiverFactor, remember } from './relationships';
@@ -433,8 +434,10 @@ function childYear(s: GameState, rng: Rng, c: Person) {
     if (cp?.suggestHobby && rng.chance(r)) {
       c.hobby = cp.suggestHobby;
       journal(s, `${c.firstName} took up ${HOBBY_BY_ID[c.hobby].label.toLowerCase()} at your suggestion.`, 'good');
-    } else if (rng.chance(0.5)) {
+    } else if (s.year - (c.flags.dropped_interest ?? -99) >= HOBBY_SETTLE && rng.chance(0.5)) {
+      // A child who just let a hobby go gets a few years before trying something new (the player can still suggest one).
       c.hobby = traitHobby(rng, c);
+      c.flags.hobby_year = s.year;
       if (mine) journal(s, `${c.firstName} discovered a love of ${HOBBY_BY_ID[c.hobby].label.toLowerCase()}.`, 'info');
     }
   }
@@ -507,6 +510,7 @@ function adultYear(s: GameState, rng: Rng, p: Person) {
     if (p.jobYears >= 3 && p.jobLevel < 3 && rng.chance(0.15)) {
       p.jobLevel++;
       p.jobYears = 0;
+      p.flags.promoted_year = s.year;
     }
     if (a >= 65 && rng.chance(0.5)) retire(p, s.year);
   }

@@ -4,7 +4,7 @@ import type { ActivityResult, GameState, Hobby, Person, StatKey } from './types'
 import { HOBBY_BY_ID } from '../content/actions';
 import { CAREER_BY_ID } from '../content/careers';
 import type { UpgradeId } from '../content/finance';
-import { active, adjustBond, ageOf, alive, childrenOf, flag, money, parentsOf, stat } from './util';
+import { active, adjustBond, ageOf, alive, childrenOf, flag, getBond, money, parentsOf, stat } from './util';
 import { dogsOf } from './dogs';
 import { catsOf } from './cats';
 import { cityOf, travelDistance, type Distance } from './location';
@@ -138,9 +138,12 @@ export function hangOut(c: ActivityCtx, aff: number, trust: number, text: (who: 
     adjustBond(c.s, c.me.id, f.id, aff, trust);
     afterTogether(c.s, c.me, f);
   }
-  for (const f of skipped) adjustBond(c.s, c.me.id, f.id, -1, -1);
-  const no = skipped.length ? ` ${names(skipped)} ${decline === 'no-answer' ? "didn't pick up" : 'never replied'}.` : '';
-  if (!came.length) return { text: `${names(skipped)} ${decline === 'no-answer' ? "didn't pick up" : 'never replied'}. Maybe they've moved on.`, tone: 'bad' };
+  // A declined invitation from someone who likes you but needs space doesn't hurt, and the card says why.
+  const fond = skipped.filter((f) => getBond(c.s, c.me.id, f.id).affinity > 0);
+  for (const f of skipped) if (!fond.includes(f)) adjustBond(c.s, c.me.id, f.id, -1, -1);
+  const why = (ppl: Person[]) => ppl.map((f) => (fond.includes(f) ? `${f.firstName} appreciates the invitation, but needs more time alone lately.` : `${f.firstName} ${decline === 'no-answer' ? "didn't pick up" : 'never replied'}.`)).join(' ');
+  const no = skipped.length ? ` ${why(skipped)}` : '';
+  if (!came.length) return { text: fond.length === skipped.length ? why(skipped) : `${why(skipped)} Maybe they've moved on.`, tone: fond.length === skipped.length ? 'neutral' : 'bad' };
   stat(c.me, 'happiness', 2);
   return { text: text(names(came)) + no, tone: skipped.length ? 'neutral' : 'good' };
 }

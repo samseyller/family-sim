@@ -482,11 +482,27 @@ Traits change how someone *reacts* to what they do, never what they can do or wh
 - **Arcs:** someone still hurt about a missed year (talk, make amends, or let it be); time or money (promise more time
   next year, and it is checked); a partner juggling work and the kids while you're rarely around (help, or give them
   room).
-- **Close people act on their own** (`src/engine/agency.ts`): once a year a partner, child, parent or sibling may take
-  up a hobby or drop by (noted in the recap), or bring you a decision: a grown child's job offer in another city, a
-  partner's night school (household money: your call), an estranged relative reaching out, a sibling's reunion, or a
-  boundary after you pushed too hard. Stable rolls, at most one decision a year, each person at most every four
-  years; nobody spends household money without your decision. Children you invited home don't leave on their own.
+- **Close people act on their own** (`src/engine/agency.ts`): each year a partner, child, parent, sibling or
+  grandchild may act on a decision of their own. Each decision is a row in `DECISIONS` with three layers:
+  hard eligibility (impossible or contradictory choices never happen), a few relevant context factors (traits,
+  aspiration, connection preference, bond and trust, remembered harms or support, life stage, work, interests, young
+  children, health, distance), each capped at ±8 points, and a stable roll per person, year and decision. An eligible
+  decision keeps at least a quarter of its base chance, so personality shifts odds but never decides.
+  - *Private steps* (explained in the recap): taking up a hobby, taking it seriously ("After years of enjoying
+    music, Maya has decided to take it seriously"), letting a hobby that never took hold go (a five-year settle-in
+    and gap stop churn), being there when you're struggling (a loss, poor health, high stress), keeping their distance
+    after two or more remembered harms, a grandparent encouraging or babysitting a grandchild, a teen claiming more
+    independence, siblings bonding over a shared interest, dropping by, calling with news of a promotion.
+  - *Decisions for you*: a grown child's job offer in another city, a partner's night school or career change
+    (household money and income: support, plan it for next year, or say no), an estranged relative reaching out
+    (less likely after broken promises), a sibling's reunion, a boundary after you pushed too hard.
+  - Limits: at most one decision a year and three recap notes; each person decides at most every four years and
+    takes a private step at most every two. Nobody spends household money without your decision; children you
+    invited home don't leave on their own.
+  - Someone who needs space sometimes declines an invitation even when you get along; the result says so and it
+    doesn't hurt the bond.
+  - `npx tsx scripts/stories.ts [lives] [seed]` reports how often each decision happens and how much likelier each
+    trait makes it.
 
 ## Aspiration and fulfillment
 

@@ -6,6 +6,9 @@
 import { CITY_IDS } from '../content/cities';
 import { local, type Ctx, type EventDef } from './eventKit';
 import { moveOut } from './family';
+import { careerChangeFor } from './agency';
+import { CAREER_BY_ID } from '../content/careers';
+import { assignJob } from './generate';
 import { cityName, cityOf } from './location';
 import { charge, hasCash } from './money';
 import { connectionOf, forget, harmFrom, harmText, receiverFactor, remember, stableHash } from './relationships';
@@ -196,6 +199,43 @@ export const RELATIONSHIP_EVENTS: EventDef[] = [
       adjustBond(c.s, c.me.id, p!.id, -6, -3);
       remember(p!, 'pressure', c.me.id, c.s.year);
       return `${p!.firstName} put the brochures away.`;
+    },
+  },
+  {
+    id: 'partner_career_change',
+    major: false,
+    cooldown: 0,
+    build: (_c, p) => {
+      const next = careerChangeFor(p!);
+      const now = p!.jobId ? CAREER_BY_ID[p!.jobId].name : 'work';
+      return {
+        title: `${p!.firstName} wants a change`,
+        text: `${p!.firstName} has spent ${p!.jobYears} years as a ${now.toLowerCase()} and is restless. ${they(p!)[0].toUpperCase() + they(p!).slice(1)} wants to start over as a ${next ? next.name.toLowerCase() : 'something new'}, which would mean a pay cut at first.`,
+        choices: [
+          { id: 'support', label: 'Go for it, we’ll manage', hint: 'Their new career starts at the bottom', disabled: !next },
+          { id: 'next_year', label: 'Let’s plan for it next year', hint: 'A fair compromise' },
+          { id: 'disagree', label: 'We can’t afford the risk right now' },
+        ],
+      };
+    },
+    resolve: (c, ch, p) => {
+      if (ch === 'support') {
+        const next = careerChangeFor(p!)!;
+        assignJob(p!, next);
+        p!.flags.hired_year = c.s.year;
+        adjustBond(c.s, c.me.id, p!.id, 6, 5);
+        remember(p!, 'support', c.me.id, c.s.year);
+        journal(c.s, `${p!.firstName} started over as a ${next.name.toLowerCase()}.`, 'info');
+        return `${p!.firstName} came home from the first day exhausted and happier than you’d seen in years.`;
+      }
+      if (ch === 'next_year') {
+        c.s.scheduled.push({ dueYear: c.s.year + 1, eventId: 'partner_career_change', subjectId: p!.id });
+        adjustBond(c.s, c.me.id, p!.id, 1, 1);
+        return 'You agreed to look at the numbers together next year.';
+      }
+      adjustBond(c.s, c.me.id, p!.id, -5, -3);
+      remember(p!, 'pressure', c.me.id, c.s.year);
+      return `${p!.firstName} went back to the old job on Monday, quieter than usual.`;
     },
   },
   {

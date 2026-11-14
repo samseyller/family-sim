@@ -4,6 +4,7 @@
  * distant and may turn down invitations. Friends sometimes move away (rarely your best
  * friend), which limits what you can do together to calls, games online, or a planned trip.
  */
+import { connectionOf } from './relationships';
 import { makeHousehold, makePerson, giveEducation, pickCareer, assignJob } from './generate';
 import { cityName, cityOf, isNear, otherCity } from './location';
 import { LAST_NAMES } from '../content/names';
@@ -76,9 +77,13 @@ export function sawFriend(s: GameState, me: Person, f: Person) {
 }
 
 /** Would this friend come along? Distant friends often say no; close ones almost always say yes. */
+/** How often someone who needs space declines an invitation despite a good bond. */
+export const SPACE_DECLINE = 0.12;
+
 export function willJoin(s: GameState, rng: Rng, me: Person, f: Person) {
   const b = getBond(s, me.id, f.id);
-  if (b.affinity > 0) return true;
+  // Someone who needs space sometimes says no, even to someone they like.
+  if (b.affinity > 0) return connectionOf(f) !== 'space' || !rng.chance(SPACE_DECLINE);
   return rng.chance(clamp(0.3 + b.trust / 250 + b.affinity / 200, 0.1, 0.6));
 }
 
