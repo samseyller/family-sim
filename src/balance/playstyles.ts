@@ -142,7 +142,77 @@ const mendPrefer = (pe: PendingEvent, s: GameState, ctx: StyleCtx, rate: number)
   pe.eventId === 'growing_distance' && mending(s, ctx, rate).some((q) => q.id === pe.subjectId) ? ['reach_out'] : [];
 
 const corePlan = (kind: Strategy) => (s: GameState, ctx: StyleCtx) => mendPlan(s, strategyPlan(s, kind), ctx, MEND_RATE[kind]);
-const corePrefer = (kind: Strategy) => (pe: PendingEvent, s: GameState, ctx: StyleCtx) => mendPrefer(pe, s, ctx, MEND_RATE[kind]);
+/**
+ * How each core style answers story moments (docs/plans/next-stories.md §4): weighted choices, picked by a stable
+ * roll per life, year and event, so a style leans one way without always choosing the same thing. Events not listed
+ * stay random. The order returned puts the pick first and the rest by weight (a fallback if the pick is disabled).
+ */
+type Weighted = [string, number][];
+export const STORY_PREFS: Record<Strategy, Record<string, Weighted>> = {
+  family: {
+    growing_distance: [['reach_out', 80], ['room', 20]],
+    pushed_too_hard: [['apologize', 75], ['explain', 25]],
+    sibling_rivalry: [['mediate', 60], ['separate', 30], ['sort', 10]],
+    work_family_crossroads: [['scale', 60], ['help', 30], ['push', 10]],
+    partner_career_change: [['support', 70], ['next_year', 20], ['disagree', 10]],
+    partner_night_school: [['support', 70], ['next_year', 20], ['disagree', 10]],
+    distant_job: [['support', 70], ['stay', 20], ['disagree', 10]],
+    reaching_out: [['welcome', 70], ['cautious', 25], ['not_ready', 5]],
+    boundary: [['respect', 70], ['explain', 25], ['argue', 5]],
+    second_chance: [['decline', 60], ['accept', 40]],
+    training_pays_off: [['decline', 50], ['accept', 50]],
+    big_break: [['stay', 40], ['headline', 60]],
+    first_without_them: [['keep', 85], ['skip', 15]],
+    too_old_for_this: [['friend', 60], ['skip', 30], ['insist', 10]],
+    bring_it_back: [['revive', 80], ['rest', 20]],
+    passing_torch: [['hand', 60], ['keep', 40]],
+  },
+  balanced: {
+    growing_distance: [['reach_out', 50], ['room', 50]],
+    pushed_too_hard: [['apologize', 50], ['explain', 50]],
+    sibling_rivalry: [['mediate', 34], ['separate', 33], ['sort', 33]],
+    work_family_crossroads: [['help', 50], ['scale', 25], ['push', 25]],
+    partner_career_change: [['next_year', 50], ['support', 25], ['disagree', 25]],
+    partner_night_school: [['next_year', 50], ['support', 25], ['disagree', 25]],
+    distant_job: [['support', 34], ['stay', 33], ['disagree', 33]],
+    reaching_out: [['cautious', 50], ['welcome', 35], ['not_ready', 15]],
+    boundary: [['respect', 50], ['explain', 35], ['argue', 15]],
+    second_chance: [['accept', 50], ['decline', 50]],
+    training_pays_off: [['accept', 50], ['decline', 50]],
+    big_break: [['headline', 50], ['stay', 50]],
+    first_without_them: [['keep', 50], ['skip', 50]],
+    too_old_for_this: [['friend', 34], ['skip', 33], ['insist', 33]],
+    bring_it_back: [['revive', 50], ['rest', 50]],
+    passing_torch: [['hand', 50], ['keep', 50]],
+  },
+  career: {
+    growing_distance: [['room', 70], ['reach_out', 30]],
+    pushed_too_hard: [['explain', 70], ['apologize', 30]],
+    sibling_rivalry: [['sort', 60], ['mediate', 20], ['separate', 20]],
+    work_family_crossroads: [['push', 70], ['help', 20], ['scale', 10]],
+    partner_career_change: [['disagree', 50], ['next_year', 30], ['support', 20]],
+    partner_night_school: [['disagree', 50], ['next_year', 30], ['support', 20]],
+    distant_job: [['support', 50], ['stay', 25], ['disagree', 25]],
+    reaching_out: [['cautious', 50], ['welcome', 30], ['not_ready', 20]],
+    boundary: [['explain', 50], ['respect', 30], ['argue', 20]],
+    second_chance: [['accept', 80], ['decline', 20]],
+    training_pays_off: [['accept', 80], ['decline', 20]],
+    big_break: [['headline', 85], ['stay', 15]],
+    first_without_them: [['skip', 60], ['keep', 40]],
+    too_old_for_this: [['insist', 50], ['skip', 40], ['friend', 10]],
+    bring_it_back: [['rest', 70], ['revive', 30]],
+    passing_torch: [['keep', 70], ['hand', 30]],
+  },
+};
+function storyPrefer(pe: PendingEvent, s: GameState, ctx: StyleCtx, kind: Strategy): string[] {
+  const options = STORY_PREFS[kind][pe.eventId];
+  if (!options) return [];
+  const total = options.reduce((n, [, w]) => n + w, 0);
+  let roll = stableHash(`${ctx.seed}:${s.year}:${pe.eventId}:${pe.subjectId ?? ''}:story`) % total;
+  const pick = options.find(([, w]) => (roll -= w) < 0)![0];
+  return [pick, ...[...options].sort((a, b) => b[1] - a[1]).map(([id]) => id).filter((id) => id !== pick)];
+}
+const corePrefer = (kind: Strategy) => (pe: PendingEvent, s: GameState, ctx: StyleCtx) => [...mendPrefer(pe, s, ctx, MEND_RATE[kind]), ...storyPrefer(pe, s, ctx, kind)];
 
 // ── Sports ───────────────────────────────────────────────────────────────────────────────────
 
