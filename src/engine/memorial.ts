@@ -1,3 +1,4 @@
+import { closeGrandchildren } from './grandchildren';
 import { TRADITION_NOUN, traditionsKeptBy } from './traditions';
 import { hobbyName, memorialStory, rememberedFor } from './narrative';
 import { ASPIRATION_INFO } from './fulfillment';
@@ -73,6 +74,7 @@ export function epitaphFor(s: GameState, p: Person, known: string): string {
     ...(grandkids ? [`${p.firstName}, ${role} and grandparent of ${NUMBER_WORDS[grandkids] ?? grandkids}. Remembered for ${known}.`] : []),
     ...(skill && lvl >= 60 ? [`${p.firstName}, ${role}, never far from ${hobbyName(skill)}. Remembered for ${known}.`] : []),
     ...((traditionsKeptBy(s, p.id)[0]?.count ?? 0) >= 15 ? [`${p.firstName}, ${role}, who kept ${TRADITION_NOUN[traditionsKeptBy(s, p.id)[0].detail!]} going for ${traditionsKeptBy(s, p.id)[0].count} years.`] : []),
+    ...(closeGrandchildren(s, p).length >= 3 ? [`${p.firstName}, ${p.sex === 'F' ? 'grandmother' : 'grandfather'} of ${NUMBER_WORDS[grandkids] ?? grandkids}, who always had time.`] : []),
     ...(found ? [`${p.firstName} wanted ${ASPIRATION_INFO[found as Aspiration].label.toLowerCase()} from life, and found it.`] : []),
   ].filter((l) => l.length <= EPITAPH_LIMIT);
   return lines[stableHash(`${s.seed}:${p.id}:epitaph`) % lines.length];

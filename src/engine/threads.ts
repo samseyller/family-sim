@@ -22,11 +22,13 @@
  *   retired       retiring (detail: your last job)
  *   loss          losing someone close (for later stories; never a follow-up event of its own)
  *   tradition     a family tradition, live while kept (its own lifecycle in traditions.ts)
+ *   grandchild    years of time together with a grandchild, and the craft you taught (grandchildren.ts)
  *
  * Lifecycle: a thread with no new hit for its `fade` years closes quietly; a thread whose subject has died closes;
  * at succession the heir inherits only what makes sense (someone the late character stood by may now stand by the
  * heir), everything else ends. Closed threads stay a while for the life story, then go: storage stays small.
  */
+import { grandchildrenYear } from './grandchildren';
 import { inheritTraditions, traditionsYear } from './traditions';
 import type { GameState, Person, Thread, ThreadKind } from './types';
 import { active, ageOf, alive, childrenOf, getBond, kidsAtHome, partnerOf } from './util';
@@ -63,6 +65,7 @@ export const THREAD_RULES: Record<ThreadKind, Rule> = {
   pattern: { fade: 0, keepsDead: true },
   // Traditions lapse by their own rules (traditions.ts).
   tradition: { fade: Infinity, keepsDead: true },
+  grandchild: { fade: 12 },
 };
 
 const lastOf = (xs: number[] | undefined) => (xs?.length ? xs[xs.length - 1] : undefined);
@@ -134,7 +137,7 @@ const CARE = new Set(['support', 'promise_kept']);
 /** Record this year's patterns for the player character, then age out what no longer applies. */
 export function threadsYear(s: GameState) {
   const me = active(s);
-  if (alive(me) && ageOf(me, s.year) >= 18) { record(s, me); traditionsYear(s, me); }
+  if (alive(me) && ageOf(me, s.year) >= 18) { record(s, me); traditionsYear(s, me); grandchildrenYear(s, me); }
   lifecycle(s);
 }
 
@@ -215,6 +218,8 @@ function lifecycle(s: GameState) {
  * by may stand by the heir; a strain with the heir themselves ends (the heir's own memories carry it); the rest end.
  */
 export function inheritThreads(s: GameState, prevId: string, heir: Person) {
+  const taught = (s.threads ?? []).find((t) => t.kind === 'grandchild' && t.ownerId === prevId && t.subjectId === heir.id && t.detail);
+  if (taught && heir.hobby === taught.detail) heir.stats.happiness = Math.min(100, heir.stats.happiness + 3);
   if (s.people[prevId]) inheritTraditions(s, s.people[prevId], heir);
   for (const t of s.threads ?? []) {
     if (t.ownerId !== prevId || t.closed !== undefined || t.kind === 'tradition') continue;

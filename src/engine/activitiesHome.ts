@@ -1,4 +1,7 @@
 /** Activities: At home, health, learning, fun and travel, and family visits. */
+import { HOBBY_BY_ID } from '../content/actions';
+import { stableHash } from './relationships';
+import { isGrandchildOf } from './grandchildren';
 import { connectionOf, forget, harmFrom, harmText } from './relationships';
 import { active, activePartnership, adjustBond, ageOf, flag, getBond, kidsAtHome, membersOf, partnerOf, stat } from './util';
 import { TEST_RESULTS_DELAY } from './healthEvents';
@@ -506,6 +509,27 @@ export const HOME_ACTIVITIES: ActivityDef[] = [
       const years = new Set((c.s.activityLog ?? []).filter((x) => x.id === 'holiday_lights').map((x) => x.year)).size;
       if (years >= 3) return { text: 'Cars slow down on your street now. Someone left a thank-you note in the mailbox.', tone: 'good' };
       return { text: 'Half the bulbs worked on the first try. The other half worked eventually.', tone: 'good' };
+    },
+  },
+  {
+    // Grandchildren's stories: pass on your craft to a grandchild 8–17 who lives with you or nearby.
+    id: 'teach_grandchild', category: 'home', icon: '🧑‍🏫', label: 'Teach a grandchild your craft', who: 'close', max: 1, perYear: 3,
+    eligible: (s, p) => isGrandchildOf(s, p, active(s)) && kidAges(p, s, 8, 17) && (p.householdId === active(s).householdId || distanceOf(s, p) === 'near'),
+    requires: (_s, me) => (me.hobby && (me.skills[me.hobby] ?? 0) >= 50 ? null : 'Needs a hobby at skill 50+.'),
+    desc: 'An afternoon showing them what took you years to learn.',
+    energy: flat(15), cost: flat(0),
+    run: (c) => {
+      const [g] = c.people;
+      const h = c.me.hobby!;
+      g.skills[h] = Math.min(100, (g.skills[h] ?? 0) + 4);
+      adjustBond(c.s, c.me.id, g.id, 4, 3);
+      const open = g.traits.includes('curious') || g.traits.includes('creative') ? 70 : 40;
+      const name = h === 'sports' ? 'sports' : HOBBY_BY_ID[h].label.toLowerCase();
+      if (!g.hobby && stableHash(`${g.id}:${c.s.year}:learn`) % 100 < open) {
+        g.hobby = h;
+        return { text: `${g.firstName} took to ${name} right away and asked to come back next week.`, tone: 'good' };
+      }
+      return { text: `You showed ${g.firstName} the tricks it took you years to learn. ${g.firstName} was a quick study.`, tone: 'good' };
     },
   },
   {

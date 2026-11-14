@@ -225,7 +225,7 @@ export const GameStateSchema = z.object({
   friends: z.array(z.object({ id, of: id, since: int, lastSeen: int, distant: z.boolean().optional(), how: z.string().max(60).optional() })).optional(),
   tutorial: z.object({ personId: id, seen: z.array(z.string()) }).optional(),
   threads: z.array(z.object({
-    kind: z.enum(['strain', 'supported', 'encouraged', 'pushed', 'siblings', 'work_first', 'trained', 'missed_chance', 'aspiration', 'moved', 'retired', 'loss', 'pattern', 'tradition']),
+    kind: z.enum(['strain', 'supported', 'encouraged', 'pushed', 'siblings', 'work_first', 'trained', 'missed_chance', 'aspiration', 'moved', 'retired', 'loss', 'pattern', 'tradition', 'grandchild']),
     ownerId: id,
     subjectId: id.optional(),
     detail: z.string().max(60).optional(),

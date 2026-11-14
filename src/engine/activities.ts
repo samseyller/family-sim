@@ -3,6 +3,7 @@
  * Each costs energy (a yearly pool of up to 100, lower when unhealthy or stressed,
  * never below 50) and usually money. Results are immediate and deterministic.
  */
+import { grandchildrenTookPart } from './grandchildren';
 import { TRADITIONS, traditionYear } from './traditions';
 import { makeRng } from './rng';
 import type { ActivityResult, GameState, Person, StatKey } from './types';
@@ -166,6 +167,8 @@ export function performActivity(state: GameState, id: string, ids: string[] = []
     // A family tradition: a small yearly boost and a line on the card.
     const tradition = traditionYear(s, me, id, people);
     if (tradition) result = { ...result, text: `${result.text} ${tradition}` };
+    // Time with grandchildren is part of both your stories.
+    grandchildrenTookPart(s, me, people, id === 'teach_grandchild' ? me.hobby : undefined);
   }
 
   const changes: string[] = [];

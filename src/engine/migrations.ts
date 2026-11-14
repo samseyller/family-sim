@@ -138,6 +138,8 @@ const STEPS: Record<number, Step> = {
     }
     return s;
   },
+  // v26 → v27: grandchildren's stories (a new thread kind). Nothing to rewrite.
+  26: (s) => s,
 };
 
 export type MigrateResult = { ok: true; state: GameState } | { ok: false; error: string };

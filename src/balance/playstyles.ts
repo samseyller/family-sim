@@ -332,6 +332,7 @@ function hobbyistPlan(s: GameState, ctx: StyleCtx): Plan {
 }
 
 function hobbyistAct(s: GameState, ctx: StyleCtx): GameState {
+  s = tryActivity(tryActivity(s, 'teach_grandchild'), 'teach_grandchild'); // grandparents pass the craft on
   const path = hobbyPath(ctx);
   if (me(s).hobby !== path.hobby) s = takeUpHobby(s, path.hobby);
   if (age(s) < 18) return s;
@@ -500,7 +501,7 @@ export const PLAY_STYLES: PlayStyle[] = [
   {
     id: 'soldier', core: false, start: 'child', lives: 180,
     plan: soldierPlan,
-    act: (s, ctx) => soldierAct(keepTraditions(s, ctx, ['host_holiday', 'grandparents_dinner', 'holiday_lights'], familyRate(ctx, 0.45))),
+    act: (s, ctx) => soldierAct(keepTraditions(s, ctx, ['host_holiday', 'grandparents_dinner', 'holiday_lights', 'teach_grandchild'], familyRate(ctx, 0.45))),
     prefer: soldierPrefer,
   },
   {
@@ -527,7 +528,7 @@ export const PLAY_STYLES: PlayStyle[] = [
     id: 'tycoon', core: false, start: 'child', lives: 20,
     plan: (s) => athletePlan(s, 'family'),
     // Traditions first each year (before energy goes to everything else).
-    act: (s, ctx) => spenderAct(bigFamilyAct(athleteAct(keepTraditions(s, ctx, ['host_holiday', 'game_night', 'holiday_lights', 'birthday_camping', 'grandparents_dinner'], familyRate(ctx, 0.55)), ctx, sportFor(ctx, ['basketball', 'baseball', 'football']))), ctx),
+    act: (s, ctx) => spenderAct(bigFamilyAct(athleteAct(keepTraditions(s, ctx, ['host_holiday', 'game_night', 'holiday_lights', 'birthday_camping', 'grandparents_dinner', 'teach_grandchild'], familyRate(ctx, 0.55)), ctx, sportFor(ctx, ['basketball', 'baseball', 'football']))), ctx),
     prefer: (pe, s) => [...bigFamilyPrefer(pe, s), ...athletePrefer()],
   },
   {

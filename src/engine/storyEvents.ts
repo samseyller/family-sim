@@ -6,6 +6,7 @@
  * repeat or contradict itself. They are ordinary minor events marked `story`: at most one comes up a year, and they
  * share the yearly cap with everything else. None of them are only bad news: each offers a way to respond.
  */
+import { grandchildrenOf, grandchildThread, noteGrandchild, yearsWith } from './grandchildren';
 import { connectionOf } from './relationships';
 import { carries, carryTradition, CARRY_TAKES, liveTraditions, MAX_TRADITIONS, REVIVE_YEARS, takes, TRADITION_NOUN, TRADITIONS } from './traditions';
 import { HOBBY_BY_ID } from '../content/actions';
@@ -464,6 +465,108 @@ export const STORY_EVENTS: EventDef[] = [
     },
   },
 
+  // ── Grandchildren (grandchildren.ts) ──
+  {
+    // A grandchild you taught shows what they learned.
+    id: 'what_you_taught',
+    major: false,
+    story: true,
+    cooldown: 0,
+    candidates: (c) => (c.s.threads ?? []).filter((t) => t.kind === 'grandchild' && t.ownerId === c.me.id && t.closed === undefined && !!t.detail && t.hits.length >= 3).flatMap((t) => {
+      const g = subjectOf(c, t);
+      return one(!!g && alive(g) && age(c, g) >= 16 && age(c, g) <= 30 && (g.skills[t.detail as keyof typeof g.skills] ?? 0) >= 30 && g.flags.taught_noted === undefined, 3, false, g);
+    }),
+    build: (c, g) => {
+      const t = grandchildThread(c.s, c.me, g!)!;
+      const [did, keepsake] = TAUGHT[t.detail!] ?? [`has gotten seriously good at ${hobbyName(t.detail!)}`, 'still tells people who taught them'];
+      return {
+        title: 'What you taught them',
+        text: `${g!.firstName} ${did}. ${cap(they(g!))} ${keepsake}.`,
+        choices: [{ id: 'ok', label: 'That makes my year' }],
+      };
+    },
+    resolve: (c, _ch, g) => {
+      g!.flags.taught_noted = c.s.year;
+      adjustBond(c.s, c.me.id, g!.id, 4, 2);
+      stat(c.me, 'happiness', 4);
+      return `You told the story of the first time you showed ${them(g!)}, and ${g!.firstName} rolled ${g!.sex === 'F' ? 'her' : 'his'} eyes and smiled.`;
+    },
+  },
+  {
+    // A grandchild you spent years with turns 18.
+    id: 'grandchild_turns_18',
+    major: false,
+    story: true,
+    cooldown: 0,
+    candidates: (c) => grandchildrenOf(c.s, c.me).filter((g) => age(c, g) === 18 && yearsWith(c.s, c.me, g) >= 5 && g.flags.gp18_noted === undefined).map((g) => ({ subject: g, weight: 3, urgent: false })),
+    build: (c, g) => {
+      const gift = grandchildGift(c);
+      return {
+        title: `${g!.firstName} turns 18`,
+        text: `${g!.firstName} is grown. You spent time together in ${yearsWith(c.s, c.me, g!)} of the years since ${grandchildThread(c.s, c.me, g!)!.since}.`,
+        choices: [
+          { id: 'gift', label: `A gift toward their future (${money(gift)})`, hint: 'From your household, into their savings', disabled: !hasCash(wallet(c), gift) },
+          { id: 'letter', label: 'Write them a letter' },
+          { id: 'there', label: 'Just be there for the party' },
+        ],
+      };
+    },
+    resolve: (c, ch, g) => {
+      g!.flags.gp18_noted = c.s.year;
+      if (ch === 'gift') {
+        const gift = grandchildGift(c);
+        charge(wallet(c), gift);
+        g!.fund += gift;
+        adjustBond(c.s, c.me.id, g!.id, 4, 3);
+        return `${g!.firstName} hugged you for a long time and promised to spend it on something boring and sensible.`;
+      }
+      if (ch === 'letter') {
+        adjustBond(c.s, c.me.id, g!.id, 5, 4);
+        stat(g!, 'happiness', 3);
+        return `Two pages, in your best handwriting. ${g!.firstName} says it's going in a frame.`;
+      }
+      adjustBond(c.s, c.me.id, g!.id, 3, 2);
+      return `You stayed until the cake was gone and ${g!.firstName}'s friends started calling you by your first name.`;
+    },
+  },
+  {
+    // A far-away grandchild you've barely seen: asked once, never again.
+    id: 'barely_know_them',
+    major: false,
+    story: true,
+    cooldown: 5, // each grandchild once, and not one after another
+    candidates: (c) => (age(c, c.me) < 85 && c.me.stats.health >= 50 ? grandchildrenOf(c.s, c.me) : [])
+      .filter((g) => age(c, g) >= 6 && age(c, g) <= 17 && g.householdId !== c.me.householdId && !isNear(c.s, g) && yearsWith(c.s, c.me, g) === 0 && g.flags.gp_seen === undefined && g.flags.nudged === undefined)
+      .map((g) => ({ subject: g, weight: 1, urgent: false })),
+    build: (c, g) => {
+      const cost = local(c, 1200);
+      return {
+        title: `${g!.firstName}, far away`,
+        text: `You’ve barely met ${g!.firstName}, who’s ${age(c, g!)} now and lives in ${cityName(cityOf(c.s, g!))}.`,
+        choices: [
+          { id: 'fly', label: `Fly out for a week (${money(cost)})`, disabled: !hasCash(wallet(c), cost) },
+          { id: 'call', label: 'Call on their birthday from now on' },
+          { id: 'later', label: 'Not now' },
+        ],
+      };
+    },
+    resolve: (c, ch, g) => {
+      g!.flags.nudged = c.s.year;
+      if (ch === 'fly') {
+        charge(wallet(c), local(c, 1200));
+        adjustBond(c.s, c.me.id, g!.id, 8, 4);
+        noteGrandchild(c.s, c.me, g!);
+        return `${g!.firstName} was shy for a day, then showed you everything: the school, the park, the best taco place.`;
+      }
+      if (ch === 'call') {
+        g!.flags.birthday_calls = c.s.year;
+        adjustBond(c.s, c.me.id, g!.id, 2, 1);
+        return `You put ${g!.firstName}'s birthday in your calendar, in red.`;
+      }
+      return 'Maybe another year.';
+    },
+  },
+
   // ── Life transitions: a parent left behind (retirement: aspirationEvents retirement_purpose reads its thread) ──
   {
     id: 'hometown_pull',
@@ -501,6 +604,25 @@ export const STORY_EVENTS: EventDef[] = [
     },
   },
 ];
+
+/** What a grandchild did with the craft you taught, and the keepsake (by hobby). */
+const TAUGHT: Record<string, [string, string]> = {
+  woodworking: ['entered a first piece of furniture in the county fair', 'still uses your old chisels'],
+  gardening: ['planted a whole garden this spring', 'still asks you when to put the tomatoes in'],
+  cooking: ['cooked dinner for the whole family last weekend', 'still makes your recipe, exactly your way'],
+  music: ['played a real show, to a real crowd', 'still warms up the way you showed them'],
+  fishing: ['caught a fish bigger than any of yours', 'still carries the lure you gave them'],
+  mechanics: ['rebuilt an engine on their own', 'still keeps your old wrench set in the trunk'],
+  art: ['had a piece hung in a real gallery', 'still signs their work the way you did'],
+  sports: ['made the varsity team', 'still does the warm-up you taught them'],
+  flying: ['soloed for the first time', 'still flies with your old headset'],
+};
+/** A gift that scales with what your household has (1% of savings and investments, $500 to $25,000). */
+function grandchildGift(c: Ctx): number {
+  const hh = wallet(c);
+  const worth = Math.max(0, hh.wallet) + (hh.investments ?? 0);
+  return Math.max(500, Math.min(25_000, Math.round((worth * 0.01) / 50) * 50));
+}
 
 /** A live tradition whose regular (CARRY_TAKES+ times) died last year, not yet marked. */
 function emptyChair(c: Ctx): { t: Thread; gone: Person } | undefined {

@@ -247,7 +247,7 @@ export interface JournalEntry {
 }
 
 /** Long-running patterns in a life that can matter years later (see engine/threads.ts). */
-export type ThreadKind = 'strain' | 'supported' | 'encouraged' | 'pushed' | 'siblings' | 'work_first' | 'trained' | 'missed_chance' | 'aspiration' | 'moved' | 'retired' | 'loss' | 'pattern' | 'tradition';
+export type ThreadKind = 'strain' | 'supported' | 'encouraged' | 'pushed' | 'siblings' | 'work_first' | 'trained' | 'missed_chance' | 'aspiration' | 'moved' | 'retired' | 'loss' | 'pattern' | 'tradition' | 'grandchild';
 
 export interface Thread {
   kind: ThreadKind;

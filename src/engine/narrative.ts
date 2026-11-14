@@ -155,6 +155,17 @@ export function lifeStory(s: GameState, p: Person): StoryFact[] {
     const living = lastJob?.skill === skill;
     out.push(fact('craft', 2.5 + (living ? 0.8 : 0), [], [], living ? `You made a living from ${hobbyName(skill)}.` : variant(`${s.seed}:${p.id}:craft`, [`${cap(hobbyName(skill))} became part of who you were.`, `You spent a lifetime getting good at ${hobbyName(skill)}.`])));
   }
+  // Grandchildren: those you taught, and how many you were close to.
+  const gks = (s.threads ?? []).filter((t) => t.ownerId === p.id && t.kind === 'grandchild' && t.hits.length >= 3 && exists(s, t.subjectId));
+  const taught = gks.find((t) => t.detail);
+  if (taught) {
+    const g = s.people[taught.subjectId!];
+    out.push(fact('taught', 2.7, [g.id], taught.hits, `You taught your ${g.sex === 'F' ? 'granddaughter' : 'grandson'} ${g.firstName} ${hobbyName(taught.detail!)}.`));
+  }
+  if (gks.length >= 2) {
+    const all = childrenOf(s, p.id).flatMap((k) => childrenOf(s, k.id)).length;
+    out.push(fact('grandkids', 2.3 + gks.length * 0.1, gks.map((t) => t.subjectId!), [], gks.length === all ? `You were close to all ${num(all)} of your grandchildren.` : `You were close to ${num(gks.length)} of your grandchildren.`));
+  }
   // Children and how close they were.
   const kids = childrenOf(s, p.id);
   if (kids.length) {
@@ -193,6 +204,8 @@ export function patternFact(s: GameState, t: Thread): StoryFact | undefined {
       if (!sub || !TRADITION_NOUN[arg]) return undefined;
       return fact('carried', 2.2, [sub.id], [t.since], `Your ${kidWord(sub)} ${sub.firstName} carried ${TRADITION_NOUN[arg]} on in ${sub.sex === 'F' ? 'her' : 'his'} own home.`);
     }
+    case 'skipped': return sub ? fact('skipped', 2.6, [sub.id], [year], `Your ${sub.sex === 'F' ? 'granddaughter' : 'grandson'} ${sub.firstName} followed your path.`) : undefined;
+    case 'grandparent': return undefined;
     case 'identity': return fact('identity', 2.3, [], [year], `${cap(hobbyName(arg))} became part of who you were.`);
     case 'reconsidered': return fact('reconsidered', 2.4, [], [year], 'After years of chasing the next promotion, your priorities changed.');
     default: return undefined;
@@ -205,6 +218,20 @@ export function patternFact(s: GameState, t: Thread): StoryFact | undefined {
 export function childhoodFacts(s: GameState, child: Person): StoryFact[] {
   const out: StoryFact[] = [];
   const parents = new Set([...child.biologicalParents, ...child.adoptiveParents]);
+  // Grandparents: time together and a craft taught (played grandparents), and encouragement noted by your parents.
+  for (const t of s.threads ?? []) {
+    if (t.kind === 'grandchild' && t.subjectId === child.id && exists(s, t.ownerId) && t.hits.length >= 3) {
+      const gp = s.people[t.ownerId];
+      const who = `your ${gp.sex === 'F' ? 'grandmother' : 'grandfather'} ${gp.firstName}`;
+      out.push(t.detail
+        ? fact('grandparent', 2.8, [gp.id], t.hits, `${cap(who)} taught you ${hobbyName(t.detail)}.`)
+        : fact('grandparent', 2.2, [gp.id], t.hits, `${cap(who)} was part of your life every year for ${num(t.hits.length)} years.`));
+    }
+    if (t.kind === 'pattern' && t.subjectId === child.id && parents.has(t.ownerId) && t.detail?.startsWith('grandparent:')) {
+      const gp = s.people[t.detail.slice('grandparent:'.length)];
+      if (gp) out.push(fact('grandparent', 1.8, [gp.id], [t.since], `Your ${gp.sex === 'F' ? 'grandmother' : 'grandfather'} ${gp.firstName} cheered you on.`));
+    }
+  }
   for (const t of s.threads ?? []) {
     if (!parents.has(t.ownerId) || !exists(s, t.ownerId)) continue;
     const parent = s.people[t.ownerId];
@@ -272,6 +299,11 @@ export function successionNote(s: GameState, prev: Person, heir: Person): string
       if (t.kind === 'strain' && t.outcome !== 'reconciled' && t.hits.length >= 2) out.push(fact('strain', 2.2, [heir.id], t.hits, `${prev.firstName} and ${heir.firstName} never fully mended things.`));
       if (t.kind === 'pushed' && t.hits.length >= 2) out.push(fact('pushed', 2, [heir.id], t.hits, `${prev.firstName} pushed ${heir.firstName} hard when ${heir.firstName} was young.`));
     }
+    if (t.ownerId === prev.id && t.subjectId === heir.id && t.kind === 'grandchild' && t.hits.length >= 2) {
+      out.push(t.detail
+        ? fact('grandparent', 3.1, [heir.id], t.hits, `${prev.firstName} taught ${heir.firstName} ${hobbyName(t.detail)}; ${heir.firstName} was ${t.since - heir.birthYear}.`)
+        : fact('grandparent', 2.6, [heir.id], t.hits, `${prev.firstName} and ${heir.firstName} spent part of ${num(t.hits.length)} years together, starting when ${heir.firstName} was ${t.since - heir.birthYear}.`));
+    }
     if (t.ownerId === heir.id && t.inherited === prev.id && t.kind === 'tradition') out.push(fact('tradition', 2.7, [heir.id], t.hits, inheritedLine(t, prev, heir)));
     if (t.ownerId === heir.id && t.inherited === prev.id && exists(s, t.subjectId)) {
       out.push(fact('owed', 2.5, [t.subjectId], t.hits, `${s.people[t.subjectId].firstName} still remembers how ${prev.firstName} stood by them.`));
@@ -313,6 +345,7 @@ export function rememberedFor(s: GameState, p: Person): string | undefined {
   const kids = childrenOf(s, p.id);
   const kidBond = kids.length ? kids.reduce((n, k) => n + getBond(s, p.id, k.id).affinity, 0) / kids.length : 0;
   const closeKids = kids.length > 0 && kidBond >= 30;
+  const grandkids = (s.threads ?? []).filter((t) => t.ownerId === p.id && t.kind === 'grandchild' && t.hits.length >= 3).length;
   // The whole life, not just the end: family time while the kids were home, and how close they were at 18.
   const parentYears = p.flags.parent_years ?? 0;
   const timeShare = parentYears >= 5 ? (p.flags.family_years ?? 0) / parentYears : 0;
@@ -323,7 +356,7 @@ export function rememberedFor(s: GameState, p: Person): string | undefined {
   const [skill, lvl] = (Object.entries(p.skills) as [Hobby, number][]).sort((a, b) => b[1] - a[1])[0] ?? [];
   // Each candidate scores from the facts that support it; the strongest wins.
   const scores: [string, number][] = [
-    ['a life devoted to family', (timeShare >= 0.8 ? 1.4 : timeShare >= 0.5 ? 0.7 : 0) + (bond18 === undefined ? 0 : bond18 >= 50 ? 1.4 : bond18 >= 35 ? 0.7 : 0) + (closeKids ? 0.6 + kids.length * 0.2 : 0) + (asp === 'connection' ? 2 : wanted.has('connection') ? 0.8 : 0) + (has('mended') ? 1 : 0) + (has('backed') ? 1 : 0) + (has('tradition') ? 1 : 0) + ((traditionsKeptBy(s, p.id)[0]?.count ?? 0) >= 10 ? 1 : 0) - (workFirst ? 1 : 0)],
+    ['a life devoted to family', (timeShare >= 0.8 ? 1.4 : timeShare >= 0.5 ? 0.7 : 0) + (bond18 === undefined ? 0 : bond18 >= 50 ? 1.4 : bond18 >= 35 ? 0.7 : 0) + (closeKids ? 0.6 + kids.length * 0.2 : 0) + (grandkids >= 2 ? 0.8 : 0) + (asp === 'connection' ? 2 : wanted.has('connection') ? 0.8 : 0) + (has('mended') ? 1 : 0) + (has('backed') ? 1 : 0) + (has('tradition') ? 1 : 0) + ((traditionsKeptBy(s, p.id)[0]?.count ?? 0) >= 10 ? 1 : 0) - (workFirst ? 1 : 0)],
     [`mastering ${skill ? hobbyName(skill) : 'a craft'}`, (lvl >= 70 ? 2 + (lvl - 70) / 10 : 0) + (asp === 'mastery' ? 2 : wanted.has('mastery') ? 0.5 : 0) + (job?.skill === skill && lvl >= 70 ? 1 : 0)],
     [job?.startup ? 'building something of their own' : `a driven career${job ? ` as ${/^[aeiou]/i.test(job.name) ? 'an' : 'a'} ${job.name.toLowerCase()}` : ''}`, (p.jobLevel >= 3 ? 1.2 : 0) + (job?.startup ? 1.5 : 0) + (asp === 'achievement' ? 2 : wanted.has('achievement') ? 0.8 : 0) + (workFirst ? 1 : 0)
       // Mostly at work while the kids were home, and a long career: the whole life says it too.

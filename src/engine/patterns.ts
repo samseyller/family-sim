@@ -68,6 +68,16 @@ export function findPatterns(s: GameState, me: Person): Found[] {
       out.push({ key: `own_path:${k.id}`, subject: k, since: pushed.hits[0], hits: pushed.hits, text: `${k.firstName} has gone ${k.sex === 'F' ? 'her' : 'his'} own way, and is making it work.` });
     }
   }
+  // The skipped generation: a grown grandchild on your path when their parent isn't.
+  for (const k of childrenOf(s, me.id)) {
+    const parentOnPath = (!!myJob && k.jobId === myJob) || (!!mySkill && myLvl >= 50 && (k.skills[mySkill] ?? 0) >= 50);
+    if (parentOnPath) continue;
+    for (const g of childrenOf(s, k.id)) {
+      if (!alive(g) || ageOf(g, year) < 22) continue;
+      const onPath = (!!myJob && g.jobId === myJob) || (!!mySkill && myLvl >= 50 && (g.skills[mySkill] ?? 0) >= 50);
+      if (onPath) out.push({ key: `skipped:${g.id}`, subject: g, since: g.birthYear + 18, hits: [year], text: `${g.firstName} followed your path, not ${g.sex === 'F' ? 'her' : 'his'} ${k.sex === 'F' ? 'mother' : 'father'}’s.` });
+    }
+  }
   for (const t of s.threads ?? []) {
     if (t.ownerId !== me.id || t.kind !== 'strain' || t.closed === undefined || !['faded', 'drifted'].includes(t.outcome ?? '') || year - t.closed < 2) continue;
     const p = t.subjectId ? s.people[t.subjectId] : undefined;

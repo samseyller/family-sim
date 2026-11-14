@@ -302,6 +302,7 @@ export const DECISIONS: DecisionDef[] = [
       const h = kid.hobby!;
       kid.skills[h] = Math.min(100, (kid.skills[h] ?? 0) + 4);
       kid.flags.encouraged = (kid.flags.encouraged ?? 0) + 1;
+      noteGrandparent(s, me, kid, p);
       remember(kid, 'support', p.id, s.year);
       adjustBond(s, p.id, kid.id, 5, 3);
       return top?.id === 'shared_interest'
@@ -323,7 +324,7 @@ export const DECISIONS: DecisionDef[] = [
     ],
     act: ({ s, me, p }) => {
       stat(me, 'stress', -4);
-      for (const k of kidsAtHome(s, me).filter((x) => ageOf(x, s.year) < 10)) adjustBond(s, p.id, k.id, 5, 3);
+      for (const k of kidsAtHome(s, me).filter((x) => ageOf(x, s.year) < 10)) { adjustBond(s, p.id, k.id, 5, 3); noteGrandparent(s, me, k, p); }
       return `${p.firstName} offered to watch the kids every week. You finally had some evenings back.`;
     },
   },
@@ -410,6 +411,13 @@ export const DECISIONS: DecisionDef[] = [
   },
 ];
 const BY_ID: Record<string, DecisionDef> = Object.fromEntries(DECISIONS.map((d) => [d.id, d]));
+
+/** Remember (once) that this grandparent was there for the player's child: their coming of age can mention it. */
+function noteGrandparent(s: GameState, me: Person, kid: Person, gp: Person) {
+  const key = `grandparent:${gp.id}`;
+  if ((s.threads ?? []).some((t) => t.kind === 'pattern' && t.subjectId === kid.id && t.detail === key)) return;
+  (s.threads ??= []).push({ kind: 'pattern', ownerId: me.id, subjectId: kid.id, detail: key, since: s.year, hits: [s.year], closed: s.year, outcome: 'noted' });
+}
 
 /** A career a restless partner could move into (qualified now, a different field). */
 export function careerChangeFor(p: Person): Career | undefined {
