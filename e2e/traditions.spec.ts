@@ -42,6 +42,33 @@ test('a live tradition shows its badge, and the result card says so', async ({ p
   expect(errors).toEqual([]);
 });
 
+test('the family tree shows what lives were about: two icons on the node, every badge in words', async ({ page }, info) => {
+  test.skip(info.project.name === 'mobile', 'covered on desktop');
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  const { save } = withTradition(5353);
+  const me = active(save);
+  const friend = Object.values(save.people).find((p) => p.id !== me.id && p.deathYear === undefined)!;
+  save.threads!.push(
+    { kind: 'aspiration', ownerId: me.id, detail: 'mastery', since: save.year - 9, hits: [save.year - 1], closed: save.year, outcome: 'milestone' },
+    { kind: 'pattern', ownerId: me.id, subjectId: friend.id, detail: `friend:${friend.id}`, since: save.year - 31, hits: [save.year], closed: save.year, outcome: 'recognized' },
+  );
+  await load(page, save, 'badges.json');
+  await expect(page.locator('.hero h2')).toBeVisible();
+  await page.keyboard.press('3');
+  await page.getByRole('radio', { name: /tree/i }).click();
+  const node = page.locator('.tree-node.active');
+  await expect(node.locator('.tree-badge')).toHaveText('⭐🏷️');
+  await expect(node).toHaveAttribute('aria-label', /Lived for mastery, and found it\. Kept game night \(11 years\)\. Friends with .+ for 31\+ years/);
+  await node.click();
+  const detail = page.locator('.tree-detail');
+  await expect(detail).toContainText('⭐ Lived for mastery, and found it');
+  await expect(detail).toContainText('🏷️ Kept game night (11 years)');
+  await expect(detail).toContainText(`🤝 Friends with ${friend.firstName} for 31+ years`);
+  await page.screenshot({ path: 'e2e/out/tree-badges.png' });
+  expect(errors).toEqual([]);
+});
+
 test('a tradition passes to the heir who grew up with it', async ({ page }, info) => {
   test.skip(info.project.name === 'mobile', 'covered on desktop');
   const errors: string[] = [];

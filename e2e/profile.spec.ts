@@ -39,7 +39,9 @@ test('settings persist, achievements unlock, full backup round-trips', async ({ 
     await page.locator('.modal button:not([disabled])').first().click();
     await page.waitForTimeout(60);
   }
-  await expect(page.locator('.toast')).toContainText('First Steps');
+  // An achievement toast appears. (The random first year can unlock others too, e.g. adopting a dog, whose toasts
+  // may be showing first; the panel below checks First Steps itself.)
+  await expect(page.locator('.toast').first()).toContainText('Achievement unlocked');
 
   // Achievements panel shows it and the lifetime stats.
   await page.getByRole('button', { name: 'Menu' }).click();

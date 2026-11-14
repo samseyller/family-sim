@@ -1,4 +1,4 @@
-import { TRADITION_NOUN, traditionsKeptBy } from '../../engine/traditions';
+import { TREE_BADGES_SHOWN, treeBadges } from '../../engine/narrative';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { GameState } from '../../engine/types';
 import { ageOf, alive, getBond } from '../../engine/util';
@@ -8,7 +8,7 @@ import { layoutTree, NODE_H, NODE_W } from './layout';
 
 /** Scrollable family tree. Played characters are ringed; tap anyone for details. */
 /** Traditions this person kept (3+ years), for the tree: "game night (12 years), the holiday dinner (25 years)". */
-const keptList = (g: GameState, id: string) => traditionsKeptBy(g, id).filter((t) => (t.count ?? 0) >= 3).map((t) => `${TRADITION_NOUN[t.detail!]} (${t.count} years)`).join(', ');
+
 
 export function FamilyTree({ g }: { g: GameState }) {
   const layout = useMemo(() => layoutTree(g), [g]);
@@ -39,6 +39,7 @@ export function FamilyTree({ g }: { g: GameState }) {
           </svg>
           {layout.nodes.map((n) => {
             const p = g.people[n.id];
+            const badges = treeBadges(g, p.id);
             const cls = ['tree-node', lineage.has(p.id) ? 'lineage' : '', p.id === g.activeId ? 'active' : '', p.id === selected ? 'selected' : '', alive(p) ? '' : 'dead'].join(' ');
             return (
               <button
@@ -47,10 +48,10 @@ export function FamilyTree({ g }: { g: GameState }) {
                 style={{ left: n.x + 8, top: n.y + 8, width: NODE_W, height: NODE_H }}
                 onClick={() => setSelected(p.id)}
                 aria-pressed={p.id === selected}
-                aria-label={`${p.firstName} ${p.lastName}${alive(p) ? `, age ${ageOf(p, g.year)}` : `, ${p.birthYear} to ${p.deathYear}`}${lineage.has(p.id) ? ', played' : ''}`}
+                aria-label={`${p.firstName} ${p.lastName}${alive(p) ? `, age ${ageOf(p, g.year)}` : `, ${p.birthYear} to ${p.deathYear}`}${lineage.has(p.id) ? ', played' : ''}${badges.length ? `. ${badges.map((b) => b.label).join('. ')}` : ''}`}
               >
                 <AvatarFace spec={specOf(p, g.year)} size={56} />
-                {traditionsKeptBy(g, p.id).some((t) => (t.count ?? 0) >= 3) && <span className="tree-badge" title={`Kept: ${keptList(g, p.id)}`} aria-hidden>🏷️</span>}
+                {badges.length > 0 && <span className="tree-badge" title={badges.map((b) => `${b.icon} ${b.label}`).join('\n')} aria-hidden>{badges.slice(0, TREE_BADGES_SHOWN).map((b) => b.icon).join('')}</span>}
                 <span className="tree-name">{p.firstName}</span>
                 <span className="tree-years">{p.birthYear}–{p.deathYear ?? ''}</span>
               </button>
@@ -75,7 +76,9 @@ export function FamilyTree({ g }: { g: GameState }) {
             </div>
             {bond && alive(sel) && <div className="hint">Affinity {bond.affinity} · Trust {bond.trust}</div>}
             {lineage.has(sel.id) && <div className="hint">You played as {sel.firstName}.</div>}
-            {keptList(g, sel.id) && <div className="hint">🏷️ Kept: {keptList(g, sel.id)}</div>}
+            {treeBadges(g, sel.id).length > 0 && (
+              <ul className="tree-badges">{treeBadges(g, sel.id).map((b) => <li key={b.icon} className="hint">{b.icon} {b.label}</li>)}</ul>
+            )}
           </div>
         </div>
       )}

@@ -219,7 +219,8 @@ kbd {
 .recap-routine ul { margin-top: 4px; }
 .memorial-story { margin: 6px 0; padding-left: 18px; }
 .tradition-badge { color: var(--accent); font-weight: 600; }
-.tree-badge { position: absolute; top: 2px; right: 4px; font-size: 14px; }
+.tree-badge { position: absolute; top: 2px; right: 4px; font-size: 13px; letter-spacing: -2px; }
+.tree-badges { list-style: none; padding: 0; margin: 4px 0 0; }
 .memorial-story li { margin: 2px 0; }
 
 /* title & memorial */

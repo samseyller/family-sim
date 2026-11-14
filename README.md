@@ -56,7 +56,10 @@ one flat set of metrics (`src/balance/`). Lives run in parallel across CPU cores
 - **Play styles** (`src/balance/playstyles.ts`). The three **core** styles (career, family, balanced; 60 lives each)
   measure the economy and difficulty. When a relationship at home is strained, a core-style player commits to mending
   it at a style-specific rate (family 85%, balanced 50%, career 20%; a stable roll per strain): committed players
-  give that person time every year and reach out when it comes up, the rest let it ride. Seven **explorer** styles
+  give that person time every year and reach out when it comes up, the rest let it ride. Core styles also answer
+  story moments by their priorities (`STORY_PREFS`: weighted choices picked by a stable roll; family players mostly
+  reach out, apologize and keep traditions, career players mostly give room, explain and go for promotions, balanced
+  players split; unlisted events stay random). Seven **explorer** styles
   chase one part of the game the way a player with a goal would, so every achievement and event gets exercised:
   - *athlete*: trains from childhood with coaching, camps and gear, goes as far as talent allows, later picks up
     running, golf and tennis, and coaches the next generation.
@@ -565,7 +568,9 @@ stats, so stories never move balance.
   achievement.
 - **Succession** names what the two generations shared (an interest backed, a rift mended or not) and anyone who
   still remembers how the late character stood by them. The heir keeps their own personality and aspiration.
-- **Memorials** are remembered for the strongest supported pattern (family, a craft, a driven career or a business,
+- **Memorials** look at the whole life: a lifetime tally of years with children at home and how many had real family
+  time (`parent_years`, `family_years`), and each child's bond with you at 18 (`bond18`), so a devoted parent is
+  remembered for it even after grown children drift. They are remembered for the strongest supported pattern (family, a craft, a driven career or a business,
   exploring, service, security; a top rank alone isn't "driven"), falling back to the plain reading, and carry up
   to three true lines, kept in the Family Archive. Epitaphs come in several shapes (some only when their fact is true:
   grandchildren, a lifelong craft, an aspiration found), and plain readings have a few wordings each, picked by a
@@ -604,6 +609,37 @@ declare one.
 - The tycoon, socialite and soldier play styles keep traditions at rates that vary by family. Measured (72 lives):
   about 1.4 traditions per 100 played years, kept 23 years on average; 30% pass to an heir; grown children carried
   one on 58 times.
+
+## Grandchildren
+
+A played grandparent's history with each grandchild (`src/engine/grandchildren.ts`), recorded as a `grandchild`
+story thread.
+
+- **Time together:** a year counts when a grandchild takes part in an activity with you (visits, dinners, reunions,
+  teaching), once a year. The story starts on the second year.
+- **Teach a grandchild your craft** (activity): a grandchild 8–17 living with you or nearby, your hobby at skill 50+;
+  up to three times a year. Their skill grows; curious or creative grandchildren often take it up.
+- **Moments** (story follow-ups):
+  - *What you taught them*: a grandchild you taught for 3+ years, now 16–30 and good at it ("She still uses your old
+    chisels").
+  - *Turning 18*: a grandchild you spent 5+ years with. Give a gift toward their future (from your household into
+    their savings: 1% of your savings and investments, $500 to $25,000), write them a letter, or just be there.
+  - *Far away*: a grandchild 6–17 in another city you've never spent time with. Fly out, call on their birthday from
+    now on (which counts as time together each year), or not now. Asked once per grandchild, never again, and at
+    most one every five years.
+- **The story carries on:** coming of age names grandparents who taught you or were there every year (and NPC
+  grandparents who cheered you on); succession names what a grandparent and a grandchild heir shared; a taught heir
+  who kept the craft starts a little happier. The skipped generation (a grown grandchild in your career or craft when
+  their parent isn't) is a recognized pattern. Life stories, memorials ("grandmother of five, who always had time")
+  and "a life devoted to family" count close grandchildren.
+- Schema 27: the `grandchild` thread kind.
+
+## Family tree badges
+
+The tree shows what lives were about (`treeBadges` in `src/engine/narrative.ts`), from recorded facts only: ⭐ an
+aspiration fulfilled, 🏷️ traditions kept, 🌱 a craft taught to a grandchild, 👣 followed a parent's or grandparent's
+path, 🤝 a 30-year friendship. A node shows the two most significant; selecting it lists them all in words, and the
+node's accessible label includes them, so nothing is icon-only.
 
 ## Aspiration and fulfillment
 
@@ -648,7 +684,8 @@ declare one.
   family reunion (three or more relatives from other homes): bonds all round, and sometimes an old rift heals or an
   argument starts. *Made for traditions:* a birthday camping trip (once a year, a child 6–17 at home; the birthday
   child gets a little extra), Sunday dinner with the grandparents (your or your partner's parents in the same city, a
-  child at home; grandparents and grandchildren grow closer), and a holiday light display (a house, not an apartment
+  child at home; grandparents and grandchildren grow closer), teaching a grandchild your craft (see Grandchildren), and
+  a holiday light display (a house, not an apartment
   or condo; $150 the first year, $60 once you own the lights).
 - **Check-up follow-ups:** a worrying check-up (over 40, health under 60) orders more tests; the results come the next
   year. Treating it then (payable from investments, like other medical bills) restores health; waiting is a coin flip. *Vices:* shut down a bar, doom scroll for hours.

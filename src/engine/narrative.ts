@@ -333,6 +333,46 @@ export function birthNote(s: GameState, me: Person): string {
   return lost ? ` Your ${parentWord(lost)}, ${lost.firstName}, didn’t live to meet them.` : '';
 }
 
+// ── Family tree badges ───────────────────────────────────────────────
+
+export interface TreeBadge {
+  icon: string;
+  /** What it means for this person ("Kept game night (12 years)"); always shown in words too, never icon-only. */
+  label: string;
+  /** Most significant first; a tree node shows the top TREE_BADGES_SHOWN. */
+  weight: number;
+}
+export const TREE_BADGES_SHOWN = 2;
+
+/** What a life on the tree is known for, from recorded facts only. */
+export function treeBadges(s: GameState, personId: string): TreeBadge[] {
+  const p = s.people[personId];
+  if (!p) return [];
+  const out: TreeBadge[] = [];
+  const mine = (s.threads ?? []).filter((t) => t.ownerId === personId);
+  const aim = mine.find((t) => t.kind === 'aspiration' && t.outcome === 'milestone');
+  if (aim) out.push({ icon: '⭐', label: `Lived for ${aspLabel(aim.detail!)}, and found it`, weight: 5 });
+  const kept = traditionsKeptBy(s, personId).filter((t) => (t.count ?? 0) >= 3);
+  if (kept.length) out.push({ icon: '🏷️', label: `Kept ${kept.map((t) => `${TRADITION_NOUN[t.detail!]} (${t.count} years)`).join(', ')}`, weight: 4 });
+  const taught = mine.filter((t) => t.kind === 'grandchild' && t.detail && exists(s, t.subjectId));
+  if (taught.length) out.push({ icon: '🌱', label: `Taught ${taught.map((t) => `${s.people[t.subjectId!].firstName} ${hobbyName(t.detail!)}`).join(', ')}`, weight: 3 });
+  // Followed someone's path: recorded on the elder's side, shown on the one who followed.
+  for (const t of s.threads ?? []) {
+    if (t.kind !== 'pattern' || t.subjectId !== personId || !exists(s, t.ownerId)) continue;
+    const kind = t.detail?.split(':')[0];
+    if (kind !== 'following' && kind !== 'skipped') continue;
+    const elder = s.people[t.ownerId];
+    const job = p.jobId && CAREER_BY_ID[p.jobId];
+    out.push({ icon: '👣', label: `Followed ${elder.firstName}’s path${job ? ` as ${/^[aeiou]/i.test(job.name) ? 'an' : 'a'} ${job.name.toLowerCase()}` : ''}`, weight: 3 });
+    break;
+  }
+  for (const t of mine.filter((x) => x.kind === 'pattern' && x.detail?.startsWith('friend:') && exists(s, x.subjectId))) {
+    out.push({ icon: '🤝', label: `Friends with ${s.people[t.subjectId!].firstName} for ${(t.closed ?? s.year) - t.since}+ years`, weight: 2 });
+    break;
+  }
+  return out.sort((a, b) => b.weight - a.weight);
+}
+
 // ── Memorial ─────────────────────────────────────────────────────────
 
 /** What a life is remembered for, from its strongest true facts (undefined: use the plain fallback). */
