@@ -30,7 +30,8 @@ import { enlistNow } from '../engine/military';
 import type { Rng } from '../engine/rng';
 import { isPro, sportsAction } from '../engine/sports';
 import { planApply, planEnroll, shiftBlocks, strategyPlan, type Strategy } from '../engine/strategies';
-import type { GameState, Hobby, PendingEvent, Person, Plan, Program } from '../engine/types';
+import type { GameState, Hobby, PendingEvent, Person, Plan, Program, Thread } from '../engine/types';
+import { stableHash } from '../engine/relationships';
 import { active, activePartnership, ageOf, alive, childrenOf, getBond, kidsAtHome, membersOf, parentsOf } from '../engine/util';
 
 export interface StyleCtx {
@@ -110,7 +111,38 @@ function cityHiring(s: GameState, careerId: string, coastalOnly = false): CityId
 
 const listedHere = (s: GameState, careerId: string) => listings(s.seed, cityOfHousehold(hh(s)), s.year, CAREER_BY_ID[careerId].hours).some((c) => c.id === careerId);
 
-const corePlan = (kind: Strategy) => (s: GameState) => strategyPlan(s, kind);
+// ── Following up on strained relationships ──────────────────────────────────────────────────
+
+/**
+ * How readily each core style follows up when a relationship at home is strained (a story thread). For each strain,
+ * a stable roll decides whether this player commits to mending it: if so, they give that person time every year
+ * and reach out when it comes up; if not, the plan stays as it is and they answer at random. So some players mend,
+ * some let things drift, at different rates by style.
+ */
+export const MEND_RATE: Record<Strategy, number> = { family: 0.85, balanced: 0.5, career: 0.2 };
+const commits = (ctx: StyleCtx, t: Thread, rate: number) => stableHash(`${ctx.seed}:${t.subjectId}:${t.since}:mend`) / 4294967296 < rate;
+/** Strains with someone at home (partner or child) this player has committed to mending. */
+function mending(s: GameState, ctx: StyleCtx, rate: number): Person[] {
+  const p = me(s);
+  const home = new Set(membersOf(s, p.householdId).map((x) => x.id));
+  return (s.threads ?? [])
+    .filter((t) => t.kind === 'strain' && t.ownerId === p.id && t.closed === undefined && !!t.subjectId && home.has(t.subjectId) && commits(ctx, t, rate))
+    .map((t) => s.people[t.subjectId!]);
+}
+function mendPlan(s: GameState, plan: Plan, ctx: StyleCtx, rate: number): Plan {
+  const want: Record<string, number> = {};
+  const partner = activePartnership(s, me(s).id);
+  for (const q of mending(s, ctx, rate)) {
+    const key = partner && (partner.a === q.id || partner.b === q.id) ? 'partner_time' : `child_time:${q.id}`;
+    want[key] = Math.max(plan.alloc[key] ?? 0, q.flags.promised_time === s.year ? 2 : 1);
+  }
+  return Object.keys(want).length ? shiftBlocks(s, plan, want) : plan;
+}
+const mendPrefer = (pe: PendingEvent, s: GameState, ctx: StyleCtx, rate: number): string[] =>
+  pe.eventId === 'growing_distance' && mending(s, ctx, rate).some((q) => q.id === pe.subjectId) ? ['reach_out'] : [];
+
+const corePlan = (kind: Strategy) => (s: GameState, ctx: StyleCtx) => mendPlan(s, strategyPlan(s, kind), ctx, MEND_RATE[kind]);
+const corePrefer = (kind: Strategy) => (pe: PendingEvent, s: GameState, ctx: StyleCtx) => mendPrefer(pe, s, ctx, MEND_RATE[kind]);
 
 // ── Sports ───────────────────────────────────────────────────────────────────────────────────
 
@@ -196,7 +228,10 @@ const HOBBY_PATHS: HobbyPath[] = [
 
 // Flying comes up twice as often: the airline-captain path (licenses, then two promotions) is the longest.
 const PATH_ORDER = [0, 1, 2, 3, 4, 5, 6, 0];
-const hobbyPath = (ctx: StyleCtx) => HOBBY_PATHS[PATH_ORDER[ctx.seed % PATH_ORDER.length]];
+// A style can pin one path (ctx.mem.path), e.g. the musician explorer.
+const hobbyPath = (ctx: StyleCtx) => HOBBY_PATHS[ctx.mem.path !== undefined ? Number(ctx.mem.path) : PATH_ORDER[ctx.seed % PATH_ORDER.length]];
+const MUSIC_PATH = HOBBY_PATHS.findIndex((x) => x.hobby === 'music');
+const musicCtx = (ctx: StyleCtx) => { ctx.mem.path = MUSIC_PATH; return ctx; };
 
 /** The next career on the path you aren't in yet (or the one you hold, to keep). */
 function nextCareer(p: Person, path: HobbyPath): string | undefined {
@@ -368,9 +403,9 @@ function bigFamilyPrefer(pe: PendingEvent, s: GameState): string[] {
 const sportFor = (ctx: StyleCtx, pool: SportId[] = SPORT_IDS) => pool[ctx.seed % pool.length];
 
 export const PLAY_STYLES: PlayStyle[] = [
-  { id: 'career', core: true, start: 'adult', lives: 60, plan: corePlan('career') },
-  { id: 'family', core: true, start: 'adult', lives: 60, plan: corePlan('family') },
-  { id: 'balanced', core: true, start: 'adult', lives: 60, plan: corePlan('balanced') },
+  { id: 'career', core: true, start: 'adult', lives: 60, plan: corePlan('career'), prefer: corePrefer('career') },
+  { id: 'family', core: true, start: 'adult', lives: 60, plan: corePlan('family'), prefer: corePrefer('family') },
+  { id: 'balanced', core: true, start: 'adult', lives: 60, plan: corePlan('balanced'), prefer: corePrefer('balanced') },
   {
     id: 'athlete', core: false, start: 'child', lives: 30,
     plan: (s) => athletePlan(s, 'balanced'),
@@ -388,6 +423,13 @@ export const PLAY_STYLES: PlayStyle[] = [
     plan: hobbyistPlan,
     prefer: (pe) => (pe.eventId === 'promotion_offer' ? ['accept'] : []),
     act: hobbyistAct,
+  },
+  {
+    // Musicians only: a big break (a hit song or a headline audition) is rare, so it needs its own sample.
+    id: 'musician', core: false, start: 'child', lives: 30,
+    plan: (s, ctx) => hobbyistPlan(s, musicCtx(ctx)),
+    prefer: (pe) => (pe.eventId === 'promotion_offer' ? ['accept'] : []),
+    act: (s, ctx) => hobbyistAct(s, musicCtx(ctx)),
   },
   {
     id: 'socialite', core: false, start: 'child', lives: 24,

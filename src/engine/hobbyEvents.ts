@@ -1,4 +1,5 @@
 /** Moments along the hobby paths: firsts, scares, breaks, and bragging rights. */
+import { stableHash } from './relationships';
 import { CAREER_BY_ID } from '../content/careers';
 import { DEDUCTIBLE } from '../content/economy';
 import type { Ctx, EventDef } from './eventKit';
@@ -280,6 +281,44 @@ export const HOBBY_EVENTS: EventDef[] = [
       credit(wallet(c), pay);
       journal(c.s, `You won the audition and played a run of shows (${money(pay)}).`, 'good');
       return `You nailed it. A month of shows, ${money(pay)}, and your name on a poster.`;
+    },
+  },
+  {
+    // Scheduled by bigBreakYear: a hit song or a won headline audition. Taking it makes you a Headliner.
+    id: 'big_break',
+    major: true,
+    cooldown: 0,
+    build: (c) => {
+      const song = stableHash(`${c.s.seed}:${c.s.year}:${c.me.id}:kind`) % 2 === 0;
+      return {
+        title: song ? 'A hit song' : 'The headline audition',
+        text: song
+          ? 'A song you wrote on a slow afternoon is suddenly everywhere: radio, ads, a million covers. A promoter wants you at the top of the bill, starting this summer.'
+          : 'A festival lost its headliner and auditioned a dozen acts in a week. They picked you. The slot is yours if you want it.',
+        choices: [
+          { id: 'headline', label: '🎤 Take the top of the bill', hint: 'Headliner pay, a heavy touring schedule' },
+          { id: 'stay', label: song ? 'Take the royalties and keep your life as it is' : 'Thank them and keep the life you have', hint: song ? 'A one-time windfall' : 'Your touring life stays as it is' },
+        ],
+      };
+    },
+    resolve: (c, ch) => {
+      c.me.flags.big_break = c.s.year;
+      const song = stableHash(`${c.s.seed}:${c.s.year}:${c.me.id}:kind`) % 2 === 0;
+      if (ch === 'headline') {
+        c.me.jobLevel = 3;
+        c.me.jobYears = 0;
+        stat(c.me, 'happiness', 10);
+        stat(c.me, 'stress', 6);
+        journal(c.s, song ? 'Your song became a hit, and you became a headliner.' : 'You won the headline audition and topped the bill.', 'major');
+        return 'Your name at the top of the poster. Your mother framed it.';
+      }
+      if (song) {
+        const pay = 25_000;
+        credit(wallet(c), pay);
+        journal(c.s, `Your song became a hit; you kept your life as it was and took the royalties (${money(pay)}).`, 'good');
+        return 'You still hear it in grocery stores. You still smile every time.';
+      }
+      return 'You turned it down. Some nights you wonder; most nights you are glad.';
     },
   },
   {

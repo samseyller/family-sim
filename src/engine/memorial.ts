@@ -1,7 +1,9 @@
-import { memorialStory, rememberedFor } from './narrative';
+import { hobbyName, memorialStory, rememberedFor } from './narrative';
+import { ASPIRATION_INFO } from './fulfillment';
+import { stableHash } from './relationships';
 import { jobTitle } from '../content/careers';
 import { aimText } from './fulfillment';
-import type { GameState, JournalEntry, Person } from './types';
+import type { Aspiration, GameState, JournalEntry, Person } from './types';
 import { ageOf, alive, childrenOf, getBond, membersOf } from './util';
 
 export interface MemorialEntry {
@@ -32,12 +34,14 @@ function knownFor(s: GameState, p: Person): string {
   if (told) return told;
   const kids = childrenOf(s, p.id);
   const avgBond = kids.length ? kids.reduce((sum, k) => sum + getBond(s, p.id, k.id).affinity, 0) / kids.length : 0;
-  if (kids.length && avgBond >= 40) return 'a devoted parent';
-  if (p.jobLevel >= 3) return 'years of steady, good work';
-  if (p.flags.health_vow) return 'a second chance at health';
-  if (p.stats.happiness >= 70) return 'a contented life';
-  if (p.flags.declined_promotion) return 'choosing family over the corner office';
-  return 'quiet perseverance';
+  // The same reading in a few words, so families don't all sound alike (stable per person).
+  const say = (...xs: string[]) => xs[stableHash(`${s.seed}:${p.id}:known`) % xs.length];
+  if (kids.length && avgBond >= 40) return say('a devoted parent', 'always being there for the kids', 'a home the kids loved coming back to');
+  if (p.jobLevel >= 3) return say('years of steady, good work', 'showing up for work, year after year', 'a steady hand and honest work');
+  if (p.flags.health_vow) return say('a second chance at health', 'turning their health around');
+  if (p.stats.happiness >= 70) return say('a contented life', 'finding joy in ordinary days', 'a quick laugh and an easy heart');
+  if (p.flags.declined_promotion) return say('choosing family over the corner office', 'going home on time, on purpose');
+  return say('quiet perseverance', 'carrying on through hard years', 'getting up and trying again');
 }
 
 const NUMBER_WORDS = ['no', 'one', 'two', 'three', 'four', 'five', 'six', 'seven'];
@@ -50,14 +54,26 @@ export function epitaphFor(s: GameState, p: Person, known: string): string {
     ? `${p.sex === 'F' ? 'mother' : 'father'} of ${NUMBER_WORDS[kids] ?? kids}`
     : p.flags.degree ? 'a lifelong learner' : 'a steady friend';
   const work = p.jobId || p.retired ? jobTitle(p).toLowerCase() : '';
+  const job = work && work !== 'unemployed' && work !== 'retired' ? ` and ${/^[aeiou]/.test(work) ? 'an' : 'a'} ${work}` : '';
+  const grandkids = childrenOf(s, p.id).reduce((n, k) => n + childrenOf(s, k.id).length, 0);
+  const [skill, lvl] = (Object.entries(p.skills) as [string, number][]).sort((a, b) => b[1] - a[1])[0] ?? [];
+  const found = (s.threads ?? []).find((t) => t.ownerId === p.id && t.kind === 'aspiration' && t.outcome === 'milestone')?.detail;
+  const Known = known.charAt(0).toUpperCase() + known.slice(1);
+  // Every line is true for this person; the ones that need a fact only appear when the fact does.
   const lines = [
-    `${p.firstName}, ${role}${work && work !== 'unemployed' && work !== 'retired' ? ` and ${/^[aeiou]/.test(work) ? 'an' : 'a'} ${work}` : ''}. Remembered for ${known}.`,
+    `${p.firstName}, ${role}${job}. Remembered for ${known}.`,
     `${age} years, ${role}. Remembered for ${known}.`,
     `${p.firstName} gave the family ${known}.`,
-  ];
-  const pick = [...p.id].reduce((h, c) => h + c.charCodeAt(0), 0) % lines.length;
-  return lines[pick];
+    `${Known}: that was ${p.firstName}.`,
+    `${p.firstName} (${p.birthYear}–${p.deathYear ?? s.year}), ${role}. Remembered for ${known}.`,
+    ...(grandkids ? [`${p.firstName}, ${role} and grandparent of ${NUMBER_WORDS[grandkids] ?? grandkids}. Remembered for ${known}.`] : []),
+    ...(skill && lvl >= 60 ? [`${p.firstName}, ${role}, never far from ${hobbyName(skill)}. Remembered for ${known}.`] : []),
+    ...(found ? [`${p.firstName} wanted ${ASPIRATION_INFO[found as Aspiration].label.toLowerCase()} from life, and found it.`] : []),
+  ].filter((l) => l.length <= EPITAPH_LIMIT);
+  return lines[stableHash(`${s.seed}:${p.id}:epitaph`) % lines.length];
 }
+/** Fits the archive's epitaph limit (profile EPITAPH_MAX). */
+const EPITAPH_LIMIT = 160;
 
 export function buildMemorial(s: GameState): Memorial {
   const entries = s.lineage.map((id) => {

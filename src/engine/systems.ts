@@ -520,7 +520,7 @@ function adultYear(s: GameState, rng: Rng, p: Person) {
     }
   } else if (p.jobId) {
     p.jobYears++;
-    if (p.jobYears >= 3 && p.jobLevel < 3 && rng.chance(0.15)) {
+    if (p.jobYears >= 3 && p.jobLevel < 3 && !(CAREER_BY_ID[p.jobId]?.bigBreak && p.jobLevel >= 2) && rng.chance(0.15)) {
       p.jobLevel++;
       p.jobYears = 0;
       p.flags.promoted_year = s.year;

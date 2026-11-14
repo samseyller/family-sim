@@ -138,6 +138,7 @@ export const FLAG_INFO = {
   rave_review: 'Got a rave review from a food critic',
   viral: 'Had a song go viral',
   audition_won: 'Won a big music audition',
+  big_break: 'Year a musician got their big break (a hit song or a headline audition)',
   big_catch: 'Landed the big one (fishing)',
   blue_ribbon: 'Won a blue ribbon at the county fair',
   food_truck_days: 'Weekends run with the food truck',

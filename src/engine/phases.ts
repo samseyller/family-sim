@@ -7,6 +7,7 @@
  * Saves happen only at these boundaries (and after each decision), so a reload
  * never repeats salary, aging, or event effects.
  */
+import { bigBreakYear } from './hobbies';
 import { successionNote } from './narrative';
 import { recognizePatterns } from './patterns';
 import { inheritThreads, threadsYear } from './threads';
@@ -91,6 +92,7 @@ export function resolveYear(state: GameState): GameState {
   npcIntentions(s); //                  close people act on intentions of their own
   npcFulfillmentYear(s, closePeople(s), (t) => journal(s, t, 'info')); // and how their lives are going
   threadsYear(s); //                     record long-running patterns; age out stale ones
+  bigBreakYear(s); //                    a hit song or a headline audition, for a rare few
   recognizePatterns(s); //               notice a story that's already there (at most one a year)
   if (alive(active(s))) generateEvents(s, rng); // 5 + 7. due consequences and events
 

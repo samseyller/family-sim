@@ -54,14 +54,18 @@ The balance tools play whole family lines headlessly with scripted play styles a
 one flat set of metrics (`src/balance/`). Lives run in parallel across CPU cores.
 
 - **Play styles** (`src/balance/playstyles.ts`). The three **core** styles (career, family, balanced; 60 lives each)
-  measure the economy and difficulty. Six **explorer** styles chase one part of the game the way a player with a goal
-  would, so every achievement and event gets exercised:
+  measure the economy and difficulty. When a relationship at home is strained, a core-style player commits to mending
+  it at a style-specific rate (family 85%, balanced 50%, career 20%; a stable roll per strain): committed players
+  give that person time every year and reach out when it comes up, the rest let it ride. Seven **explorer** styles
+  chase one part of the game the way a player with a goal would, so every achievement and event gets exercised:
   - *athlete*: trains from childhood with coaching, camps and gear, goes as far as talent allows, later picks up
     running, golf and tennis, and coaches the next generation.
   - *soldier*: enlists or takes ROTC; re-enlists toward the 20-year pension, goes officer, or switches to the reserve.
   - *hobbyist*: a childhood passion (flying is drawn twice as often as the others; also woodworking, mechanics,
     cooking, music, fishing and gardening) followed through night school, gear, home upgrades and the hobby's
     career ladder, moving to wherever the next job is hiring.
+  - *musician*: the hobbyist's music path only (30 lives), because a big break is rare enough to need its own
+    sample.
   - *socialite*: dates around in their twenties, rekindles with exes, makes lots of friends, keeps a pack of dogs,
     and moves cities.
   - *tycoon*: a pro-sports family that buys and trades up homes, upgrades, a mansion and a garage full of cars, and
@@ -307,7 +311,11 @@ for random). When your baby is born, a naming event offers suggestions or lets y
   - Apprentice → Journeyman → Master Carpenter, or run your own contracting business
   - Lube Tech → Mechanic → Master Technician, or open an auto shop
   - Line Cook → Sous Chef → Head Chef, or open a restaurant ($250k startup)
-  - Session → Touring Musician → Headliner (touring strains family bonds), or School Music Director
+  - Session → Touring Musician (by skill, 72+) → Headliner only through a **big break**: a hit song or a won
+    headline audition (`bigBreakYear` in `engine/hobbies.ts`). A stable yearly roll gives about a 15% chance over a
+    career for excellent musicians (skill 90+) and about 1% for good ones (72+). You can take the top of the bill
+    or keep your life as it is (a hit song still pays royalties). Other musicians follow the same rule. Touring
+    strains family bonds. Or become a School Music Director.
   - Commercial Pilot → First Officer → Airline Captain, plus flight instructing
   - Fishing Guide, or Charter Captain (coastal cities, your own offshore boat)
   - Landscaper → Crew Lead → Landscape Designer, or open a garden nursery ($80k startup)
@@ -559,7 +567,9 @@ stats, so stories never move balance.
   still remembers how the late character stood by them. The heir keeps their own personality and aspiration.
 - **Memorials** are remembered for the strongest supported pattern (family, a craft, a driven career or a business,
   exploring, service, security; a top rank alone isn't "driven"), falling back to the plain reading, and carry up
-  to three true lines, kept in the Family Archive.
+  to three true lines, kept in the Family Archive. Epitaphs come in several shapes (some only when their fact is true:
+  grandchildren, a lifelong craft, an aspiration found), and plain readings have a few wordings each, picked by a
+  stable hash of the family and person, so families don't all sound alike.
 - Schema 25: the `pattern` thread kind and the optional `story` flag on journal entries.
 
 ## Aspiration and fulfillment

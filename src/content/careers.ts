@@ -27,6 +27,8 @@ export interface Career {
   levelPay?: [number, number, number];
   /** Hobby skill needed to be promoted to levels 2 and 3. */
   promoSkill?: [number, number];
+  /** The top rank comes only from a big break (engine/hobbies.ts bigBreakYear), never from a promotion. */
+  bigBreak?: boolean;
   /** Own business: cash needed to start it, and how much yearly income swings (0.5 = ±50%). */
   startup?: number;
   variance?: number;
@@ -97,7 +99,7 @@ export const CAREERS: Career[] = [
   { id: 'engineer', name: 'Engineer', icon: '🏗️', hours: 'full', sector: 'tech', salary: 112000, blocks: 5, stress: 6, minSmarts: 70, requires: 'top_degree' },
   { id: 'petroleum_engineer', name: 'Petroleum Engineer', icon: '⛽', hours: 'full', sector: 'energy', salary: 125000, blocks: 6, stress: 7, minSmarts: 72, requires: 'top_degree' },
   // ── Talent (hobby skill) ──
-  { id: 'musician', name: 'Musician', icon: '🎸', hours: 'full', sector: 'entertainment', salary: 40000, blocks: 4, stress: 4, minSmarts: 0, skill: 'music', minSkill: 55, titles: ['Session Musician', 'Touring Musician', 'Headliner'], levelPay: [40000, 78000, 320000], promoSkill: [72, 90], touring: true },
+  { id: 'musician', name: 'Musician', icon: '🎸', hours: 'full', sector: 'entertainment', salary: 40000, blocks: 4, stress: 4, minSmarts: 0, skill: 'music', minSkill: 55, titles: ['Session Musician', 'Touring Musician', 'Headliner'], levelPay: [40000, 78000, 320000], promoSkill: [72, 90], bigBreak: true, touring: true },
   { id: 'music_director', name: 'School Music Director', icon: '🎼', hours: 'full', sector: 'education', salary: 60000, blocks: 4, stress: 5, minSmarts: 45, requires: 'degree', skill: 'music', minSkill: 50, pension: true },
   { id: 'charter_captain', name: 'Charter Captain', icon: '⛵', hours: 'full', sector: 'hospitality', salary: 90000, blocks: 5, stress: 6, minSmarts: 20, requires: 'captains_license', skill: 'fishing', minSkill: 60, needsGear: 'offshore_boat', coastal: true, variance: 0.6, titles: ['Charter Captain', 'Charter Captain', 'Charter Captain'], levelPay: [90000, 90000, 90000] },
   { id: 'coach', name: 'Sports Coach', icon: '🏅', hours: 'full', sector: 'education', salary: 45000, blocks: 4, stress: 4, minSmarts: 0, skill: 'sports', minSkill: 55, pension: true, titles: ['Assistant Coach', 'Head Coach', 'College Coach'], levelPay: [45000, 62000, 95000], promoSkill: [62, 75] },

@@ -27,6 +27,7 @@ const childBlocks = (c: Ctx, k: Person) =>
 export function canPromote(p: Person) {
   const job = p.jobId ? CAREER_BY_ID[p.jobId] : undefined;
   if (!job || !hasLadder(job) || job.military || job.pro) return false; // military ranks come with tours; pro ranks with play
+  if (job.bigBreak && p.jobLevel >= 2) return false; // headliners are made by a big break, not a promotion
   const need = promoSkillFor(job, p.jobLevel);
   return !need || (job.skill ? p.skills[job.skill] ?? 0 : 0) >= need;
 }

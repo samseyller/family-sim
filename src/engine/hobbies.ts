@@ -4,6 +4,7 @@
  * bought, kept up, restored, and passed down. Own-business careers have income that swings
  * with skill and luck; touring musicians spend long stretches away from home.
  */
+import { stableHash } from './relationships';
 import { HOBBY_BY_ID } from '../content/actions';
 import { CAREER_BY_ID, type Career } from '../content/careers';
 import { COASTAL, GEAR, RESTORED_VALUE, type GearId } from '../content/gear';
@@ -118,6 +119,37 @@ export const hasLadder = (c: Career) => !c.levelPay || c.levelPay[0] !== c.level
 /** Skill needed for the next promotion in this career (0 if none). */
 export function promoSkillFor(c: Career, level: number) {
   return c.promoSkill && level < 3 ? c.promoSkill[level - 1] : 0;
+}
+
+/**
+ * Big breaks: a hit song or a won headline audition, the only way to the top of the bill. A stable roll per musician
+ * and year (never the shared dice). Across a career of about 25 years this comes to roughly 15% for excellent
+ * musicians (skill 90+) and 1% for good ones (72+). The player gets the choice as an event; other musicians just go.
+ */
+export const BIG_BREAK = { excellent: 90, good: 72, excellentRate: 0.0065, goodRate: 0.0004 };
+
+export function bigBreakChance(p: Person): number {
+  const c = p.jobId ? CAREER_BY_ID[p.jobId] : undefined;
+  if (!c?.bigBreak || p.jobLevel >= 3 || !c.skill) return 0;
+  const skill = p.skills[c.skill] ?? 0;
+  return skill >= BIG_BREAK.excellent ? BIG_BREAK.excellentRate : skill >= BIG_BREAK.good ? BIG_BREAK.goodRate : 0;
+}
+
+export function bigBreakYear(s: GameState) {
+  const me = active(s);
+  for (const p of Object.values(s.people)) {
+    if (p.deathYear !== undefined) continue;
+    const chance = bigBreakChance(p);
+    if (!chance || stableHash(`${s.seed}:${s.year}:${p.id}:big_break`) / 4294967296 >= chance) continue;
+    if (p.id === me.id) {
+      if (!s.scheduled.some((x) => x.eventId === 'big_break')) s.scheduled.push({ dueYear: s.year, eventId: 'big_break', subjectId: p.id });
+      continue;
+    }
+    p.jobLevel = 3;
+    p.jobYears = 0;
+    p.flags.big_break = s.year;
+    if (p.householdId === me.householdId || p.biologicalParents.includes(me.id) || me.biologicalParents.includes(p.id)) journal(s, `${p.firstName}'s song took off. ${p.sex === 'F' ? 'She' : 'He'}'s headlining now.`, 'good');
+  }
 }
 
 /** Why `p` couldn't take this job beyond `qualifies` (gear, startup money), or null. */

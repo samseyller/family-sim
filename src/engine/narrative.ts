@@ -76,7 +76,7 @@ export function lifeStory(s: GameState, p: Person): StoryFact[] {
     const end = t.closed ?? s.year;
     switch (`${t.kind}:${t.outcome ?? 'open'}`) {
       case 'aspiration:milestone':
-        out.push(fact('aspiration', 4, [], [t.hits[0], end], variant(`${p.id}:asp`, [`You lived for ${aspLabel(t.detail!)}, and found it.`, `You wanted ${aspLabel(t.detail!)} from life, and for years you had it.`])));
+        out.push(fact('aspiration', 4, [], [t.hits[0], end], variant(`${s.seed}:${p.id}:asp`, [`You lived for ${aspLabel(t.detail!)}, and found it.`, `You wanted ${aspLabel(t.detail!)} from life, and for years you had it.`])));
         break;
       case 'strain:reconciled':
         if (sub) out.push(fact(`mended:${t.subjectId}`, 3.2, [t.subjectId!], [t.hits[0], end], `You and ${sub} drifted apart, then found your way back in ${end}.`));
@@ -148,14 +148,17 @@ export function lifeStory(s: GameState, p: Person): StoryFact[] {
   const [skill, lvl] = (Object.entries(p.skills) as [Hobby, number][]).sort((a, b) => b[1] - a[1])[0] ?? [];
   if (skill && lvl >= 70) {
     const living = lastJob?.skill === skill;
-    out.push(fact('craft', 2.5 + (living ? 0.8 : 0), [], [], living ? `You made a living from ${hobbyName(skill)}.` : variant(`${p.id}:craft`, [`${cap(hobbyName(skill))} became part of who you were.`, `You spent a lifetime getting good at ${hobbyName(skill)}.`])));
+    out.push(fact('craft', 2.5 + (living ? 0.8 : 0), [], [], living ? `You made a living from ${hobbyName(skill)}.` : variant(`${s.seed}:${p.id}:craft`, [`${cap(hobbyName(skill))} became part of who you were.`, `You spent a lifetime getting good at ${hobbyName(skill)}.`])));
   }
   // Children and how close they were.
   const kids = childrenOf(s, p.id);
   if (kids.length) {
     const bonds = kids.map((k) => getBond(s, p.id, k.id).affinity);
     const close = bonds.every((b) => b >= 40);
-    out.push(fact('children', close ? 2.8 : 1, kids.map((k) => k.id), [], close ? `You raised ${num(kids.length)} ${kids.length === 1 ? 'child' : 'children'} and stayed close to ${kids.length === 1 ? 'them' : 'every one'}.` : `You raised ${num(kids.length)} ${kids.length === 1 ? 'child' : 'children'}.`));
+    const n = `${num(kids.length)} ${kids.length === 1 ? 'child' : 'children'}`;
+    out.push(fact('children', close ? 2.8 : 1, kids.map((k) => k.id), [], close
+      ? variant(`${s.seed}:${p.id}:kids`, [`You raised ${n} and stayed close to ${kids.length === 1 ? 'them' : 'every one'}.`, `You raised ${n}, and your door was always open to them.`, `You raised ${n}, and they kept calling home.`])
+      : variant(`${s.seed}:${p.id}:kids`, [`You raised ${n}.`, `You brought up ${n}.`])));
   }
   return out;
 }
@@ -205,7 +208,7 @@ export function childhoodFacts(s: GameState, child: Person): StoryFact[] {
     const parent = s.people[t.ownerId];
     const pw = `your ${parentWord(parent)}`;
     if (t.kind === 'encouraged' && t.subjectId === child.id && t.hits.length >= 2) {
-      out.push(fact('backed', 3 + t.hits.length * 0.1, [parent.id], t.hits, variant(`${child.id}:backed`, [
+      out.push(fact('backed', 3 + t.hits.length * 0.1, [parent.id], t.hits, variant(`${s.seed}:${child.id}:backed`, [
         `${cap(pw)} backed your ${hobbyName(t.detail!)} for ${num(t.hits.length)} years.`,
         `Years of ${hobbyName(t.detail!)}, with ${pw} in your corner, shaped you.`,
       ])));
