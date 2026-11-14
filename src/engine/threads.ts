@@ -21,11 +21,13 @@
  *   moved         moving away from a parent
  *   retired       retiring (detail: your last job)
  *   loss          losing someone close (for later stories; never a follow-up event of its own)
+ *   tradition     a family tradition, live while kept (its own lifecycle in traditions.ts)
  *
  * Lifecycle: a thread with no new hit for its `fade` years closes quietly; a thread whose subject has died closes;
  * at succession the heir inherits only what makes sense (someone the late character stood by may now stand by the
  * heir), everything else ends. Closed threads stay a while for the life story, then go: storage stays small.
  */
+import { inheritTraditions, traditionsYear } from './traditions';
 import type { GameState, Person, Thread, ThreadKind } from './types';
 import { active, ageOf, alive, kidsAtHome, partnerOf } from './util';
 
@@ -59,6 +61,8 @@ export const THREAD_RULES: Record<ThreadKind, Rule> = {
   loss: { fade: 15, keepsDead: true },
   // Recognized patterns are closed when created (patterns.ts); they only live on for the life story.
   pattern: { fade: 0, keepsDead: true },
+  // Traditions lapse by their own rules (traditions.ts).
+  tradition: { fade: Infinity, keepsDead: true },
 };
 
 const lastOf = (xs: number[] | undefined) => (xs?.length ? xs[xs.length - 1] : undefined);
@@ -130,7 +134,7 @@ const CARE = new Set(['support', 'promise_kept']);
 /** Record this year's patterns for the player character, then age out what no longer applies. */
 export function threadsYear(s: GameState) {
   const me = active(s);
-  if (alive(me) && ageOf(me, s.year) >= 18) record(s, me);
+  if (alive(me) && ageOf(me, s.year) >= 18) { record(s, me); traditionsYear(s, me); }
   lifecycle(s);
 }
 
@@ -176,7 +180,9 @@ function lifecycle(s: GameState) {
     const rule = THREAD_RULES[t.kind];
     const owner = s.people[t.ownerId];
     const sub = t.subjectId ? s.people[t.subjectId] : undefined;
-    if (!owner || !alive(owner)) closeThread(t, s.year, 'ended');
+    // The player who just died keeps their threads until succession passes them on (inheritThreads).
+    if (!owner || (!alive(owner) && owner.id !== s.activeId)) closeThread(t, s.year, 'ended');
+    else if (!alive(owner)) continue;
     else if (t.subjectId && (!sub || (!alive(sub) && !rule.keepsDead))) closeThread(t, s.year, 'ended');
     else if (s.year - (lastOf(t.hits) ?? t.since) > rule.fade) closeThread(t, s.year, 'faded');
     // A child who moved on from the interest you backed: nothing to follow up, and no blame.
@@ -198,8 +204,9 @@ function lifecycle(s: GameState) {
  * by may stand by the heir; a strain with the heir themselves ends (the heir's own memories carry it); the rest end.
  */
 export function inheritThreads(s: GameState, prevId: string, heir: Person) {
+  if (s.people[prevId]) inheritTraditions(s, s.people[prevId], heir);
   for (const t of s.threads ?? []) {
-    if (t.ownerId !== prevId || t.closed !== undefined) continue;
+    if (t.ownerId !== prevId || t.closed !== undefined || t.kind === 'tradition') continue;
     if (THREAD_RULES[t.kind].inherit && t.subjectId !== heir.id && s.people[t.subjectId ?? '']?.deathYear === undefined) {
       t.ownerId = heir.id;
       t.inherited = prevId;

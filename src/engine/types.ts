@@ -247,7 +247,7 @@ export interface JournalEntry {
 }
 
 /** Long-running patterns in a life that can matter years later (see engine/threads.ts). */
-export type ThreadKind = 'strain' | 'supported' | 'encouraged' | 'pushed' | 'siblings' | 'work_first' | 'trained' | 'missed_chance' | 'aspiration' | 'moved' | 'retired' | 'loss' | 'pattern';
+export type ThreadKind = 'strain' | 'supported' | 'encouraged' | 'pushed' | 'siblings' | 'work_first' | 'trained' | 'missed_chance' | 'aspiration' | 'moved' | 'retired' | 'loss' | 'pattern' | 'tradition';
 
 export interface Thread {
   kind: ThreadKind;
@@ -269,6 +269,9 @@ export interface Thread {
   outcome?: string;
   /** Passed on at succession from this character. */
   inherited?: string;
+  /** Traditions: all years kept, and who took part (person id → times). */
+  count?: number;
+  takers?: Record<string, number>;
 }
 
 export interface Recap {
@@ -311,7 +314,7 @@ export interface GameState {
   /** This year's activity energy (max depends on health and stress). */
   energy?: { year: number; max: number; used: number };
   /** Activities done, for per-year limits and achievements (most recent ~300). */
-  activityLog?: { year: number; id: string }[];
+  activityLog?: { year: number; id: string; with?: number }[];
   /** Result of the most recent activity, shown on its outcome card. */
   lastActivity?: ActivityResult;
   /** Friendships of player characters (friends are ordinary people with their own homes). */

@@ -11,6 +11,7 @@
  * Used by: coming of age and a few family and career events (a sentence of context), the year in review (story
  * lines and life-so-far notes), succession (what the two generations shared), and the memorial.
  */
+import { inheritedLine, takes, TRADITION_NOUN, TRADITIONS, traditionsKeptBy } from './traditions';
 import { HOBBY_BY_ID } from '../content/actions';
 import { CAREER_BY_ID, PROGRAMS, jobTitle } from '../content/careers';
 import { ASPIRATION_INFO } from './fulfillment';
@@ -123,6 +124,10 @@ export function lifeStory(s: GameState, p: Person): StoryFact[] {
       default:
         if (t.kind === 'retired' && t.outcome && ASPIRATION_INFO[t.outcome as Aspiration]) out.push(fact('retired', 2, [], [end], `After retiring, you found new purpose in ${aspLabel(t.outcome)}.`));
         if (t.kind === 'pattern') { const f = patternFact(s, t); if (f) out.push(f); }
+        if (t.kind === 'tradition' && (t.count ?? 0) >= 5) {
+          const noun = TRADITION_NOUN[t.detail!] ?? 'a family tradition';
+          out.push(fact('tradition', 1.5 + Math.min(1.7, (t.count ?? 0) / 10), [], [t.since], t.inherited ? `You kept ${noun} going, a family tradition since ${t.since}.` : `You kept ${noun} going for ${t.count} years.`));
+        }
     }
   }
 
@@ -172,13 +177,6 @@ function retiredFrom(s: GameState, p: Person) {
 
 // ── Patterns (recognized by patterns.ts, told here) ───────────────────
 
-/** Family activities that can become a tradition, and how the story names them. */
-export const TRADITIONS: Record<string, string> = {
-  game_night: 'Game night', cook_together: 'Cooking dinner together', movie_marathon: 'Movie marathon night',
-  garden: 'The family garden', park: 'Saturdays at the park', road_trip: 'The summer road trip', getaway: 'The weekend getaway',
-  vacation: 'The beach vacation', host_holiday: 'Holiday dinner at your place', family_reunion: 'The family reunion',
-  ball_game: 'Going to the ball game', concert: 'Concert night', world_trip: 'Traveling abroad together',
-};
 
 /** The fact behind a recognized pattern, if the people it names still exist. */
 export function patternFact(s: GameState, t: Thread): StoryFact | undefined {
@@ -191,6 +189,10 @@ export function patternFact(s: GameState, t: Thread): StoryFact | undefined {
     case 'following': return sub ? fact('following', 2.6, [sub.id], [year], `Your ${kidWord(sub)} ${sub.firstName} followed in your footsteps.`) : undefined;
     case 'own_path': return sub ? fact('own_path', 1.8, [sub.id], [year], `Your ${kidWord(sub)} ${sub.firstName} went their own way.`) : undefined;
     case 'recovered': return sub ? fact('recovered', 2.4, [sub.id], [t.since, year], `You and ${sub.firstName} grew close again after a hard stretch.`) : undefined;
+    case 'carried': {
+      if (!sub || !TRADITION_NOUN[arg]) return undefined;
+      return fact('carried', 2.2, [sub.id], [t.since], `Your ${kidWord(sub)} ${sub.firstName} carried ${TRADITION_NOUN[arg]} on in ${sub.sex === 'F' ? 'her' : 'his'} own home.`);
+    }
     case 'identity': return fact('identity', 2.3, [], [year], `${cap(hobbyName(arg))} became part of who you were.`);
     case 'reconsidered': return fact('reconsidered', 2.4, [], [year], 'After years of chasing the next promotion, your priorities changed.');
     default: return undefined;
@@ -234,6 +236,10 @@ export function childhoodFacts(s: GameState, child: Person): StoryFact[] {
       out.push(fact('loss', parents.has(lost.id) ? 3.5 : 2.2, [lost.id], [lost.deathYear], `You lost ${rel} when you were ${age}.`));
     }
   }
+  for (const t of (s.threads ?? []).filter((x) => x.kind === 'tradition' && parents.has(x.ownerId) && takes(x, child.id) >= 3)) {
+    const n = takes(t, child.id);
+    out.push(fact('tradition', 2 + Math.min(1, n / 10), [t.ownerId], t.hits, `You grew up with ${TRADITION_NOUN[t.detail!]}: ${num(n)} years of it.`));
+  }
   if (child.flags.serious_interest && child.hobby) out.push(fact('serious', 1.8, [], [child.flags.serious_interest], `You decided to take ${hobbyName(child.hobby)} seriously at ${child.flags.serious_interest - child.birthYear}.`));
   if (child.flags.independent) out.push(fact('independent', 1.2, [], [child.flags.independent], `You fought for your independence at ${child.flags.independent - child.birthYear}.`));
   return out;
@@ -266,6 +272,7 @@ export function successionNote(s: GameState, prev: Person, heir: Person): string
       if (t.kind === 'strain' && t.outcome !== 'reconciled' && t.hits.length >= 2) out.push(fact('strain', 2.2, [heir.id], t.hits, `${prev.firstName} and ${heir.firstName} never fully mended things.`));
       if (t.kind === 'pushed' && t.hits.length >= 2) out.push(fact('pushed', 2, [heir.id], t.hits, `${prev.firstName} pushed ${heir.firstName} hard when ${heir.firstName} was young.`));
     }
+    if (t.ownerId === heir.id && t.inherited === prev.id && t.kind === 'tradition') out.push(fact('tradition', 2.7, [heir.id], t.hits, inheritedLine(t, prev, heir)));
     if (t.ownerId === heir.id && t.inherited === prev.id && exists(s, t.subjectId)) {
       out.push(fact('owed', 2.5, [t.subjectId], t.hits, `${s.people[t.subjectId].firstName} still remembers how ${prev.firstName} stood by them.`));
     }
@@ -311,7 +318,7 @@ export function rememberedFor(s: GameState, p: Person): string | undefined {
   const [skill, lvl] = (Object.entries(p.skills) as [Hobby, number][]).sort((a, b) => b[1] - a[1])[0] ?? [];
   // Each candidate scores from the facts that support it; the strongest wins.
   const scores: [string, number][] = [
-    ['a life devoted to family', (closeKids ? 2 + kids.length * 0.3 : 0) + (asp === 'connection' ? 2 : wanted.has('connection') ? 0.8 : 0) + (has('mended') ? 1 : 0) + (has('backed') ? 1 : 0) + (has('tradition') ? 1 : 0) - (workFirst ? 1 : 0)],
+    ['a life devoted to family', (closeKids ? 2 + kids.length * 0.3 : 0) + (asp === 'connection' ? 2 : wanted.has('connection') ? 0.8 : 0) + (has('mended') ? 1 : 0) + (has('backed') ? 1 : 0) + (has('tradition') ? 1 : 0) + ((traditionsKeptBy(s, p.id)[0]?.count ?? 0) >= 10 ? 1 : 0) - (workFirst ? 1 : 0)],
     [`mastering ${skill ? hobbyName(skill) : 'a craft'}`, (lvl >= 70 ? 2 + (lvl - 70) / 10 : 0) + (asp === 'mastery' ? 2 : wanted.has('mastery') ? 0.5 : 0) + (job?.skill === skill && lvl >= 70 ? 1 : 0)],
     [job?.startup ? 'building something of their own' : `a driven career${job ? ` as ${/^[aeiou]/i.test(job.name) ? 'an' : 'a'} ${job.name.toLowerCase()}` : ''}`, (p.jobLevel >= 3 ? 1.2 : 0) + (job?.startup ? 1.5 : 0) + (asp === 'achievement' ? 2 : wanted.has('achievement') ? 0.8 : 0) + (workFirst ? 1 : 0) + (has('second_chance') || has('studied') ? 0.5 : 0)],
     ['a life of exploring', (asp === 'exploration' ? 3 : wanted.has('exploration') ? 1 : 0) + (has('moved') ? 1 : 0)],

@@ -1,6 +1,6 @@
 /** Activities: At home, health, learning, fun and travel, and family visits. */
 import { connectionOf, forget, harmFrom, harmText } from './relationships';
-import { active, activePartnership, adjustBond, ageOf, flag, getBond, membersOf, partnerOf, stat } from './util';
+import { active, activePartnership, adjustBond, ageOf, flag, getBond, kidsAtHome, membersOf, partnerOf, stat } from './util';
 import { TEST_RESULTS_DELAY } from './healthEvents';
 import { maybeMeetFriend } from './friends';
 import { distanceOf, type ActivityDef, flat, each, names, bondAll, moodAll, hasHobby, professional, kidAges } from './activityKit';
@@ -447,6 +447,65 @@ export const HOME_ACTIVITIES: ActivityDef[] = [
       }
       stat(c.me, 'happiness', 4);
       return { text: 'Matching T-shirts, a three-legged race, and a group photo with forty people squinting into the sun.', tone: 'good' };
+    },
+  },
+  {
+    // Made for traditions (docs/plans/family-traditions.md): a yearly birthday camping trip with the kids.
+    id: 'birthday_camping', category: 'leisure', icon: '🏕️', label: 'Birthday camping trip', who: 'household', perYear: 1,
+    requires: (s, me) => (kidsAtHome(s, me).some((k) => kidAges(k, s, 6, 17)) ? null : 'Needs a child aged 6–17 at home.'),
+    desc: 'A tent, a campfire, and a birthday under the stars.',
+    energy: flat(30), cost: each(250, 60),
+    run: (c) => {
+      moodAll(c, 'happiness', 6);
+      moodAll(c, 'stress', -6);
+      bondAll(c, 5, 3);
+      const kids = c.people.filter((p) => kidAges(p, c.s, 6, 17));
+      const star = kids.length ? kids[c.s.year % kids.length] : undefined;
+      if (star) stat(star, 'happiness', 4);
+      if (c.rng.chance(0.2)) return { text: `Rained all night. ${star ? `${star.firstName} says it was the best birthday ever, apparently.` : 'Everyone says it was the best trip ever, apparently.'}`, tone: 'good' };
+      return { text: `S'mores, a campfire, and ${star ? `${star.firstName}'s` : 'a'} birthday under the stars.`, tone: 'good' };
+    },
+  },
+  {
+    // Made for traditions: the grandparents over for dinner, with the grandkids.
+    id: 'grandparents_dinner', category: 'visits', icon: '🍲', label: 'Sunday dinner with the grandparents', who: 'guests', max: 4, perYear: 6,
+    eligible: (s, p) => {
+      const me = active(s);
+      const pt = partnerOf(s, me.id);
+      const parentOf = (x: { biologicalParents: string[]; adoptiveParents: string[] } | undefined) => !!x && (x.biologicalParents.includes(p.id) || x.adoptiveParents.includes(p.id));
+      return (parentOf(me) || parentOf(pt)) && distanceOf(s, p) === 'near';
+    },
+    requires: (s, me) => (kidsAtHome(s, me).length ? null : 'Needs a child at home.'),
+    desc: 'The grandparents come over; the kids set the table.',
+    energy: flat(15), cost: flat(40),
+    run: (c) => {
+      for (const gp of c.people) {
+        stat(gp, 'happiness', 3);
+        adjustBond(c.s, c.me.id, gp.id, 3, 2);
+        for (const k of kidsAtHome(c.s, c.me)) adjustBond(c.s, gp.id, k.id, 4, 3);
+      }
+      stat(c.me, 'happiness', 2);
+      return { text: `${names(c.people)} brought dessert and stayed until the kids fell asleep on the couch.`, tone: 'good' };
+    },
+  },
+  {
+    // Made for traditions: lights on the house every December (a house, not an apartment or condo).
+    id: 'holiday_lights', category: 'home', icon: '🎄', label: 'Holiday light display', who: 'household', min: 0, perYear: 1,
+    requires: (s, me) => {
+      const hh = s.households[me.householdId];
+      const house = hh.assets.find((a) => a.kind === 'house');
+      const ok = house ? house.name !== HOMES.condo.label : hh.rentTier === 'house';
+      return ok ? null : 'Needs a house (not an apartment or condo).';
+    },
+    desc: 'Ladders, extension cords, and a lot of tiny lights.',
+    energy: flat(20), cost: (s) => (active(s).flags.lights_bought ? 60 : 150),
+    run: (c) => {
+      flag(c.me, 'lights_bought');
+      moodAll(c, 'happiness', 5);
+      bondAll(c, 3, 2);
+      const years = new Set((c.s.activityLog ?? []).filter((x) => x.id === 'holiday_lights').map((x) => x.year)).size;
+      if (years >= 3) return { text: 'Cars slow down on your street now. Someone left a thank-you note in the mailbox.', tone: 'good' };
+      return { text: 'Half the bulbs worked on the first try. The other half worked eventually.', tone: 'good' };
     },
   },
   {

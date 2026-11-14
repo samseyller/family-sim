@@ -6,18 +6,20 @@
  * repeat or contradict itself. They are ordinary minor events marked `story`: at most one comes up a year, and they
  * share the yearly cap with everything else. None of them are only bad news: each offers a way to respond.
  */
+import { connectionOf } from './relationships';
+import { carries, carryTradition, CARRY_TAKES, liveTraditions, MAX_TRADITIONS, REVIVE_YEARS, takes, TRADITION_NOUN, TRADITIONS } from './traditions';
 import { HOBBY_BY_ID } from '../content/actions';
 import { CAREER_BY_ID, PROGRAMS, requiredBlocks, salaryOf, titleOf } from '../content/careers';
 import { playerStruggling } from './agency';
 import { age, local, one, settledInJob, wallet, type Ctx, type EventDef } from './eventKit';
 import { ASPIRATION_INFO } from './fulfillment';
-import { cityName, cityOf } from './location';
+import { cityName, cityOf, isNear } from './location';
 import { charge, hasCash } from './money';
 import { forget, harmFrom, harmText, remember, stableHash } from './relationships';
 import { answersSince, closeThread, noteThread, openThread, threadsOf } from './threads';
 import type { CityId } from '../content/cities';
 import type { Person, Thread } from './types';
-import { adjustBond, alive, getBond, journal, kidsAtHome, money, parentsOf, partnerOf, stat } from './util';
+import { adjustBond, alive, childrenOf, getBond, journal, kidsAtHome, membersOf, money, parentsOf, partnerOf, stat } from './util';
 import { canPromote } from './workEvents';
 
 const they = (p: Person) => (p.sex === 'F' ? 'she' : 'he');
@@ -345,6 +347,123 @@ export const STORY_EVENTS: EventDef[] = [
     },
   },
 
+  // ── Family traditions (traditions.ts) ──
+  {
+    // Someone who came every year died last year.
+    id: 'first_without_them',
+    major: false,
+    story: true,
+    cooldown: 0,
+    candidates: (c) => one(!!emptyChair(c), 3),
+    build: (c) => {
+      const { t, gone } = emptyChair(c)!;
+      return {
+        title: `The first ${TRADITION_NOUN[t.detail!].replace(/^the /, '')} without ${gone.firstName}`,
+        text: `${gone.firstName} came to ${TRADITION_NOUN[t.detail!]} ${takes(t, gone.id)} times. This year there’s an empty chair.`,
+        choices: [
+          { id: 'keep', label: `Keep it, for ${gone.firstName}`, hint: 'Everyone together, with someone missing' },
+          { id: 'skip', label: 'Not this year', hint: 'It can wait a year' },
+        ],
+      };
+    },
+    resolve: (c, ch) => {
+      const chair = emptyChair(c);
+      if (chair) chair.t.shown = c.s.year;
+      if (ch === 'skip') return 'You let it rest this year. Nobody minded.';
+      for (const p of membersOf(c.s, c.me.householdId)) if (p.id !== c.me.id) adjustBond(c.s, c.me.id, p.id, 3, 2);
+      stat(c.me, 'stress', -4);
+      return chair ? `Someone told the story ${chair.gone.firstName} always told. Everyone laughed, then cried, then laughed again.` : 'You kept it, and it helped.';
+    },
+  },
+  {
+    // Getting older, with a grown child nearby who grew up with it.
+    id: 'passing_torch',
+    major: false,
+    story: true,
+    cooldown: 0,
+    candidates: (c) => { const x = torch(c); return one(!!x, 2, false, x?.child); },
+    build: (c, k) => {
+      const { t } = torch(c, k)!;
+      return {
+        title: 'Passing the torch',
+        text: `${k!.firstName} offered to host ${TRADITION_NOUN[t.detail!]} from now on. “You’ve done it for ${t.count} years. Let me.”`,
+        choices: [
+          { id: 'hand', label: `Let ${k!.firstName} host it`, hint: 'You still come; it carries on in their home' },
+          { id: 'keep', label: 'Not yet, I love hosting' },
+        ],
+      };
+    },
+    resolve: (c, ch, k) => {
+      const x = torch(c, k);
+      if (x) x.t.shown = c.s.year;
+      if (ch === 'keep') return `${k!.firstName} smiled. “Next year, then.”`;
+      if (x) carryTradition(c.s, c.me, k!, x.t.detail!, false);
+      adjustBond(c.s, c.me.id, k!.id, 5, 3);
+      stat(c.me, 'stress', -5);
+      return `You brought dessert to ${k!.firstName}’s this year and didn’t wash a single dish.`;
+    },
+  },
+  {
+    // A teenager who grew up with it would rather skip it.
+    id: 'too_old_for_this',
+    major: false,
+    story: true,
+    cooldown: 3,
+    candidates: (c) => liveTraditions(c.s, c.me.id).filter((t) => (t.count ?? 0) >= 3 && notRaised(c, t)).flatMap((t) =>
+      kidsAtHome(c.s, c.me).filter((k) => age(c, k) >= 15 && age(c, k) <= 17 && takes(t, k.id) >= 2)
+        .map((k) => ({ subject: k, weight: 1 + (connectionOf(k) === 'space' ? 1 : 0) + (k.flags.independent ? 1 : 0), urgent: false }))),
+    build: (c, k) => {
+      const t = teenTradition(c, k!)!;
+      return {
+        title: 'Too old for this?',
+        text: `${k!.firstName} wants to skip ${TRADITION_NOUN[t.detail!]} this year. “It’s kind of a kid thing.”`,
+        choices: [
+          { id: 'skip', label: 'Let them skip it', hint: 'Room to grow up' },
+          { id: 'friend', label: 'Tell them to bring a friend', hint: 'A compromise' },
+          { id: 'insist', label: 'Insist: it’s a family thing', hint: 'Some teens push back' },
+        ],
+      };
+    },
+    resolve: (c, ch, k) => {
+      const t = teenTradition(c, k!);
+      if (t) t.shown = c.s.year;
+      if (ch === 'skip') { stat(k!, 'happiness', 2); return `${k!.firstName} went to a friend’s. They came home early and caught the end of it.`; }
+      if (ch === 'friend') { stat(k!, 'happiness', 3); adjustBond(c.s, c.me.id, k!.id, 2, 1); return `${k!.firstName}’s friend loved it. Now they both want to come next year.`; }
+      adjustBond(c.s, c.me.id, k!.id, -3, -1);
+      if (k!.traits.includes('stubborn')) remember(k!, 'pressure', c.me.id, c.s.year);
+      return `${k!.firstName} came, and sulked for an hour, and then forgot to sulk.`;
+    },
+  },
+  {
+    // A tradition that faded, and a reason to bring it back: a new grandchild or a family reunion.
+    id: 'bring_it_back',
+    major: false,
+    story: true,
+    cooldown: 0,
+    candidates: (c) => one(!!revivable(c), 2),
+    build: (c) => {
+      const { t, why } = revivable(c)!;
+      return {
+        title: 'Bring it back?',
+        text: `${TRADITIONS[t.detail!]} faded in ${t.closed}. With ${why}, maybe it’s time to bring it back.`,
+        choices: [
+          { id: 'revive', label: 'Bring it back', hint: 'Do it this year or next to keep it going' },
+          { id: 'rest', label: 'Let it rest' },
+        ],
+      };
+    },
+    resolve: (c, ch) => {
+      const x = revivable(c);
+      if (!x) return 'The moment passed.';
+      x.t.shown = c.s.year;
+      if (ch === 'rest') return 'Some things belong to their time.';
+      delete x.t.closed;
+      delete x.t.outcome;
+      x.t.answers = [...(x.t.answers ?? []), c.s.year];
+      return 'You dug the old things out of the closet. Next time, everyone’s coming.';
+    },
+  },
+
   // ── Life transitions: a parent left behind (retirement: aspirationEvents retirement_purpose reads its thread) ──
   {
     id: 'hometown_pull',
@@ -382,6 +501,36 @@ export const STORY_EVENTS: EventDef[] = [
     },
   },
 ];
+
+/** A live tradition whose regular (CARRY_TAKES+ times) died last year, not yet marked. */
+function emptyChair(c: Ctx): { t: Thread; gone: Person } | undefined {
+  for (const t of liveTraditions(c.s, c.me.id)) {
+    if (t.shown === c.s.year) continue;
+    const gone = Object.keys(t.takers ?? {}).map((id) => c.s.people[id]).find((p) => p && p.id !== c.me.id && p.deathYear === c.s.year - 1 && takes(t, p.id) >= CARRY_TAKES);
+    if (gone) return { t, gone };
+  }
+  return undefined;
+}
+/** Getting older (65+ or unwell) with a grown child nearby who could carry a tradition on. */
+function torch(c: Ctx, only?: Person): { t: Thread; child: Person } | undefined {
+  if (age(c, c.me) < 65 && c.me.stats.health >= 50) return undefined;
+  for (const t of liveTraditions(c.s, c.me.id).filter((x) => notRaised(c, x))) {
+    const child = childrenOf(c.s, c.me.id).find((k) => (!only || k.id === only.id) && alive(k) && age(c, k) >= 25 && k.householdId !== c.me.householdId
+      && isNear(c.s, k) && takes(t, k.id) >= CARRY_TAKES && !carries(c.s, c.me.id, k.id, t.detail!));
+    if (child) return { t, child };
+  }
+  return undefined;
+}
+const teenTradition = (c: Ctx, k: Person) => liveTraditions(c.s, c.me.id).find((t) => (t.count ?? 0) >= 3 && takes(t, k.id) >= 2 && (notRaised(c, t) || t.shown === c.s.year));
+/** A tradition that lapsed in the last REVIVE_YEARS, with a new grandchild born or a reunion held this year. */
+function revivable(c: Ctx): { t: Thread; why: string } | undefined {
+  if (liveTraditions(c.s, c.me.id).length >= MAX_TRADITIONS) return undefined;
+  const baby = childrenOf(c.s, c.me.id).flatMap((k) => childrenOf(c.s, k.id)).find((g) => g.birthYear === c.s.year);
+  const reunion = (c.s.activityLog ?? []).some((x) => x.year === c.s.year && x.id === 'family_reunion');
+  if (!baby && !reunion) return undefined;
+  const t = threadsOf(c.s, c.me.id, 'tradition').find((x) => x.outcome === 'lapsed' && c.s.year - x.closed! <= REVIVE_YEARS && notRaised(c, x));
+  return t ? { t, why: baby ? `${baby.firstName} just born` : 'the whole family together at the reunion' } : undefined;
+}
 
 /** Two of your children, both grown, with a few years of shared history recorded. */
 function siblingsReady(c: Ctx, t: Thread) {

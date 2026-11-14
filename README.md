@@ -572,6 +572,39 @@ stats, so stories never move balance.
   stable hash of the family and person, so families don't all sound alike.
 - Schema 25: the `pattern` thread kind and the optional `story` flag on journal entries.
 
+## Family traditions
+
+Something a family does together year after year (`src/engine/traditions.ts`). Emergent only: there is no way to
+declare one.
+
+- **What counts:** 16 family activities (game night, cooking together, movie marathons, the garden, the park, road
+  trips, getaways, beach vacations, the holiday dinner, reunions, ball games, concerts, trips abroad, and the three
+  made for traditions). A year counts only when someone takes part (a solo run never does). Done in 3 different
+  years out of 5, it becomes a tradition; at most 3 live at once.
+- **A small boost, very small at first** (`TRADITION_BONUS`), once a year for you and everyone who comes:
+  3–4 years +½ bond (a point every other year); 5–9 years +1 bond, +½ trust, +1 happiness; 10+ years ("well
+  formed") +2 bond, +1 trust, +2 happiness. Children who took part in 5+ years of a well-formed tradition get +1
+  happiness at 18 (+2 for 10+). The result card says "Game night: a family tradition since 2031 (12th year)", and
+  the Activities tab shows a 🏷️ badge.
+- **Keeping it:** one missed year is fine; two get a quiet note; three and it lapses, with no penalty. Doing it again
+  within 10 years brings it back with its count; the 10th and 25th years get a line in the year in review.
+- **Across generations:** at succession it passes to an heir who took part 3+ times ("Game night is Ann's to keep
+  now; Ann took part 12 times growing up"); otherwise it ends. Grown children who took part 5+ times may carry it on
+  in their own homes (an NPC decision: likelier for kind, connection-minded and close children, and when they have
+  kids; less likely far away or after a strain); if one of them later becomes the heir, their version continues.
+  Grandchildren become takers too, so a tradition can skip a generation.
+- **Moments** (story follow-ups): the first one without someone who came every year; passing the torch to a grown
+  child when you're 65+ or unwell; a teenager who'd rather skip it (let them, insist, or tell them to bring a
+  friend); bringing a lapsed tradition back when a grandchild is born or at a reunion.
+- **Story:** traditions appear in life stories ("You kept game night going for 22 years"), coming of age ("You grew
+  up with Sunday dinner with the grandparents: seven years of it"), succession, memorials (an epitaph shape for 15+
+  years, and a stronger "a life devoted to family"), and a 🏷️ badge on the family tree.
+- Schema 26: the `tradition` thread kind (`count`, `takers`) and participant counts on tradition activities in the
+  activity log. Traditions recognized in the two years before an upgrade become live ones.
+- The tycoon, socialite and soldier play styles keep traditions at rates that vary by family. Measured (72 lives):
+  about 1.4 traditions per 100 played years, kept 23 years on average; 30% pass to an heir; grown children carried
+  one on 58 times.
+
 ## Aspiration and fulfillment
 
 - **Aspiration** (`src/engine/fulfillment.ts`): what someone wants from life now: connection, mastery, achievement,
@@ -613,7 +646,10 @@ stats, so stories never move balance.
   *Money & luck:* bet on the horse races. *Kid stuff:* ask to have a sleepover (6–14) or go to music camp (8–16; parents may say no to either).
   *Health:* a yearly dentist visit, and a diet plan (harder to stick with when stressed). *Family visits:* host a
   family reunion (three or more relatives from other homes): bonds all round, and sometimes an old rift heals or an
-  argument starts.
+  argument starts. *Made for traditions:* a birthday camping trip (once a year, a child 6–17 at home; the birthday
+  child gets a little extra), Sunday dinner with the grandparents (your or your partner's parents in the same city, a
+  child at home; grandparents and grandchildren grow closer), and a holiday light display (a house, not an apartment
+  or condo; $150 the first year, $60 once you own the lights).
 - **Check-up follow-ups:** a worrying check-up (over 40, health under 60) orders more tests; the results come the next
   year. Treating it then (payable from investments, like other medical bills) restores health; waiting is a coin flip. *Vices:* shut down a bar, doom scroll for hours.
 - **Dating while attached:** dating activities stay open when you're in a relationship, with an orange "You are

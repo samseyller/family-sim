@@ -1,3 +1,4 @@
+import { liveTradition, ordinal } from '../../engine/traditions';
 import { cityName, cityOf } from '../../engine/location';
 import { useMemo, useState } from 'react';
 import {
@@ -136,6 +137,7 @@ export function ActivitiesTab({ g }: { g: GameState }) {
           // Judge availability without participants: only "nobody can come" and hard limits disable the card.
           const hard = activityBlocker(g, a.id, a.who === 'solo' ? [] : pool.slice(0, Math.max(1, a.min ?? 1)).map((p) => p.id));
           const done = timesThisYear(g, a.id);
+          const tradition = liveTradition(g, active(g).id, a.id);
           return (
             <button key={a.id} className="activity" disabled={!!hard} title={hard ?? undefined} onClick={() => setOpen(a)}>
               <span className="activity-icon" aria-hidden>{a.icon}</span>
@@ -146,6 +148,7 @@ export function ActivitiesTab({ g }: { g: GameState }) {
                   <span>⚡ {a.energy(g, pool.slice(0, 1))}</span>
                   <span>💵 {a.cost(g, a.who === 'solo' ? [] : pool.slice(0, Math.max(0, a.min ?? 1))) ? `from ${money(a.cost(g, a.who === 'solo' ? [] : pool.slice(0, Math.max(0, a.min ?? 1))))}` : 'free'}</span>
                   {done > 0 && <span>✓ ×{done}</span>}
+                  {tradition && <span className="tradition-badge">🏷️ Tradition · {ordinal((tradition.count ?? 0) + (tradition.hits.includes(g.year) ? 0 : 1))} year</span>}
                 </span>
               </span>
             </button>

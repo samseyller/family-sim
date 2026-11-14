@@ -15,6 +15,8 @@
  * Rate limits keep it special: per person, one decision every INTENT_GAP years and one private step every NOTE_GAP
  * years; per year, at most one decision and NOTES_PER_YEAR recap notes.
  */
+import { openThread } from './threads';
+import { carryCandidate, carryTradition } from './traditions';
 import { noteSiblings } from './threads';
 import { CAREER_BY_ID, qualifies, type Career } from '../content/careers';
 import { HOBBY_BY_ID } from '../content/actions';
@@ -362,6 +364,23 @@ export const DECISIONS: DecisionDef[] = [
     },
   },
   {
+    // A grown child who grew up with a family tradition starts it in their own home.
+    id: 'carry_tradition', decision: false, base: 0.06, max: 0.2,
+    eligible: ({ s, me, p }) => isChildOf(p, me) && !!carryCandidate(s, me, p),
+    factors: ({ s, me, p }) => [
+      ...when(aspirationOf(p) === 'connection', 'wants_connection', 0.04),
+      ...when(has(p, 'kind'), 'kind', 0.03),
+      ...when(getBond(s, me.id, p.id).affinity >= 40, 'close', 0.03),
+      ...when(childrenOf(s, p.id).length > 0, 'own_kids', 0.03),
+      ...when(!isNear(s, p), 'far_away', -0.03),
+      ...when(!!openThread(s, 'strain', me.id, p.id), 'strained', -0.05),
+    ],
+    act: ({ s, me, p }) => {
+      carryTradition(s, me, p, carryCandidate(s, me, p)!.detail!);
+      return ''; // carryTradition tells the story
+    },
+  },
+  {
     // A relative who lives elsewhere drops by. Some people need more time alone.
     id: 'visit', decision: false, base: 0.06, max: 0.16,
     eligible: ({ s, me, p, age }) => p.householdId !== me.householdId && age >= 18 && getBond(s, me.id, p.id).affinity >= 25,
@@ -441,7 +460,8 @@ export function npcIntentions(s: GameState) {
         decided = true;
       } else {
         p.flags.note_year = s.year;
-        journal(s, def.act!(c, factors.find((f) => f.delta > 0)), 'info');
+        const text = def.act!(c, factors.find((f) => f.delta > 0));
+        if (text) journal(s, text, 'info');
         notes++;
       }
       break;

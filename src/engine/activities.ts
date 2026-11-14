@@ -3,6 +3,7 @@
  * Each costs energy (a yearly pool of up to 100, lower when unhealthy or stressed,
  * never below 50) and usually money. Results are immediate and deterministic.
  */
+import { TRADITIONS, traditionYear } from './traditions';
 import { makeRng } from './rng';
 import type { ActivityResult, GameState, Person, StatKey } from './types';
 import { active, adjustBond, ageOf, clamp, getBond, journal, kidsAtHome, membersOf, money, partnerOf, stat } from './util';
@@ -123,7 +124,8 @@ export function performActivity(state: GameState, id: string, ids: string[] = []
   const eCost = def.energy(s, people);
   const cost = def.cost(s, people);
   s.energy = { year: s.year, max: energy.max, used: energy.used + eCost };
-  s.activityLog = [...(s.activityLog ?? []), { year: s.year, id }].slice(-300);
+  // Tradition activities remember how many took part (a solo run never counts toward a tradition).
+  s.activityLog = [...(s.activityLog ?? []), { year: s.year, id, ...(TRADITIONS[id] ? { with: people.length } : {}) }].slice(-300);
 
   const before = { stats: { ...me.stats }, wallet: hh.wallet, bonds: people.map((p) => getBond(s, me.id, p.id).affinity) };
   let result: { text: string; tone: ActivityResult['tone'] };
@@ -161,6 +163,9 @@ export function performActivity(state: GameState, id: string, ids: string[] = []
         result = { ...result, text: `${result.text} ${p.firstName} loves ${connectionPhrase[form!]}.` };
       }
     });
+    // A family tradition: a small yearly boost and a line on the card.
+    const tradition = traditionYear(s, me, id, people);
+    if (tradition) result = { ...result, text: `${result.text} ${tradition}` };
   }
 
   const changes: string[] = [];

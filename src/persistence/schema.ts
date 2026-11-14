@@ -220,12 +220,12 @@ export const GameStateSchema = z.object({
   lastOutcome: z.object({ title: z.string(), text: z.string() }).optional(),
   lastBackupYear: int.optional(),
   energy: z.object({ year: int, max: num, used: num }).optional(),
-  activityLog: z.array(z.object({ year: int, id: z.string() })).optional(),
+  activityLog: z.array(z.object({ year: int, id: z.string(), with: int.optional() })).optional(),
   lastActivity: z.object({ id: z.string(), title: z.string(), text: z.string(), tone: z.enum(['good', 'bad', 'neutral']), changes: z.array(z.string()) }).optional(),
   friends: z.array(z.object({ id, of: id, since: int, lastSeen: int, distant: z.boolean().optional(), how: z.string().max(60).optional() })).optional(),
   tutorial: z.object({ personId: id, seen: z.array(z.string()) }).optional(),
   threads: z.array(z.object({
-    kind: z.enum(['strain', 'supported', 'encouraged', 'pushed', 'siblings', 'work_first', 'trained', 'missed_chance', 'aspiration', 'moved', 'retired', 'loss', 'pattern']),
+    kind: z.enum(['strain', 'supported', 'encouraged', 'pushed', 'siblings', 'work_first', 'trained', 'missed_chance', 'aspiration', 'moved', 'retired', 'loss', 'pattern', 'tradition']),
     ownerId: id,
     subjectId: id.optional(),
     detail: z.string().max(60).optional(),
@@ -236,6 +236,8 @@ export const GameStateSchema = z.object({
     closed: int.optional(),
     outcome: z.string().max(30).optional(),
     inherited: id.optional(),
+    count: int.optional(),
+    takers: z.record(z.string(), int).optional(),
   })).max(200).optional(),
 });
 

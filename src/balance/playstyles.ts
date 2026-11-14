@@ -382,6 +382,21 @@ const familyPrefer = (pe: PendingEvent) => (/baby|pregnan/.test(pe.eventId) ? ['
  * Grown kids move out and start their own families (people living with you don't marry), then
  * everyone is invited back to the mansion.
  */
+/**
+ * Keep a few family traditions: each family takes to some of these activities (a stable pick per seed) and keeps
+ * them in most years, at a rate that differs by family, so traditions form, lapse, come back and pass on.
+ */
+function keepTraditions(s: GameState, ctx: StyleCtx, ids: string[], rate: number): GameState {
+  if (age(s) < 25) return s;
+  for (const id of ids) {
+    if (stableHash(`${ctx.seed}:${id}:likes`) % 100 >= 60) continue;
+    if (stableHash(`${ctx.seed}:${s.year}:${id}:keep`) / 4294967296 >= rate) continue;
+    s = tryActivity(s, id);
+  }
+  return s;
+}
+const familyRate = (ctx: StyleCtx, lo: number) => lo + (ctx.seed % 4) * 0.1;
+
 function bigFamilyAct(s: GameState): GameState {
   if (age(s) < 22) return s;
   const ps = activePartnership(s, me(s).id);
@@ -415,7 +430,7 @@ export const PLAY_STYLES: PlayStyle[] = [
   {
     id: 'soldier', core: false, start: 'child', lives: 180,
     plan: soldierPlan,
-    act: soldierAct,
+    act: (s, ctx) => soldierAct(keepTraditions(s, ctx, ['host_holiday', 'grandparents_dinner', 'holiday_lights'], familyRate(ctx, 0.45))),
     prefer: soldierPrefer,
   },
   {
@@ -434,14 +449,15 @@ export const PLAY_STYLES: PlayStyle[] = [
   {
     id: 'socialite', core: false, start: 'child', lives: 24,
     plan: corePlan('balanced'),
-    act: socialiteAct,
+    act: (s, ctx) => socialiteAct(keepTraditions(s, ctx, ['road_trip', 'game_night', 'concert'], familyRate(ctx, 0.5)), ctx),
     prefer: (pe) => [...socialitePrefer(pe), ...familyPrefer(pe)],
   },
   {
     // A pro-sports family with expensive tastes: the money that buys (and fills) a mansion.
     id: 'tycoon', core: false, start: 'child', lives: 20,
     plan: (s) => athletePlan(s, 'family'),
-    act: (s, ctx) => spenderAct(bigFamilyAct(athleteAct(s, ctx, sportFor(ctx, ['basketball', 'baseball', 'football']))), ctx),
+    // Traditions first each year (before energy goes to everything else).
+    act: (s, ctx) => spenderAct(bigFamilyAct(athleteAct(keepTraditions(s, ctx, ['host_holiday', 'game_night', 'holiday_lights', 'birthday_camping', 'grandparents_dinner'], familyRate(ctx, 0.55)), ctx, sportFor(ctx, ['basketball', 'baseball', 'football']))), ctx),
     prefer: (pe, s) => [...bigFamilyPrefer(pe, s), ...athletePrefer()],
   },
   {

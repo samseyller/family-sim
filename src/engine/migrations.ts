@@ -111,6 +111,19 @@ const STEPS: Record<number, Step> = {
   },
   // v24 → v25: recognized story patterns (a new thread kind) and story-marked journal entries (optional). Nothing to rewrite.
   24: (s) => s,
+  // v25 → v26: live family traditions. A tradition recognized in the last two years becomes a live one (up to three
+  // per player), so nobody loses one they just started. Malformed threads are left alone.
+  25: (s) => {
+    if (!Array.isArray(s.threads) || typeof s.year !== 'number') return s;
+    const live = (owner: unknown) => s.threads.filter((t: any) => isObj(t) && t.kind === 'tradition' && t.ownerId === owner && t.closed === undefined).length;
+    for (const t of [...s.threads]) {
+      if (!isObj(t) || t.kind !== 'pattern' || typeof t.detail !== 'string' || !t.detail.startsWith('tradition:') || typeof t.closed !== 'number') continue;
+      if (s.year - t.closed > 2 || typeof t.ownerId !== 'string' || live(t.ownerId) >= 3) continue;
+      const hits = Array.isArray(t.hits) ? t.hits.filter((y: unknown) => Number.isInteger(y)).slice(-8) : [];
+      s.threads.push({ kind: 'tradition', ownerId: t.ownerId, detail: t.detail.slice('tradition:'.length), since: typeof t.since === 'number' ? t.since : t.closed, hits, count: hits.length, takers: {} });
+    }
+    return s;
+  },
   10: (s) => {
     const garages: Record<string, number> = { 'Starter home': 0, 'Family home': 2, 'Large home': 2 };
     for (const hh of isObj(s.households) ? Object.values(s.households).filter(isObj) : []) {

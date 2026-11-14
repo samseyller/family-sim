@@ -66,7 +66,7 @@ for (const style of PLAY_STYLES) for (const seed of seedRange(FIRST, LIVES)) {
     const k = e.knownFor.replace(/ as an? .*/, '').replace(/^mastering .*/, 'mastering a craft');
     (remembered[style.id] ??= {})[k] = (remembered[style.id][k] ?? 0) + 1;
   }
-  for (const [id, n] of Object.entries(sample.events)) if (STORY_IDS.has(id) || id === 'work_family_crossroads' || id === 'retirement_purpose' || id === 'sibling_rivalry') followUps[id] = (followUps[id] ?? 0) + n;
+  for (const [id, n] of Object.entries(sample.events)) if (STORY_IDS.has(id) || id === 'big_break' || id === 'work_family_crossroads' || id === 'retirement_purpose' || id === 'sibling_rivalry') followUps[id] = (followUps[id] ?? 0) + n;
 }
 
 const total = Object.values(fired).reduce((a, b) => a + b, 0);
@@ -94,6 +94,23 @@ for (const th of threads.values()) {
 for (const [kind, k] of Object.entries(kinds).sort((a, b) => b[1].n - a[1].n)) {
   console.log(`${kind.padEnd(14)}${pad((k.n / years * 100).toFixed(2), 7)}/100y   ${Object.entries(k.out).sort((a, b) => b[1] - a[1]).map(([o, n]) => `${o} ${Math.round(n / k.n * 100)}%`).join(', ')}`);
 }
+// Traditions: one per family line and activity (a passed-on tradition keeps its `since`).
+const byTradition = new Map<string, Thread[]>();
+for (const [key, th] of threads) if (th.kind === 'tradition') {
+  const k = `${key.split(':')[0]}:${th.detail}:${th.since}`;
+  byTradition.set(k, [...(byTradition.get(k) ?? []), th]);
+}
+const tradList = [...byTradition.values()];
+if (tradList.length) {
+  const final = tradList.map((ts) => ts.sort((a, b) => (b.count ?? 0) - (a.count ?? 0))[0]);
+  const lives = PLAY_STYLES.length * LIVES;
+  const passed = tradList.filter((ts) => ts.some((t) => t.inherited)).length;
+  const lapsed = final.filter((t) => t.outcome === 'lapsed').length;
+  const carried = [...threads.values()].filter((t) => t.kind === 'pattern' && t.detail?.startsWith('carried:')).length;
+  const avg = final.reduce((a, t) => a + (t.count ?? 0), 0) / final.length;
+  console.log(`\nTraditions: ${final.length} in ${lives} lives; average ${avg.toFixed(1)} years kept; ${Math.round(passed / final.length * 100)}% passed to an heir; ${Math.round(lapsed / final.length * 100)}% lapsed (last state); ${carried} carried on by grown children`);
+}
+
 console.log('\nFollow-up events per 100 played years');
 for (const [id, n] of Object.entries(followUps).sort((a, b) => b[1] - a[1])) console.log(`${id.padEnd(26)}${pad((n / years * 100).toFixed(2), 7)}`);
 const storyTotal = Object.entries(followUps).filter(([id]) => STORY_IDS.has(id)).reduce((a, [, n]) => a + n, 0);

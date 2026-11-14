@@ -16,7 +16,8 @@
  *   reconsidered  once set on achievement, now wanting connection or service, after real years of work
  */
 import { CAREER_BY_ID } from '../content/careers';
-import { hobbyName, TRADITIONS } from './narrative';
+import { hobbyName } from './narrative';
+import { TRADITIONS } from './traditions';
 import type { GameState, Hobby, Person, Thread } from './types';
 import { active, ageOf, alive, childrenOf, getBond, journal, membersOf } from './util';
 
@@ -42,7 +43,7 @@ export function findPatterns(s: GameState, me: Person): Found[] {
 
   if (membersOf(s, me.householdId).length >= 2) {
     for (const [id, label] of Object.entries(TRADITIONS)) {
-      const years = [...new Set((s.activityLog ?? []).filter((x) => x.id === id && x.year > year - 5).map((x) => x.year))].sort((a, b) => a - b);
+      const years = [...new Set((s.activityLog ?? []).filter((x) => x.id === id && x.year > year - 5 && (x.with ?? 1) > 0).map((x) => x.year))].sort((a, b) => a - b);
       if (years.length >= 3) out.push({ key: `tradition:${id}`, since: years[0], hits: years, text: `${label} has become a family tradition.` });
     }
   }
